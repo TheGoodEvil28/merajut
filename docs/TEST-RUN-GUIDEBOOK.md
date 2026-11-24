@@ -186,3 +186,18 @@ Role affected is the repository maintainer. Use a local checkout on `main` and a
 3. Run `git push -u origin main`. Compare `git rev-parse HEAD` and `git ls-remote origin refs/heads/main`. Expect matching commit hashes and `main` to track `origin/main`.
 
 Checked both remote URLs after updating `origin`. The remote had no `main`, and the dry run reported a new branch. Customer and tailor flows and GitHub Actions were not exercised for this repository change.
+
+### Landing visual refresh · 25 November 2026 WIB
+
+Roles affected are guest, customer and tailor, because the footer and the navbar border are shared by every page. Prerequisites: the dev-mode stack above, on `http://localhost:3100/`, with the demo seed. The shop banner (**Punya usaha jahit?**) shows only to guests and tailors. Use synthetic accounts only.
+
+1. As a guest at desktop width, open `/`. Expect larger gaps between the hero, **Layanan jahit di sekitar Anda**, **Cara memesan di Marajut** and the shop banner. Expect wider card gaps, larger step icons, a taller banner and no line under the navbar. Service cover images carry a 10% black tint, and the category tag stays readable.
+2. Scroll down. The navbar stays out of view until you scroll more than one viewport height. Then it slides in from above, fixed, with a soft shadow and no jump in the page content. Scroll back above one viewport height. It slides out and the normal header is back.
+3. At the bottom, expect the logo with a one-line description on the left. On the right expect **Halaman** (Cari Penjahit, Cara memesan, Untuk penjahit) and **Kontak**. The contact address `halo@marajut.test` is a placeholder to replace with a real one.
+4. Repeat at 375 px: no horizontal scroll, one-column footer, and the pinned navbar covers no content.
+5. Sign in as a customer and as a tailor. The footer's third page link becomes **Pesanan Saya** or **Ruang usaha**. Open a tailor workspace page and confirm the sidebar, page spacing and footer still look right.
+6. Repeat T1 for the customer and T11 for the tailor, since shared layout changed.
+
+Checks run in the in-app browser against the running dev server: computed styles for the header border, section padding, card gap, icon size, tint and footer columns; the navbar pin, release and leave cycle with scroll events dispatched by script; and a 375 px overflow check (the guest page). Screenshots showed the pinned navbar, steps, banner and footer at desktop width.
+
+Not verified: the pane does not run animation frames, so the slide animation and real trackpad scrolling were not seen. Signed-in footer links, tailor workspace pages, the tablet width, keyboard focus on the pinned navbar, `npm test`, axe-core, and the T1/T11 customer and tailor regressions were not run.

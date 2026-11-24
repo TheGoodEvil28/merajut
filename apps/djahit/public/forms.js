@@ -121,3 +121,26 @@ if (photo) {
     }
   });
 }
+
+// Storefront navbar: after about one viewport of scrolling it slides back in from above.
+const storefront = document.body.classList.contains('market-shell') ? document.querySelector('.site-header') : null;
+if (storefront) {
+  const root = document.body;
+  const sync = () => {
+    const past = window.scrollY > window.innerHeight;
+    const pinned = root.classList.contains('nav-pinned');
+    if (past) {
+      root.style.setProperty('--nav-h', `${storefront.offsetHeight}px`);
+      root.classList.remove('nav-leaving');
+      root.classList.add('nav-pinned');
+    } else if (!past && pinned && !root.classList.contains('nav-leaving')) {
+      root.classList.add('nav-leaving');
+      const finish = () => root.classList.remove('nav-pinned', 'nav-leaving');
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) finish();
+      else setTimeout(() => { if (root.classList.contains('nav-leaving')) finish(); }, 260);
+    }
+  };
+  addEventListener('scroll', sync, { passive: true });
+  addEventListener('resize', sync);
+  sync();
+}
