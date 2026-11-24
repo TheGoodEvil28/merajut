@@ -160,3 +160,13 @@ Visual checkpoints from that run show the [desktop marketplace](product/evidence
 Screenshots show [guest confirmation](product/evidence/pilot-verifikasi.png), [platform management](product/evidence/pilot-pengelola.png), and [cash receipt in the customer workspace](product/evidence/pilot-tunai.png).
 
 The operator notification-retry control remains unverified in Chrome. The CI workflow was added to the workspace and has not run on GitHub. Production email, official WhatsApp delivery, off-host backup scheduling, field usability and real-data retention remain unverified. Historical retention was not applied to the primary volume.
+
+### GitHub repository push · 24 November 2026 WIB
+
+Role affected is the repository maintainer. Use a local checkout on `main` and a GitHub credential with write access to `TheGoodEvil28/merajut`.
+
+1. Run `git remote -v`. Expect both fetch and push URLs for `origin` to point to `https://github.com/TheGoodEvil28/merajut.git`.
+2. Run `git push --dry-run origin main`. For the initial push, expect Git to report that it will create `main`.
+3. Run `git push -u origin main`. Compare `git rev-parse HEAD` and `git ls-remote origin refs/heads/main`. Expect matching commit hashes and `main` to track `origin/main`.
+
+Checked both remote URLs after updating `origin`. The remote had no `main`, and the dry run reported a new branch. Customer and tailor flows and GitHub Actions were not exercised for this repository change.
