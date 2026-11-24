@@ -222,3 +222,18 @@ Roles affected are guest and customer (storefront pages only). Prerequisites: th
 ### Navbar height reverted · 25 November 2026 WIB
 
 Roles affected are guest, customer and tailor (shared navbar). The navbar minimum height is back to 4.7 rem (3.8 rem on phones), and the hero height is again viewport height minus 4.7 rem. This supersedes the 45 px navbar expectation in the hero follow-up entry above. Open `/` at desktop width: expect the navbar about 75 px tall and the navbar plus hero to fill the first screen. The 0.6 viewport reveal threshold is unchanged. Checks run: measured navbar height and hero bottom edge against the viewport (see results in the hand-off). Not verified: 375 px, signed-in pages and the tailor workspace.
+
+### Lenis smooth scroll on the landing page · 25 November 2026 WIB
+
+Roles affected are guest and customer (the storefront landing page `/` only; login, workspace and request pages do not load Lenis). Prerequisites: the dev-mode stack above. This change adds the pinned dependency `lenis@1.3.28`. Run `npm.cmd ci` once on a fresh checkout. A Docker-only stack needs `docker compose up -d --build web`, because the image installs dependencies at build time.
+
+1. Open `/` and scroll with the mouse wheel and a trackpad. Expect eased, smooth motion instead of stepped jumps. Page height and layout do not change.
+2. Select **Cari Penjahit**, **Cara kerja** and **Bagaimana cara memesan?**. Expect an eased scroll that lands with the section heading visible below the pinned navbar.
+3. Scroll past 0.6 of the viewport. The navbar still slides in and out as before.
+4. Turn on the OS **reduce motion** setting and reload. Expect plain native scrolling.
+5. Open `/login` and a workspace page. Expect normal browser scrolling, with no `lenis` class on `<html>`.
+6. Use the keyboard (Tab, Space, Page Down, End) and open the browser console. Expect no errors.
+
+Checks run in the in-app browser on the dev server: the three Lenis assets return 200 with correct types, `window.Lenis` exists, `<html>` gets the `lenis` class, the console has no errors or CSP violations, the login page does not reference Lenis, and the Lenis scroll position matches `scrollY` while the navbar pins and releases (scroll events were dispatched by script). `npm audit` reported 0 vulnerabilities on install.
+
+Not verified: the feel of the smoothing (this pane does not run animation frames), real mouse wheel and trackpad input, anchor landing offset (`-88` px, set by estimate), touch devices, reduce-motion behaviour, keyboard scrolling, a Docker rebuild, and `npm test`.

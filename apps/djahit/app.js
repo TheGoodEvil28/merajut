@@ -101,6 +101,9 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
   app.locals.serviceCategories = serviceCategories;
   app.locals.mode = mode;
   app.locals.intakeEnabled = mode === 'simulated' && simulatedInbound();
+  app.use('/assets/vendor/lenis', express.static(fileURLToPath(new URL('../../node_modules/lenis/dist/', import.meta.url)), {
+    index: false, dotfiles: 'ignore', lerp: 0.06
+  }));
   app.use('/assets', express.static(fileURLToPath(new URL('./public/', import.meta.url)), {
     index: false, dotfiles: 'ignore'
   }));
