@@ -122,12 +122,12 @@ if (photo) {
   });
 }
 
-// Storefront navbar: after about one viewport of scrolling it slides back in from above.
+// Storefront navbar: after scrolling about 0.6 of a viewport it slides back in from above.
 const storefront = document.body.classList.contains('market-shell') ? document.querySelector('.site-header') : null;
 if (storefront) {
   const root = document.body;
   const sync = () => {
-    const past = window.scrollY > window.innerHeight;
+    const past = window.scrollY > window.innerHeight * 0.6;
     const pinned = root.classList.contains('nav-pinned');
     if (past) {
       root.style.setProperty('--nav-h', `${storefront.offsetHeight}px`);

@@ -125,7 +125,7 @@ Use a fresh synthetic stack with the workday seed, the local mailbox and two sep
 | Role | Reproducible action | Expected result |
 | --- | --- | --- |
 | Guest | Open the homepage at 320 px, 360 px and desktop width. Tab to **Lewati ke konten**. Select **Cari Penjahit**, use a category and open a shop. Then use **Cara kerja** to read the ordering steps. | The wordmark and Masuk share the top row. Links remain reachable. The steps explain where to provide details, accept the price and track the work. Public cards show the shop’s own listings. |
-| Guest → customer | Use **Coba chat WhatsApp (simulasi)** in the hero or **Buka simulasi WhatsApp** in Cara kerja. Sign in as Bima. Follow T2. | Sign-in explains the simulation and returns directly to it. Messages stay inside Marajut. The selected service and scope follow the converted request. |
+| Guest → customer | Use **Buka simulasi WhatsApp** in Cara kerja (the hero no longer carries a chat link). Sign in as Bima. Follow T2. | Sign-in explains the simulation and returns directly to it. Messages stay inside Marajut. The selected service and scope follow the converted request. |
 | Guest → tailor | In the second session use **Untuk penjahit**, sign in as Dewi and open **Chat WhatsApp · simulasi** from Ringkasan. Claim the conversation, reply, create the request and send a quote. | The tile opens the assigned queue. Bima can see the reply, open the linked request and approve the exact quote. Dewi can resolve the conversation. |
 | Customer and tailor | Complete T1 and T5 on the ordinary web route. Check **Layanan Saya**, **Profil Usaha**, **Pesanan Saya**, pickup and history. Repeat guest confirmation and recovery with T8. | Normal web entry keeps the selected service. Shop and customer see the same accepted quote and order progress. Verification and recovery messages use Marajut. |
 | Web-only configuration | Run the HTTP suite for the disabled-mode case. Open the public catalog and login with the simulator return path in that configuration. | The catalog still offers quotations. It omits chat entry links, ignores the unavailable return path, and the simulator route is unavailable. |
@@ -192,7 +192,7 @@ Checked both remote URLs after updating `origin`. The remote had no `main`, and 
 Roles affected are guest, customer and tailor, because the footer and the navbar border are shared by every page. Prerequisites: the dev-mode stack above, on `http://localhost:3100/`, with the demo seed. The shop banner (**Punya usaha jahit?**) shows only to guests and tailors. Use synthetic accounts only.
 
 1. As a guest at desktop width, open `/`. Expect larger gaps between the hero, **Layanan jahit di sekitar Anda**, **Cara memesan di Marajut** and the shop banner. Expect wider card gaps, larger step icons, a taller banner and no line under the navbar. Service cover images carry a 10% black tint, and the category tag stays readable.
-2. Scroll down. The navbar stays out of view until you scroll more than one viewport height. Then it slides in from above, fixed, with a soft shadow and no jump in the page content. Scroll back above one viewport height. It slides out and the normal header is back.
+2. Scroll down. The navbar stays out of view until you scroll more than 0.6 of the viewport height (changed from 1.0 on 25 November). Then it slides in from above, fixed, with a soft shadow and no jump in the page content. Scroll back above 0.6 of the viewport height. It slides out and the normal header is back.
 3. At the bottom, expect the logo with a one-line description on the left. On the right expect **Halaman** (Cari Penjahit, Cara memesan, Untuk penjahit) and **Kontak**. The contact address `halo@marajut.test` is a placeholder to replace with a real one.
 4. Repeat at 375 px: no horizontal scroll, one-column footer, and the pinned navbar covers no content.
 5. Sign in as a customer and as a tailor. The footer's third page link becomes **Pesanan Saya** or **Ruang usaha**. Open a tailor workspace page and confirm the sidebar, page spacing and footer still look right.
@@ -201,3 +201,24 @@ Roles affected are guest, customer and tailor, because the footer and the navbar
 Checks run in the in-app browser against the running dev server: computed styles for the header border, section padding, card gap, icon size, tint and footer columns; the navbar pin, release and leave cycle with scroll events dispatched by script; and a 375 px overflow check (the guest page). Screenshots showed the pinned navbar, steps, banner and footer at desktop width.
 
 Not verified: the pane does not run animation frames, so the slide animation and real trackpad scrolling were not seen. Signed-in footer links, tailor workspace pages, the tablet width, keyboard focus on the pinned navbar, `npm test`, axe-core, and the T1/T11 customer and tailor regressions were not run.
+
+### Landing follow-up: hero and navbar · 25 November 2026 WIB
+
+Roles affected are guest, customer and tailor, because the navbar height and the empty-state colour are shared. Prerequisites are the dev-mode stack and demo seed above.
+
+1. As a guest at desktop width, open `/`. Expect a navbar about 45 px tall (60% of before). The navbar and hero together fill the first screen. The hero text and photo share one vertical centre. In the heading, **Setiap Jahitan Terhubung.** is lighter than **Dari Web ke Chat,**. The hero has no **Coba chat WhatsApp (simulasi)** link.
+2. Open `/?q=zzzzqq`. Expect **Tidak ada layanan yang cocok.** in a plum-pink panel with plum text, not green. The same panel is used for empty tailor queues, so also open an empty queue as a tailor.
+3. Repeat at 375 px: the hero fits the first screen below the two-row navbar with no horizontal scroll.
+4. The chat simulation entry points left are **Buka simulasi WhatsApp** in Cara memesan and the **Chat simulasi** navbar link for signed-in users. Repeat T2 and T11 from those.
+
+Checks run in the in-app browser on the dev server: computed navbar height (45 px), hero bottom edge against the viewport (800 px at desktop, 814 px against 812 px at 375 px before a 0.2 rem correction, then not re-measured), centre alignment, heading weights, absence of the chat link, empty-state colours, and horizontal overflow at 375 px.
+
+Not verified: the 0.2 rem mobile correction after it was applied, tablet widths, the empty tailor queue colour, signed-in navbar height, short laptop screens where the hero text may exceed one screen, `npm test`, and the T2/T11 regressions.
+
+### Navbar reveal threshold · 25 November 2026 WIB
+
+Roles affected are guest and customer (storefront pages only). Prerequisites: the dev-mode stack above. Open `/` at desktop width and scroll. Expect the navbar to slide in from above once you pass 0.6 of the viewport height (480 px on an 800 px screen) and to slide out again when you scroll back above that line. The navbar height stays at the reduced 45 px. Checked by script only: scroll events dispatched at 400 px (still hidden) and 500 px (pinned) were not run after this change; the slide animation itself is not verified. See the landing refresh entry above for the other unverified items.
+
+### Navbar height reverted · 25 November 2026 WIB
+
+Roles affected are guest, customer and tailor (shared navbar). The navbar minimum height is back to 4.7 rem (3.8 rem on phones), and the hero height is again viewport height minus 4.7 rem. This supersedes the 45 px navbar expectation in the hero follow-up entry above. Open `/` at desktop width: expect the navbar about 75 px tall and the navbar plus hero to fill the first screen. The 0.6 viewport reveal threshold is unchanged. Checks run: measured navbar height and hero bottom edge against the viewport (see results in the hand-off). Not verified: 375 px, signed-in pages and the tailor workspace.

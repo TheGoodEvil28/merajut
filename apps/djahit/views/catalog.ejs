@@ -11,8 +11,7 @@
       <% if (filters.category) { %><input type="hidden" name="category" value="<%= filters.category %>"><% } %>
       <button>Cari</button>
     </form>
-    <% if (intakeEnabled) { %><a class="intro-how" href="/workspace/intake"><%- include('icon', {name:'chat'}) %> Coba chat WhatsApp (simulasi)</a>
-    <% } else { %><a class="intro-how" href="#cara-kerja">Bagaimana cara memesan? <span aria-hidden="true">↓</span></a><% } %>
+    <% if (!intakeEnabled) { %><a class="intro-how" href="#cara-kerja">Bagaimana cara memesan? <span aria-hidden="true">↓</span></a><% } %>
   </div>
   <div class="market-intro-photo"><img src="/assets/tailor-workshop.webp" width="1200" height="800" alt="Tangan penjahit mengarahkan kain melewati jarum mesin jahit" fetchpriority="high"></div>
 </section>

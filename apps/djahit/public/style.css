@@ -87,13 +87,13 @@ button:disabled { cursor: not-allowed; opacity: .65; }
 .footer-links a:hover { color: var(--plum); text-decoration: underline; }
 
 /* Marketplace */
-.market-intro { display: grid; grid-template-columns: 1.05fr 1fr; align-items: stretch; gap: clamp(1.5rem,4vw,4.5rem); padding-block: clamp(1.5rem,3.6vw,3.25rem); }
+.market-intro { display: grid; grid-template-columns: 1.05fr 1fr; align-items: center; align-content: center; min-height: calc(100svh - 4.7rem); gap: clamp(1.5rem,4vw,4.5rem); padding-block: clamp(1.5rem,3.6vw,3.25rem); }
 .market-intro-copy { align-self: center; }
 .market-location { display: inline-flex; align-items: center; gap: .4rem; color: var(--clay); font-size: .9rem; font-weight: 690; margin-bottom: 1rem; }
 .market-intro h1 { font-size: clamp(3.15rem,5.35vw,4.5rem); color: var(--plum); letter-spacing: -.065em; line-height: 1.02; font-weight: 700; text-wrap: balance; }
-.market-intro h1 em { font: 200 .98em/1, serif; letter-spacing: -.06em; }
+.market-intro h1 em { font-weight: 400; letter-spacing: -.06em; }
 .market-intro-copy > p:not(.market-location) { max-width: 49ch; color: var(--muted); margin: 1.15rem 0; }
-.market-intro-photo { position: relative; min-height: 19rem; overflow: hidden; border-radius: 7rem 1rem 5rem 1rem; background: #c4a983; }
+.market-intro-photo { position: relative; min-height: clamp(20rem, 62svh, 40rem); overflow: hidden; border-radius: 7rem 1rem 5rem 1rem; background: #c4a983; }
 .market-intro-photo img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; object-position: center 46%; }
 .market-intro-photo::after { content: ""; position: absolute; inset: .65rem; border: 1px dashed #fffb; border-radius: 6.5rem .7rem 4.5rem .7rem; pointer-events: none; }
 .intro-how { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; font-size: .89rem; font-weight: 650; }
@@ -202,8 +202,8 @@ button:disabled { cursor: not-allowed; opacity: .65; }
 .queue-date .icon { width: .87rem; height: .87rem; }
 .queue-controls { justify-items: end; text-align: right; }
 .queue-controls > a { margin-bottom: -.4rem; }
-.queue-empty { padding: 1.25rem; background: #edf2e9; border-radius: .7rem; overflow-wrap: anywhere; }
-.queue-empty > .icon { color: var(--link); margin-right: .45rem; }
+.queue-empty { padding: 1.25rem; background: #f6e3e8; border: 1px solid #e6c4ce; color: var(--plum); border-radius: .7rem; overflow-wrap: anywhere; }
+.queue-empty > .icon { color: var(--plum); margin-right: .45rem; }
 .queue-empty p { margin: .35rem 0 0; color: var(--muted); }
 .other-queues summary, .order-group h2 { font: 700 1.35rem/1.15 var(--display); letter-spacing: -.035em; }
 .other-queues summary { min-height: 44px; align-content: center; }
@@ -332,7 +332,7 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
   .studio-shell .site-header nav, .market-shell:has(.nav-account form) .site-header nav { grid-column: 1/-1; grid-row: 2; margin: 0; display: flex; align-items: stretch; gap: .12rem; padding: .2rem 0 .3rem; }
   .studio-shell .site-header nav a { flex: 1 1 0; justify-content: center; text-align: center; flex-direction: column; gap: .08rem; padding: .32rem .1rem; font-size: .74rem; }
   .studio-shell .site-header nav a .icon { display: block; width: 1rem; height: 1rem; }
-  .market-intro { grid-template-columns: 1fr; gap: 1rem; }
+  .market-intro { grid-template-columns: 1fr; gap: 1rem; min-height: calc(100svh - 6.2rem); }
   .market-intro h1 { font-size: clamp(2.18rem,10.5vw,3.7rem); }
   .market-intro h1 em { text-wrap: balance; }
   .market-intro-photo { min-height: 0; height: clamp(8rem,30vw,14rem); border-radius: 3rem .8rem 2rem .8rem; }
