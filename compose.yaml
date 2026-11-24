@@ -1,0 +1,97 @@
+name: djahit
+x-app: &app
+  build:
+    context: .
+    dockerfile: infra/Dockerfile
+  image: djahit-local
+  environment: &app-env
+    DJAHIT_ENV: local
+    PGHOST: db
+    PGUSER: djahit
+    PGDATABASE: djahit
+    PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    PORT: 3100
+    BIND_HOST: 0.0.0.0
+    APP_ORIGIN: http://localhost:${APP_PORT:-3100}
+    MESSAGING_MODE: ${MESSAGING_MODE:-simulated}
+
+services:
+  mail:
+    image: sj26/mailcatcher@sha256:5d153a4daadf0c266f29c3856085741f06ca1e3768671f4267622d3e3ffe5564
+    ports:
+      - "127.0.0.1:${MAIL_PORT:-3101}:1080"
+    restart: unless-stopped
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: djahit
+      POSTGRES_DB: djahit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "djahit", "-d", "djahit"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *app
+    command: ["npm", "run", "db:migrate"]
+    depends_on:
+      db: { condition: service_healthy }
+
+  seed:
+    <<: *app
+    profiles: ["tools"]
+    command: ["npm", "run", "db:seed"]
+    environment:
+      DJAHIT_ENV: local
+      PGHOST: db
+      PGUSER: djahit
+      PGDATABASE: djahit
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    <<: *app
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      SIMULATION_WEBHOOK_SECRET: ${SIMULATION_WEBHOOK_SECRET:-}
+    ports:
+      - "127.0.0.1:${APP_PORT:-3100}:3100"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3100/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  worker:
+    <<: *app
+    restart: unless-stopped
+    command: ["node", "apps/djahit/worker.js"]
+    stop_grace_period: 30s
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  test:
+    <<: *app
+    profiles: ["tools"]
+    command: ["npm", "test"]
+    environment:
+      DJAHIT_ENV: test
+      PGHOST: db
+      PGUSER: djahit
+      PGDATABASE: djahit
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    depends_on:
+      db: { condition: service_healthy }
+
+volumes:
+  data:

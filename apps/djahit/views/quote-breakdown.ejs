@@ -1,0 +1,8 @@
+<% if (items?.length) { %>
+  <ul class="quote-breakdown" aria-label="Rincian harga">
+    <% for (const item of items) { %>
+      <li><div><strong><%= item.name %></strong><span><%= item.quantity %> × <%= money(item.unitPrice) %></span></div>
+        <strong><%= money(item.quantity * item.unitPrice) %></strong></li>
+    <% } %>
+  </ul>
+<% } %>

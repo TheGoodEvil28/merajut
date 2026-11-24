@@ -1,0 +1,18 @@
+<%- include('header') %>
+<section class="section">
+  <a class="back" href="/#services">Cari Penjahit</a>
+  <div class="profile-banner shop-identity">
+    <span class="shop-mark"><%- include('icon', {name:'shop'}) %></span>
+    <div><p class="location"><%- include('icon', {name:'pin'}) %> <%= profile.area %></p>
+      <h1><%= profile.name %></h1><p class="preserve"><%= profile.description %></p></div>
+  </div>
+  <div class="section-caption profile-services"><div><h2>Layanan yang ditawarkan</h2>
+    <p class="muted">Harga awal adalah perkiraan. Penjahit mengirim harga dan tanggal selesai setelah meninjau permintaan.</p></div></div>
+  <% if (!services.length) { %>
+    <p class="notice">Penjahit ini belum menampilkan layanan. <a href="/#services">Cari penjahit lain</a>.</p>
+  <% } %>
+  <div class="cards"><% for (const service of services) { %>
+    <%- include('service-card', { service }) %>
+  <% } %></div>
+</section>
+<%- include('footer') %>

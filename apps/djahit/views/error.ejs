@@ -1,0 +1,7 @@
+<%- include('header', { user: typeof user === 'undefined' ? null : user }) %>
+<section class="narrow section">
+  <h1>Halaman tidak tersedia</h1>
+  <p class="notice error" role="alert"><%= message %></p>
+  <a class="button secondary" href="/workspace">Kembali ke ruang kerja</a>
+</section>
+<%- include('footer') %>

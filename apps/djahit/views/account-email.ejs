@@ -1,0 +1,9 @@
+<%- include('header') %>
+<section class="narrow section"><a class="back" href="/login">Masuk</a><h1><%= title %></h1>
+  <p><%= purpose==='recovery' ? 'Gunakan email akun Anda untuk meminta tautan pemulihan.' : 'Kami akan mengirim tautan untuk memverifikasi email sebelum Anda membuat kata sandi.' %></p>
+  <form method="post" action="<%= path %>" class="stack card">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label>Email<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
+    <button>Kirim tautan</button>
+  </form>
+</section><%- include('footer') %>

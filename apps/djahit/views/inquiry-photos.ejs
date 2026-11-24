@@ -1,0 +1,33 @@
+<% const mayEdit = !isProvider && ['NEW', 'NEEDS_DETAILS', 'UNDER_REVIEW'].includes(inquiry.status); %>
+<% if (photos.length || mayEdit) { %>
+  <section class="card" id="request-photos">
+    <h2>Foto referensi</h2>
+    <p class="muted">Foto hanya dapat dilihat oleh pelanggan dan penjahit yang menangani permintaan.</p>
+    <% if (photos.length) { %>
+      <div class="reference-photos">
+        <% for (const [index, photo] of photos.entries()) { const address = '/api/v1/inquiries/' + inquiry.id + '/photos/' + photo.id; %>
+          <figure>
+            <a href="<%= address %>"><img src="<%= address %>" loading="lazy" alt="Foto referensi <%= index + 1 %>"></a>
+            <% if (mayEdit) { %>
+              <form method="post" action="<%= address %>/remove">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <button class="quiet" name="remove" value="true" aria-label="Hapus foto <%= index + 1 %>">Hapus foto</button>
+              </form>
+            <% } %>
+          </figure>
+        <% } %>
+      </div>
+    <% } %>
+    <% if (mayEdit && photos.length < 3) { %>
+      <form class="photo-upload stack" data-photo-upload data-url="/api/v1/inquiries/<%= inquiry.id %>/photos" hidden>
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <label>Tambahkan foto <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required
+          aria-describedby="photo-help"></label>
+        <p class="form-help muted" id="photo-help">JPEG, PNG, atau WebP. Maksimal 3 MB per foto, sampai tiga foto.</p>
+        <p class="error-message" data-photo-status role="status" hidden></p>
+        <button class="secondary">Unggah foto</button>
+      </form>
+      <noscript><p class="muted">Aktifkan JavaScript untuk menambahkan foto. Permintaan tetap dapat diproses tanpa foto.</p></noscript>
+    <% } %>
+  </section>
+<% } %>

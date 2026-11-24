@@ -1,0 +1,68 @@
+<%- include('header') %>
+<% const glyphs = {inbox:'inbox', work:'scissors', ready:'bag', clarify:'chat', quotes:'quote', handoffs:'chat'}; %>
+<section class="provider-home section">
+  <header class="work-banner">
+    <div><p class="work-kicker"><%- include('icon', {name:'shop'}) %> Ruang usaha · <%= business.area %></p>
+      <h1><%= business.name %></h1></div>
+    <% if (business.published) { %><a class="button secondary" href="/penjahit/<%= business.slug %>">Lihat profil publik <%- include('icon', {name:'external'}) %></a>
+    <% } else { %><span class="status">Profil belum dipublikasikan</span><% } %>
+  </header>
+  <section aria-labelledby="summary-title" class="work-summary">
+    <h2 id="summary-title">Ringkasan pekerjaan</h2>
+    <div class="queue-metrics">
+      <% for (const key of ['inbox', ...(intakeEnabled ? ['handoffs'] : []), 'work','ready']) { %>
+        <a class="queue-metric" href="/workspace?view=<%= key %>#antrean" data-queue="<%= key %>" <% if (view === key) { %>aria-current="true"<% } %>>
+          <span class="metric-glyph"><%- include('icon', {name:glyphs[key]}) %></span>
+          <strong><%= counts[key] ?? 0 %></strong><span class="metric-label"><%= key === 'handoffs' ? 'Chat WhatsApp · simulasi' : queues[key].label %></span>
+          <span class="metric-arrow"><%- include('icon', {name:'external'}) %></span>
+        </a>
+      <% } %>
+    </div>
+  </section>
+  <div class="work-layout">
+    <section id="antrean" class="card work-queue" aria-labelledby="queue-title" tabindex="-1">
+      <header class="section-caption"><div><h2 id="queue-title"><%= queues[view]?.label ?? 'Perlu tindakan' %></h2>
+        <p class="muted"><%= queues[view]?.hint ?? 'Percakapan, permintaan baru, dan pekerjaan yang perlu ditangani.' %></p></div>
+        <% if (view !== 'overview') { %><a href="/workspace#antrean">Semua prioritas</a><% } %>
+      </header>
+      <% if (!items.length) { %>
+        <div class="queue-empty"><%- include('icon', {name:'inbox'}) %><strong><%= page > 1 ? 'Tidak ada hasil pada halaman ini.' : 'Belum ada pekerjaan di antrean ini.' %></strong>
+          <% if (view === 'overview') { %><p>Permintaan baru muncul di sini saat pelanggan menghubungi usaha Anda.</p><% } %></div>
+      <% } %>
+      <ul class="queue-list">
+        <% for (const item of items) { %>
+          <li class="queue-entry">
+            <div class="queue-item">
+              <div class="queue-meta"><span class="queue-source"><%= item.source === 'whatsapp' ? 'WhatsApp · simulasi' : 'Situs web' %></span><span><%= item.customer_name %></span></div>
+              <strong><%= item.service %></strong>
+              <% if (item.brief) { %><span class="queue-brief"><%= item.brief %></span><% } %>
+              <span class="queue-date"><%- include('icon', {name:'clock'}) %><%= item.due_date ? ((['work','ready','history'].includes(item.queue)) ? 'Perkiraan selesai ' : 'Tanggal diminta ') + localDate(item.due_date) : dateTime(item.activity_at) %></span>
+            </div>
+            <div class="queue-controls">
+              <span class="status" data-state="<%= item.status %>"><%= statusLabel(item.status) %></span>
+              <% if (item.overdue) { %><span class="status late">Lewat tenggat</span><% } %>
+              <a href="<%= item.kind === 'conversation' ? '/workspace/intake/' : '/requests/' %><%= item.id %>">
+                <%= queues[item.queue].action %><span class="sr-only"> · <%= item.service %></span><%- include('icon', {name:'arrow'}) %>
+              </a>
+            </div>
+          </li>
+        <% } %>
+      </ul>
+      <% if (view !== 'overview' && (page > 1 || page * limit < (counts[view] ?? 0))) { %>
+        <nav class="actions" aria-label="Halaman antrean">
+          <% if (page > 1) { %><a href="/workspace?view=<%= view %>&page=<%= page - 1 %>#antrean">Sebelumnya</a><% } %>
+          <% if (page * limit < counts[view]) { %><a href="/workspace?view=<%= view %>&page=<%= page + 1 %>#antrean">Berikutnya</a><% } %>
+        </nav>
+      <% } %>
+    </section>
+    <details class="card other-queues" data-queue-menu open>
+      <summary>Antrean lain</summary>
+      <% for (const key of ['clarify','quotes','history']) { %>
+        <a data-queue="<%= key %>" href="/workspace?view=<%= key %>#antrean" <% if (view === key) { %>aria-current="true"<% } %>>
+          <%- include('icon', {name:glyphs[key] ?? 'clock'}) %><span><%= queues[key].label %></span><b><%= counts[key] ?? 0 %></b>
+        </a>
+      <% } %>
+    </details>
+  </div>
+</section>
+<%- include('footer') %>

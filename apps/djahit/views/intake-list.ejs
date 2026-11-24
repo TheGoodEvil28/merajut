@@ -1,0 +1,10 @@
+<% if (!threads.length) { %><p class="muted">Belum ada percakapan. <%= user.role === 'customer' ? 'Kirim pesan percobaan untuk memulai.' : 'Percakapan muncul saat ada pelanggan yang meminta bantuan.' %></p><% } %>
+<ul class="record-list">
+  <% for (const thread of threads) { %>
+    <li><a href="/workspace/intake/<%= thread.id %>">
+      <strong><%= thread.service ?? 'Percakapan belum diarahkan' %></strong>
+      <% if (thread.business) { %><span><%= thread.business %></span><% } %>
+      <% if (thread.draft_at && !thread.inquiry_id) { %><span>Draf siap</span><% } %>
+    </a><span class="status"><%= labels[thread.state] %></span></li>
+  <% } %>
+</ul>

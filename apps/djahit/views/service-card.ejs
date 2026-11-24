@@ -1,0 +1,17 @@
+<% const swatch = service.category === 'repair' ? (/ritsleting|resleting|zipper/i.test(service.name + ' ' + service.description) ? 'zip' : 'stitch') : service.category === 'alteration' ? 'hem' : service.category === 'custom' ? 'cut' : 'stitch'; %>
+<article class="card service-card">
+  <div class="service-cover">
+    <img src="/assets/swatch-<%= swatch %>.webp" width="560" height="310" alt="" loading="lazy">
+    <span class="tag"><%= serviceCategories[service.category] %></span>
+  </div>
+  <div class="service-body">
+    <% if (service.slug) { %><p class="service-provider"><a href="/penjahit/<%= service.slug %>"><%= service.business %></a><span> · <%= service.area %></span></p><% } %>
+    <h3><%= service.name %></h3>
+    <p class="preserve"><%= service.description %></p>
+    <% if (service.lead_days) { %><p class="lead-time"><%- include('icon', {name:'clock'}) %> Sekitar <%= service.lead_days %> hari</p><% } %>
+    <div class="service-card-footer">
+      <div class="service-price"><% if (service.price_hint) { %><span>Mulai dari</span><strong><%= money(service.price_hint) %></strong><% } else { %><strong>Harga sesuai penawaran</strong><% } %></div>
+      <%- include('request-link', {serviceId:service.id}) %>
+    </div>
+  </div>
+</article>

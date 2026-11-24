@@ -1,0 +1,29 @@
+name: Djahit checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  local-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Start a synthetic workspace
+        run: |
+          printf 'POSTGRES_PASSWORD=%s\nDEMO_PASSWORD=%s\n' "$(openssl rand -hex 20)" "$(openssl rand -hex 18)" > .env
+          docker compose up -d --wait --build
+          docker compose run --rm seed npm run db:seed -- --workday
+      - run: docker compose run --rm test
+      - run: npm run test:browser
+      - run: npm run test:inbound-browser
+      - run: npm run test:pilot-browser
+      - name: Stop test stack
+        if: always()
+        run: docker compose stop

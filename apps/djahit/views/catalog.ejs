@@ -1,0 +1,54 @@
+<%- include('header') %>
+<section class="market-intro" aria-labelledby="market-title">
+  <div class="market-intro-copy">
+    <p class="market-location"><%- include('icon', {name:'pin'}) %> Layanan jahit lokal di Semarang</p>
+    <h1 id="market-title">Dari Web ke Chat,<br><em>Setiap Jahitan Terhubung.</em></h1>
+    <p>Temukan penjahit untuk permak, perbaikan, atau jahit baru. Sepakati harga dan pantau pengerjaannya langsung di web.</p>
+    <form class="market-search" action="/#services" method="get" role="search">
+      <label class="sr-only" for="catalog-search">Cari layanan atau penjahit</label>
+      <%- include('icon', {name:'search'}) %>
+      <input id="catalog-search" name="q" type="search" placeholder="Layanan, penjahit, atau area" value="<%= filters.search %>" maxlength="80">
+      <% if (filters.category) { %><input type="hidden" name="category" value="<%= filters.category %>"><% } %>
+      <button>Cari</button>
+    </form>
+    <% if (intakeEnabled) { %><a class="intro-how" href="/workspace/intake"><%- include('icon', {name:'chat'}) %> Coba chat WhatsApp (simulasi)</a>
+    <% } else { %><a class="intro-how" href="#cara-kerja">Bagaimana cara memesan? <span aria-hidden="true">↓</span></a><% } %>
+  </div>
+  <div class="market-intro-photo"><img src="/assets/tailor-workshop.webp" width="1200" height="800" alt="Tangan penjahit mengarahkan kain melewati jarum mesin jahit" fetchpriority="high"></div>
+</section>
+<section id="services" class="section catalog-section" aria-labelledby="catalog-title">
+  <div class="section-caption"><div><h2 id="catalog-title">Layanan jahit di sekitar Anda</h2>
+    <p class="muted">Bandingkan layanan dan harga awal. Harga akhir tercantum dalam penawaran penjahit.</p></div>
+  </div>
+  <nav class="category-tabs" aria-label="Kategori layanan">
+    <% const icons = { alteration:'scissors', repair:'needle', custom:'shirt', other:'spool' };
+    for (const [key, label] of [['', 'Semua layanan'], ...Object.entries(serviceCategories)]) {
+      const params = new URLSearchParams();
+      if (filters.search) params.set('q', filters.search);
+      if (key) params.set('category', key); %>
+      <a href="/<%= params.size ? '?' + params : '' %>#services" <% if (key === filters.category) { %>aria-current="true"<% } %>><%- include('icon', {name:icons[key] ?? 'grid'}) %><%= label %></a>
+    <% } %>
+  </nav>
+  <% if (filters.search || filters.category) { %>
+    <div class="search-results"><p><%= services.length === 100 ? 'Menampilkan 100 hasil' : services.length + ' hasil' %><% if (filters.search) { %> untuk “<%= filters.search %>”<% } %></p><a href="/#services">Hapus filter</a></div>
+  <% } %>
+  <% if (!services.length) { %><div class="queue-empty"><strong><%= filters.search || filters.category ? 'Tidak ada layanan yang cocok.' : 'Belum ada layanan yang ditampilkan.' %></strong>
+    <p><%= filters.search || filters.category ? 'Pilih kategori lain atau ubah kata pencarian.' : 'Silakan periksa lagi nanti.' %></p></div><% } %>
+  <div class="cards"><% for (const service of services) { %><%- include('service-card', { service }) %><% } %></div>
+</section>
+<section class="how-section" id="cara-kerja" aria-labelledby="how-title">
+  <h2 id="how-title">Cara memesan di Marajut</h2>
+  <ol class="sewing-steps">
+    <li><%- include('icon', {name:'search'}) %><h3>Temukan layanan</h3><p>Bandingkan harga awal, baca profil usaha, lalu pilih layanan yang sesuai.</p><a href="#services">Jelajahi layanan <span aria-hidden="true">↑</span></a></li>
+    <li><%- include('icon', {name:'chat'}) %><h3>Ceritakan kebutuhan</h3><p>Kirim detail dan foto lewat formulir. <% if (intakeEnabled) { %>Anda juga bisa mencoba percakapan WhatsApp di sini. Pesan simulasi hanya tampil di Marajut.<% } else { %>Penjahit dapat meminta keterangan tambahan lewat halaman permintaan.<% } %></p>
+      <% if (intakeEnabled) { %><a href="/workspace/intake">Buka simulasi WhatsApp <span aria-hidden="true">→</span></a><% } %></li>
+    <li><%- include('icon', {name:'bag'}) %><h3>Sepakati dan pantau</h3><p>Periksa harga dan tanggal selesai. Setujui penawaran di akun Anda, lalu ikuti pesanan hingga siap diambil.</p>
+      <% if (!user || user.role === 'customer') { %><a href="/workspace">Lihat pesanan saya <span aria-hidden="true">→</span></a><% } %></li>
+  </ol>
+</section>
+<% if (!user || user.role === 'provider') { %>
+<section class="shop-entry"><div><h2>Punya usaha jahit?</h2><p>Tampilkan layanan Anda, jawab permintaan pelanggan, dan atur pekerjaan dari satu ruang usaha.</p></div>
+  <a class="button" href="<%= user ? '/workspace' : '/login?ruang=usaha' %>">Buka ruang usaha <%- include('icon', {name:'arrow'}) %></a>
+</section>
+<% } %>
+<%- include('footer') %>

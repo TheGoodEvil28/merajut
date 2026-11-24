@@ -1,0 +1,20 @@
+<%- include('header') %>
+<section class="auth-panel">
+  <div class="auth-visual" aria-hidden="true"></div>
+  <div class="auth-content">
+    <h1><%= shopLogin ? 'Masuk ke ruang usaha' : 'Masuk' %></h1>
+    <% if (typeof reset !== 'undefined' && reset) { %><p class="notice" role="status">Kata sandi diperbarui. Masuk kembali dengan kata sandi baru.</p><% } %>
+    <p class="muted"><%= nextPath === '/workspace/intake' ? 'Masuk untuk mencoba simulasi WhatsApp. Pesan hanya muncul di Marajut.' : nextPath ? 'Masuk untuk melanjutkan permintaan pada layanan pilihan Anda.' : shopLogin ? 'Gunakan akun penjahit untuk membuka antrean, menyiapkan penawaran, dan mengatur layanan usaha Anda.' : 'Buka penawaran dan pantau pesanan Anda hingga siap diambil.' %></p>
+    <% if (message) { %><p class="notice error" role="alert"><%= message %></p><% } %>
+    <form class="stack" method="post" action="/api/v1/session">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <% if (nextPath) { %><input type="hidden" name="next" value="<%= nextPath %>"><% } %>
+      <% if (shopLogin) { %><input type="hidden" name="ruang" value="usaha"><% } %>
+      <label>Email <input type="email" name="email" autocomplete="username" maxlength="254" required></label>
+      <label>Kata sandi <input type="password" name="password" autocomplete="current-password" maxlength="128" required></label>
+      <button>Masuk <%- include('icon', {name:'arrow'}) %></button>
+    </form>
+    <div class="actions auth-links"><a href="/akun/lupa">Lupa kata sandi?</a><% if (!shopLogin) { %><a href="/akun/daftar">Daftar sebagai pelanggan</a><% } %></div>
+  </div>
+</section>
+<%- include('footer') %>

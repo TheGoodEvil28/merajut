@@ -1,0 +1,15 @@
+<%- include('header') %>
+<section class="narrow section">
+  <a class="back" href="/workspace/intake">Simulasi WhatsApp</a>
+  <h1>Tautkan pengirim simulasi</h1>
+  <p>Salin kode sekali pakai ke formulir simulasi. Kode berlaku 10 menit. Konfirmasi tautan setelah bukti diproses.</p>
+  <p class="notice preserve"><strong>Kode bukti</strong><br><code><%= challenge.code %></code></p>
+  <form class="card stack" method="post" action="/api/v1/intake/events">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <input type="hidden" name="eventId" value="<%= proofKey %>">
+    <input type="hidden" name="kind" value="binding_proof">
+    <label>Kode dari akun ini<input name="code" pattern="[a-f0-9]{48}" maxlength="48" autocomplete="off" required></label>
+    <button>Kirim bukti simulasi</button>
+  </form>
+</section>
+<%- include('footer') %>

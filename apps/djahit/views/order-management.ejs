@@ -1,0 +1,18 @@
+<% if (order.review_pending) { %><p class="notice">Pengelola sedang meninjau permohonan pembatalan.</p><% } else if (isProvider && ['IN_PROGRESS','READY'].includes(order.status)) { %>
+<details class="card"><summary>Ajukan pembatalan kepada pengelola</summary>
+<form class="stack" method="post" action="/api/v1/provider/orders/<%= order.id %>/review">
+<input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
+<label>Alasan pembatalan<textarea name="reason" minlength="5" maxlength="500" required></textarea></label>
+<button class="secondary">Ajukan peninjauan</button></form></details><% } %>
+<% if (['READY','COMPLETED'].includes(order.status) || order.cash_receipts?.length) {
+  const current = order.cash_receipts?.find(r => !r.voidAt); %>
+<section class="card" id="tunai"><h2>Catatan tunai</h2>
+<% if (!current) { %><p>Belum ada penerimaan tunai yang tercatat.</p><% } else { %><p><strong><%= money(current.amount) %></strong> diterima tunai menurut catatan <%= current.actor %> · <%= dateTime(current.at) %>.</p><% } %>
+<% if (isProvider && ['READY','COMPLETED'].includes(order.status)) { %>
+<details><summary><%= current?'Koreksi catatan tunai':'Catat penerimaan tunai' %></summary>
+<form class="stack" method="post" action="/api/v1/provider/orders/<%= order.id %>/cash">
+<input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.cash_revision %>">
+<% if (current) { %><label>Alasan koreksi<textarea name="reason" minlength="5" maxlength="500" required></textarea></label><button class="secondary" name="action" value="void">Batalkan catatan tunai</button>
+<% } else { %><label class="check-label"><input type="checkbox" name="confirmed" value="yes" required>Saya sudah menerima uang tunai sebesar <%= money(order.amount) %>.</label><button name="action" value="record">Simpan penerimaan</button><% } %>
+</form></details><% } %>
+</section><% } %>

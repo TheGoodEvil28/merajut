@@ -1,0 +1,123 @@
+const money = new Intl.NumberFormat('id-ID', {
+  style: 'currency', currency: 'IDR', maximumFractionDigits: 0
+});
+
+const queueMenu = document.querySelector('[data-queue-menu]');
+if (queueMenu) {
+  const compact = window.matchMedia('(max-width: 720px)');
+  const fitQueueMenu = () => { queueMenu.open = !compact.matches; };
+  compact.addEventListener('change', fitQueueMenu);
+  fitQueueMenu();
+}
+
+const service = document.querySelector('[data-service-picker]');
+const emailProof = document.querySelector('[data-email-proof]');
+if (emailProof && /^#[a-f0-9]{64}$/.test(location.hash)) {
+  emailProof.value = location.hash.slice(1);
+  history.replaceState(null, '', location.pathname);
+}
+const guestPhoto = document.querySelector('[data-guest-photo]');
+if (guestPhoto) {
+  const button = guestPhoto.querySelector('button');
+  const status = guestPhoto.querySelector('[role="status"]');
+  button.hidden = false;
+  guestPhoto.addEventListener('submit', async event => {
+    event.preventDefault();
+    const file = guestPhoto.querySelector('[type="file"]').files[0];
+    if (!file || file.size > 3145728) { status.textContent='Pilih foto hingga 3 MB.'; return; }
+    button.disabled = true;
+    try {
+      const response = await fetch(guestPhoto.action,{method:'POST',headers:{'X-CSRF-Token':guestPhoto.elements._csrf.value},body:file});
+      status.textContent=response.ok ? 'Foto tersimpan dalam draf.' : 'Unggah gagal. Periksa format foto dan masa berlaku draf.';
+    } catch { status.textContent='Koneksi terputus. Silakan coba lagi.'; }
+    finally { button.disabled=false; }
+  });
+}
+if (service) {
+  const hint = document.querySelector('[data-service-hint]');
+  const refresh = () => {
+    const message = service.selectedOptions[0]?.dataset.hint;
+    hint.textContent = message || 'Jelaskan bagian pakaian dan perubahan yang Anda inginkan.';
+  };
+  service.addEventListener('change', refresh);
+  refresh();
+}
+
+const quote = document.querySelector('[data-quote-editor]');
+if (quote) {
+  const lines = quote.querySelector('[data-quote-lines]');
+  const add = quote.querySelector('[data-add-line]');
+  const template = quote.querySelector('template');
+  const total = quote.querySelector('output');
+  let nextIndex = lines.children.length + 1;
+
+  function refresh() {
+    let sum = 0;
+    for (const row of lines.children) {
+      const quantity = row.querySelector('[name="itemQuantity"]').valueAsNumber;
+      const unitPrice = row.querySelector('[name="itemPrice"]').valueAsNumber;
+      if (Number.isFinite(quantity) && Number.isFinite(unitPrice)) sum += quantity * unitPrice;
+    }
+    total.textContent = money.format(sum);
+    add.disabled = lines.children.length >= 8;
+  }
+
+  for (const remove of lines.querySelectorAll('[data-remove-line]')) remove.hidden = false;
+  add.hidden = false;
+  add.addEventListener('click', () => {
+    const row = template.content.firstElementChild.cloneNode(true);
+    const index = nextIndex++;
+    for (const label of row.querySelectorAll('.sr-only')) label.textContent = 'baris ' + index;
+    const remove = row.querySelector('[data-remove-line]');
+    remove.hidden = false;
+    remove.setAttribute('aria-label', 'Hapus rincian baris ' + index);
+    lines.append(row);
+    row.querySelector('input').focus();
+    refresh();
+  });
+  lines.addEventListener('click', event => {
+    const remove = event.target.closest('[data-remove-line]');
+    if (!remove) return;
+    remove.closest('[data-quote-line]').remove();
+    refresh();
+    add.focus();
+  });
+  quote.addEventListener('input', refresh);
+  refresh();
+}
+
+const photo = document.querySelector('[data-photo-upload]');
+if (photo) {
+  photo.hidden = false;
+  photo.addEventListener('submit', async event => {
+    event.preventDefault();
+    const file = photo.elements.photo.files[0];
+    const status = photo.querySelector('[data-photo-status]');
+    const button = photo.querySelector('button');
+    const feedback = message => { status.textContent = message; status.hidden = false; };
+    if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 3 * 1024 * 1024) {
+      feedback('Pilih foto JPEG, PNG, atau WebP berukuran maksimal 3 MB.');
+      return;
+    }
+    button.disabled = true;
+    feedback('Sedang mengunggah foto…');
+    try {
+      const response = await fetch(photo.dataset.url, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type, 'X-CSRF-Token': photo.elements._csrf.value, Accept: 'application/json' },
+        body: file
+      });
+      if (response.ok) {
+        window.location.hash = 'request-photos';
+        window.location.reload();
+        return;
+      }
+      feedback(response.status === 409 ? 'Foto tidak dapat ditambahkan pada status permintaan ini atau batasnya sudah tercapai.'
+        : response.status === 422 ? 'Foto tidak dapat dibaca. Pilih foto lain.' : 'Unggah gagal. Muat ulang halaman dan coba lagi.');
+    } catch {
+      feedback('Unggah gagal. Periksa sambungan dan coba lagi.');
+    } finally {
+      button.disabled = false;
+    }
+  });
+}

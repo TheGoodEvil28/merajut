@@ -1,0 +1,39 @@
+<%- include('header') %>
+<section class="narrow section">
+  <a class="back" href="<%= user ? '/workspace' : '/#services' %>"><%= user ? 'Pesanan Saya' : 'Cari Penjahit' %></a>
+  <h1>Minta penawaran</h1>
+  <p>Jelaskan kebutuhan Anda. Penjahit akan meninjau detail dan mengirim harga serta perkiraan selesai sebelum Anda memutuskan.</p>
+  <% if (!services.length) { %><p class="notice">Belum ada layanan yang menerima permintaan saat ini.</p><% } else { %>
+    <% if (formError) { %><p class="notice error-message" role="alert"><%= formError %></p><% } %>
+    <% if (!user) { %><p class="notice">Isi draf lalu verifikasi email untuk mengirimkannya. Sudah memiliki akun?
+      <a href="/login<%= fields.serviceId ? '?next=' + encodeURIComponent('/requests/new?service='+fields.serviceId) : '' %>">Masuk ke akun</a></p><% } %>
+    <form class="card stack" method="post" action="<%= user ? '/api/v1/inquiries' : '/akun/permintaan' %>">
+      <% if (!user) { %><label>Email untuk verifikasi<input name="email" type="email" autocomplete="email" value="<%= fields.email ?? '' %>" maxlength="254" required></label><% } %>
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <input type="hidden" name="key" value="<%= key %>">
+      <label>Penjahit dan layanan <select name="serviceId" data-service-picker required>
+        <option value="">Pilih layanan</option>
+        <% for (const service of services) { %>
+          <option value="<%= service.id %>" data-hint="<%= service.intake_hint ?? '' %>"
+            <%= service.id === fields.serviceId ? 'selected' : '' %>><%= service.business %> · <%= service.name %></option>
+        <% } %>
+      </select></label>
+      <label>Apa yang perlu dikerjakan?
+        <textarea name="description" minlength="10" maxlength="1500" rows="4" required
+          aria-describedby="service-hint"><%= fields.description ?? '' %></textarea>
+      </label>
+      <p class="form-help muted" id="service-hint" data-service-hint><%= services.find(item => item.id === fields.serviceId)?.intake_hint ??
+        'Jelaskan bagian pakaian dan perubahan yang Anda inginkan.' %></p>
+      <div class="field-pair">
+        <label>Jumlah pakaian<input name="quantity" type="number" min="1" max="50" value="<%= fields.quantity ?? 1 %>" required></label>
+        <label>Tanggal selesai yang diinginkan <span class="label-optional">(opsional)</span>
+          <input type="date" name="desiredDate" value="<%= fields.desiredDate ?? '' %>"></label>
+      </div>
+      <label>Ukuran atau catatan khusus <span class="label-optional">(opsional)</span>
+        <textarea name="fitNotes" maxlength="500" rows="2" placeholder="Contoh: panjang akhir 90 cm."><%= fields.fitNotes ?? '' %></textarea></label>
+      <p class="muted form-help">Anda dapat menambahkan foto pribadi setelah mengirim permintaan.</p>
+      <button><%= user ? 'Kirim permintaan' : 'Simpan draf dan verifikasi email' %></button>
+    </form>
+  <% } %>
+</section>
+<%- include('footer') %>

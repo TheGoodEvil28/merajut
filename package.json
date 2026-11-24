@@ -1,0 +1,35 @@
+{
+  "name": "djahit",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node apps/djahit/server.js",
+    "worker": "node apps/djahit/worker.js",
+    "db:migrate": "node apps/djahit/migrate.js",
+    "db:seed": "node apps/djahit/seed.js",
+    "test": "node --test",
+    "test:browser": "node --env-file=.env scripts/browser-smoke.js",
+    "test:inbound-browser": "node --env-file=.env scripts/inbound-browser-smoke.js",
+    "test:pilot-browser": "node --env-file=.env scripts/pilot-browser-smoke.js",
+    "check": "node scripts/check.js",
+    "build": "npm run check"
+  },
+  "dependencies": {
+    "ejs": "7.0.2",
+    "express": "5.3.0",
+    "express-rate-limit": "8.7.4",
+    "helmet": "8.3.0",
+    "nodemailer": "10.6.0",
+    "pg": "8.23.1",
+    "sharp": "0.35.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "axe-core": "4.14.1",
+    "playwright": "1.65.1"
+  }
+}
