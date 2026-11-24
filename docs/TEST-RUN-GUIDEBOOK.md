@@ -237,3 +237,16 @@ Roles affected are guest and customer (the storefront landing page `/` only; log
 Checks run in the in-app browser on the dev server: the three Lenis assets return 200 with correct types, `window.Lenis` exists, `<html>` gets the `lenis` class, the console has no errors or CSP violations, the login page does not reference Lenis, and the Lenis scroll position matches `scrollY` while the navbar pins and releases (scroll events were dispatched by script). `npm audit` reported 0 vulnerabilities on install.
 
 Not verified: the feel of the smoothing (this pane does not run animation frames), real mouse wheel and trackpad input, anchor landing offset (`-88` px, set by estimate), touch devices, reduce-motion behaviour, keyboard scrolling, a Docker rebuild, and `npm test`.
+
+### Typography: Bricolage Grotesque replaced by bold DM Sans · 25 November 2026 WIB
+
+Roles affected are guest, customer, tailor and operator, because the heading font is shared by every page. Prerequisites: the dev-mode stack above. Use hard refresh (Ctrl+F5) so the browser drops the old font.
+
+1. Open `/`. Expect every heading, the wordmark, the footer wordmark and service prices in DM Sans (bold, 700; the wordmark 800). **Setiap Jahitan Terhubung.** stays at weight 400.
+2. Open `/assets/fonts/bricolage-grotesque.woff2`. Expect 404. Only `dm-sans.woff2` and its license remain in `public/fonts`.
+3. Sign in as a tailor and open Ringkasan, Layanan Saya and a request. Look for queue counts, order headings and queue names that wrap or collide, because DM Sans is wider than Bricolage. Repeat as a customer on Pesanan Saya and a request page, and at 375 px.
+4. Repeat T1 for the customer and tailor, since every page's typography changed.
+
+Checks run in the in-app browser on the dev server, on the landing page only: computed font family and weight for h1, h2, h3, the wordmark, prices and the tagline; the document fonts list shows only DM Sans loaded; the old font file returns 404; a desktop screenshot of the hero. Also searched the code for leftover references and found none (the UX assessment doc was updated).
+
+Not verified: tailor, customer and operator pages, wrapping of large queue numbers (they use weight 670), 375 px, the letter-spacing values that were tuned for Bricolage, and `npm test`.
