@@ -9,6 +9,10 @@
   "scripts": {
     "start": "node apps/djahit/server.js",
     "worker": "node apps/djahit/worker.js",
+    "dev": "node --watch --env-file=.env.dev apps/djahit/server.js",
+    "dev:worker": "node --watch --env-file=.env.dev apps/djahit/worker.js",
+    "dev:migrate": "node --env-file=.env.dev apps/djahit/migrate.js",
+    "dev:seed": "node --env-file=.env.dev apps/djahit/seed.js",
     "db:migrate": "node apps/djahit/migrate.js",
     "db:seed": "node apps/djahit/seed.js",
     "test": "node --test",

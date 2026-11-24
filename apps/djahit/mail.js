@@ -10,7 +10,7 @@ export function accountMailer() {
     throw new Error('Configure secure account email and HTTPS origin.');
   }
   const smtp = nodemailer.createTransport({
-    host: fixture ? 'mail' : process.env.SMTP_HOST, port: fixture ? 1025 : Number(process.env.SMTP_PORT ?? 465),
+    host: fixture ? (process.env.SMTP_HOST ?? 'mail') : process.env.SMTP_HOST, port: fixture ? Number(process.env.SMTP_PORT ?? 1025) : Number(process.env.SMTP_PORT ?? 465),
     secure: !fixture && Number(process.env.SMTP_PORT ?? 465) === 465, requireTLS: !fixture,
     auth: !fixture && process.env.SMTP_USER ? {user:process.env.SMTP_USER,pass:process.env.SMTP_PASSWORD} : undefined,
     connectionTimeout:5000, greetingTimeout:5000, socketTimeout:10000,

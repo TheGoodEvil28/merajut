@@ -17,6 +17,22 @@ Update this guide with every change. Record the affected roles, prerequisites, s
 | `tailor2@djahit.test` | Ruang Jahit Dewi tailor |
 | `operator@djahit.test` | Platform triage for unassigned handoffs |
 
+## Dev mode: native app with auto-restart (Postgres and MailCatcher in Docker)
+
+Affected roles: none in behavior; this is a developer workflow for all roles. It runs beside, not instead of, the full Docker stack above.
+
+Prerequisites: Docker, Node 22+, a `.env` with `POSTGRES_PASSWORD` and `DEMO_PASSWORD`. Create a gitignored `.env.dev` with `DJAHIT_ENV=local`, `PGHOST=127.0.0.1`, `PGPORT=5433`, `PGUSER=djahit`, `PGDATABASE=djahit`, `PGPASSWORD` (same value as `POSTGRES_PASSWORD`), `DEMO_PASSWORD`, `PORT=3100`, `BIND_HOST=127.0.0.1`, `APP_ORIGIN=http://localhost:3100`, `MESSAGING_MODE=simulated`, `SMTP_HOST=127.0.0.1`, `SMTP_PORT=1025`. Stop the Docker `web` and `worker` services first if running, since they use port 3100.
+
+| Step | Action | Expected result |
+| --- | --- | --- |
+| 1 | `docker compose -f compose.yaml -f compose.dev.yaml up -d --wait db mail`, then `npm ci`. | `db` (127.0.0.1:5433) and `mail` (UI 3101, SMTP 1025) are healthy. |
+| 2 | `npm run dev:migrate`, then `npm run dev:seed`. | Migrations 001–005 apply and fixture accounts are ready. |
+| 3 | In two terminals run `npm run dev` and `npm run dev:worker`. | Web logs `Djahit listening`. Worker logs `Djahit worker started`. `/health/ready` returns 200. |
+| 4 | Edit a source file under `apps/djahit/`. | Node restarts the process automatically. This is a server restart, not browser hot reload, so refresh the page. EJS views are re-read on request in non-production only if Express view caching is off; if a view change does not show, restart. |
+| 5 | Sign up as a guest and open [MailCatcher](http://127.0.0.1:3101/). | The verification email arrives. It uses the `SMTP_HOST` and `SMTP_PORT` override in `apps/djahit/mail.js`, which applies only in local and test environments. Docker-only runs still default to host `mail`, port 1025. |
+
+Checked in this change: migrate, seed, web start, worker start and heartbeat row, and `/health/ready` returned 200 on the native app. Not verified: automatic restart on file edit, EJS caching behavior, the MailCatcher email path from the native app, the customer and tailor regression paths T1 and T2, and the full Docker build. The first `docker compose up --build` failed with `image "djahit-local:latest": already exists`, a Docker Desktop containerd naming clash when several services build the same tag. It is unresolved, so rerun it or build once with `docker compose build web` before `up`. `npm test` was not run.
+
 ## T1 · Customer discovery and tailor order
 
 | Step | Action | Expected result |

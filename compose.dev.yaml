@@ -1,0 +1,9 @@
+# Dev override: publish Postgres and MailCatcher SMTP on loopback so the app can run natively.
+# Use with: docker compose -f compose.yaml -f compose.dev.yaml up -d --wait db mail
+services:
+  db:
+    ports:
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+  mail:
+    ports:
+      - "127.0.0.1:${SMTP_PORT:-1025}:1025"
