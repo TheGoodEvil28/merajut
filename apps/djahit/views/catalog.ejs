@@ -41,8 +41,8 @@
 <section class="how-section" id="cara-kerja" aria-labelledby="how-title">
   <h2 id="how-title">Cara memesan di Marajut</h2>
   <ol class="sewing-steps">
-    <li><%- include('icon', {name:'search'}) %><h3>Temukan layanan</h3><p>Bandingkan harga awal, baca profil usaha, lalu pilih layanan yang sesuai.</p><a href="#services">Jelajahi layanan <span aria-hidden="true">↑</span></a></li>
-    <li><%- include('icon', {name:'chat'}) %><h3>Ceritakan kebutuhan</h3><p>Kirim detail dan foto lewat formulir. <% if (intakeEnabled) { %>Anda juga bisa mencoba percakapan WhatsApp di sini. Pesan simulasi hanya tampil di Marajut.<% } else { %>Penjahit dapat meminta keterangan tambahan lewat halaman permintaan.<% } %></p>
+    <li><span class="step-arrow" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span><%- include('icon', {name:'search'}) %><h3>Temukan layanan</h3><p>Bandingkan harga awal, baca profil usaha, lalu pilih layanan yang sesuai.</p><a href="#services">Jelajahi layanan <span aria-hidden="true">↑</span></a></li>
+    <li><span class="step-arrow" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span><%- include('icon', {name:'chat'}) %><h3>Ceritakan kebutuhan</h3><p>Kirim detail dan foto lewat formulir. <% if (intakeEnabled) { %>Anda juga bisa mencoba percakapan WhatsApp di sini. Pesan simulasi hanya tampil di Marajut.<% } else { %>Penjahit dapat meminta keterangan tambahan lewat halaman permintaan.<% } %></p>
       <% if (intakeEnabled) { %><a href="/workspace/intake">Buka simulasi WhatsApp <span aria-hidden="true">→</span></a><% } %></li>
     <li><%- include('icon', {name:'bag'}) %><h3>Sepakati dan pantau</h3><p>Periksa harga dan tanggal selesai. Setujui penawaran di akun Anda, lalu ikuti pesanan hingga siap diambil.</p>
       <% if (!user || user.role === 'customer') { %><a href="/workspace">Lihat pesanan saya <span aria-hidden="true">→</span></a><% } %></li>

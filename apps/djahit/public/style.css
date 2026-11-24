@@ -98,10 +98,14 @@ button:disabled { cursor: not-allowed; opacity: .65; }
 .intro-how { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; font-size: .89rem; font-weight: 650; }
 .market-intro { margin-bottom: clamp(1rem, 3vw, 2.5rem); }
 .catalog-section { padding-block: clamp(2.4rem,6vw,5rem); border-top: 1px solid var(--line); }
+.catalog-section .section-caption { margin-bottom: clamp(1.75rem, 3.5vw, 2.75rem); }
 .how-section { border-top: 1px solid var(--line); padding: clamp(2.4rem,6vw,5rem) 0; margin-bottom: clamp(.5rem, 2vw, 1.5rem); }
-.sewing-steps { list-style: none; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin: 2rem 0 0; padding: 0; gap: clamp(1.5rem, 3vw, 2.5rem); }
-.sewing-steps li { border-top: 1px dashed #bd9da6; padding-top: 1.4rem; }
-.sewing-steps li > .icon { color: var(--clay); margin-bottom: .9rem; width: 2.8rem; height: 2.8rem; stroke-width: 1.4; }
+.sewing-steps { list-style: none; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin: 2rem 0 0; padding: 0; --step-gap: clamp(3.5rem, 7vw, 6rem); gap: var(--step-gap); }
+.sewing-steps li { position: relative; border-top: 1px dashed #bd9da6; padding-top: 1.4rem; }
+.sewing-steps li > .icon { color: var(--clay); margin-bottom: 1rem; width: 4.2rem; height: 4.2rem; stroke-width: 1.2; }
+/* Arrow icon centred in the gap between two steps, vertically centred on the step (points down on phones). */
+.sewing-steps .step-arrow { position: absolute; top: 50%; right: calc(var(--step-gap) / -2); transform: translate(50%, -50%); display: grid; place-items: center; color: var(--clay); pointer-events: none; }
+.sewing-steps .step-arrow .icon { width: 2.4rem; height: 2.4rem; stroke-width: 1.5; }
 .sewing-steps p, .shop-entry p { max-width: 52ch; margin-bottom: .25rem; }
 .sewing-steps p { color: var(--muted); }
 .sewing-steps a { display: inline-flex; min-height: 44px; align-items: center; gap: .4rem; font-weight: 650; }
@@ -336,7 +340,8 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
   .market-intro h1 em { text-wrap: balance; }
   .market-intro-photo { min-height: 0; height: clamp(8rem,30vw,14rem); border-radius: 3rem .8rem 2rem .8rem; }
   .market-intro-photo::after { border-radius: 2.6rem .5rem 1.6rem .5rem; inset: .45rem; }
-  .sewing-steps { grid-template-columns: 1fr; gap: .8rem; }
+  .sewing-steps { grid-template-columns: 1fr; --step-gap: 4.2rem; }
+  .sewing-steps .step-arrow { top: auto; right: auto; bottom: calc(var(--step-gap) / -2); left: 50%; transform: translate(-50%, 50%) rotate(90deg); }
   .queue-metrics:has([data-queue="handoffs"]) { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .work-layout, .split { grid-template-columns: minmax(0,1fr); }
   .metric-glyph { width: 2rem; height: 2rem; }

@@ -250,3 +250,37 @@ Roles affected are guest, customer, tailor and operator, because the heading fon
 Checks run in the in-app browser on the dev server, on the landing page only: computed font family and weight for h1, h2, h3, the wordmark, prices and the tagline; the document fonts list shows only DM Sans loaded; the old font file returns 404; a desktop screenshot of the hero. Also searched the code for leftover references and found none (the UX assessment doc was updated).
 
 Not verified: tailor, customer and operator pages, wrapping of large queue numbers (they use weight 670), 375 px, the letter-spacing values that were tuned for Bricolage, and `npm test`.
+
+### Cara memesan: step arrows and larger icons · 25 November 2026 WIB
+
+Roles affected are guest and customer (storefront landing page `/` only). Prerequisites: the dev-mode stack above. Hard refresh (Ctrl+F5) first.
+
+1. Open `/` at desktop width and scroll to **Cara memesan di Marajut**. Expect the three step icons at about 67 px (up from 45 px) and a clay-coloured arrow in each of the two gaps, level with the icons. There is no arrow after the last step.
+2. At 375 px expect the steps stacked, a down arrow under steps 1 and 2 aligned with the icon, and no horizontal scroll.
+3. Use a screen reader or inspect the accessibility tree. The arrows are decorative and should not be read aloud (a browser without support for the empty alternative text may announce "right arrow").
+4. Check **Jelajahi layanan**, **Buka simulasi WhatsApp** and **Lihat pesanan saya**: each link still works and is not covered by an arrow.
+
+Checks run in the in-app browser on the dev server: computed icon width (67 px), arrow content and size, no arrow after the last step, a desktop screenshot and a 375 px screenshot, and the horizontal overflow check at 375 px.
+
+Not verified: the tablet width (720–959 px), screen-reader announcements, link click targets near the arrows, and the arrow position when the page is zoomed to 200%.
+
+### Cara memesan: arrows switched to the icon set · 25 November 2026 WIB
+
+Roles affected are guest and customer (storefront landing page `/` only). This replaces the text arrows from the previous entry. Prerequisites: the dev-mode stack above. Hard refresh (Ctrl+F5) first.
+
+1. Open `/` at desktop width and scroll to **Cara memesan di Marajut**. Expect the site's own arrow icon (same style as the **Masuk** and **Buka ruang usaha** buttons) in each of the two gaps, centred horizontally in the gap and vertically on the step. There is none after the last step.
+2. At 375 px expect the same icon rotated to point down, centred under steps 1 and 2, and no horizontal scroll.
+3. The arrows are `aria-hidden` and should not be announced by a screen reader.
+4. Select **Jelajahi layanan**, **Buka simulasi WhatsApp** and **Lihat pesanan saya**. Each link still works and is not covered by an arrow.
+
+Checks run in the in-app browser on the dev server: two arrow elements exist, and their centres are within 1 px of the gap centre horizontally and the step centre vertically at 1280 px. At 375 px the arrow is centred on the card horizontally, and there is no horizontal overflow. Screenshots were taken at desktop width only.
+
+Not verified: the 720–959 px width, screen-reader output, link click targets near the arrows, 200% zoom, and the vertical centring at 375 px (the measured arrow and gap centres were read, but the numbers were not compared against a screenshot).
+
+### Catalog heading spacing · 25 November 2026 WIB
+
+Roles affected are guest and customer (landing page `/`). Open `/` and look at **Layanan jahit di sekitar Anda** and its subtitle. Expect a larger gap (about 2.75 rem on wide screens, 1.75 rem on phones) between the subtitle and the category tabs than before (1.1 rem). Other pages that use the same caption style (for example the workspace and profile pages) keep their old spacing, because the rule applies only inside the catalog section. Checked: the computed margin and measured gap in the in-app browser on the landing page. Not verified: other pages using `.section-caption`, 375 px and tablet widths.
+
+### Cara memesan: more room around the arrows · 25 November 2026 WIB
+
+Roles affected are guest and customer (landing page `/`). The gap between steps is now `clamp(3.5rem, 7vw, 6rem)` (3.5 rem → 6 rem), and 4.2 rem on phones, so each arrow has clear space on both sides. Open `/` and check **Cara memesan di Marajut** at desktop width and at 375 px: arrows stay centred between the steps, text columns are narrower but do not wrap awkwardly, and there is no horizontal scroll. Checked: measured gap, arrow width and page overflow in the in-app browser at the pane's current width only. Not verified: 375 px after this change, 720–959 px, and long Indonesian text wrapping at 1024 px.
