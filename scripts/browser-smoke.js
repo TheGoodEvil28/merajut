@@ -117,9 +117,9 @@ try {
   }
   await tailor.setViewportSize({ width: 360, height: 800 });
   assert.equal(await tailor.evaluate(() => document.documentElement.scrollWidth), 360);
-  if (screenshotDir) await tailor.screenshot({ path: screenshotDir + '/workspace-mobile.png', fullPage: true });
   const queueMenu = tailor.locator('[data-queue-menu]');
-  assert.equal(await queueMenu.getAttribute('open'), null);
+  await queueMenu.and(tailor.locator('details:not([open])')).waitFor({ timeout: 5000 });
+  if (screenshotDir) await tailor.screenshot({ path: screenshotDir + '/workspace-mobile.png', fullPage: true });
   await queueMenu.getByText('Antrean lain', { exact: true }).click();
   await queueMenu.locator('[data-queue="clarify"]').click();
   await tailor.getByRole('heading', { name: 'Butuh klarifikasi', exact: true }).waitFor();
@@ -249,9 +249,9 @@ try {
   await admin.getByRole('heading',{name:'Papan pesanan'}).waitFor();
   await admin.setViewportSize({width:375,height:844});
   assert.equal(await admin.evaluate(()=>document.documentElement.scrollWidth),375);
-  if (screenshotDir) await admin.screenshot({path:screenshotDir+'/admin-board-mobile.png'});
   const compactDesk = admin.locator('[data-desk-filter-menu]');
-  assert.equal(await compactDesk.getAttribute('open'),null);
+  await compactDesk.and(admin.locator('details:not([open])')).waitFor({ timeout: 5000 });
+  if (screenshotDir) await admin.screenshot({path:screenshotDir+'/admin-board-mobile.png'});
   await compactDesk.locator('summary').click();
   await admin.getByRole('navigation',{name:'Filter pesanan'}).getByRole('link',{name:/Pembayaran/}).click();
   assert.equal(new URL(admin.url()).searchParams.get('filter'),'payment');
