@@ -1,0 +1,162 @@
+<%- include('header') %>
+<% const latest = quotes[0];
+const isCustomer = user.role==='customer';
+const staffBase = '/api/v1/management';
+const editQuote = user.manager && open && inquiry.dispatch_state==='AVAILABLE' &&
+  ['NEW','UNDER_REVIEW','QUOTED','EXPIRED'].includes(inquiry.status);
+const orderPath = '/api/v1/management/orders/'+order?.id+'/transitions';
+const progressAction = { CONFIRMED:['start','Mulai pengerjaan'], IN_PROGRESS:['ready','Tandai jahitan siap'] }[order?.status];
+const fittingOutstanding = Boolean(order?.fitting_state && order.fitting_state!=='DONE');
+const hasPayment = Boolean(order && order.status!=='CANCELLED');
+const showHandover = order?.status==='COMPLETED' || (order?.status==='READY' && order.payment?.state==='PAID');
+const clarification = events.findLast(item=>item.kind==='INQUIRY_UPDATED' && item.detail &&
+  (item.new_status==='NEEDS_DETAILS' || (item.new_status==='UNDER_REVIEW' && ['NEEDS_DETAILS','QUOTED'].includes(item.old_status))));
+const showClarification = open && clarification &&
+  (['NEEDS_DETAILS','DRAFT_QUOTE'].includes(journey.key) ||
+    (user.manager && ['NEW','CONTACTED','REJECTED','EXPIRED'].includes(journey.key)));
+const shownEvents = events.filter(item=>user.manager || item.kind!=='GROUP_POSTED').toReversed();
+const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey.key);
+%>
+<section class="section workflow-page">
+  <a class="back" href="<%= user.manager?'/pengelola':'/workspace' %>"><%= user.manager?'Pesanan':'Pesanan Saya' %></a>
+  <header class="page-heading workflow-heading">
+    <div>
+      <p class="order-ref">#<%= orderReference(inquiry.id) %> <span>·</span> <%= inquiry.business %></p>
+      <h1><%= inquiry.service %></h1>
+    </div>
+    <span class="status" data-tone="<%= journey.tone %>"><%= journey.label %></span>
+  </header>
+  <% if (journey.step!==undefined) { %>
+    <ol class="journey" aria-label="Tahap pesanan">
+      <% for (const [index,label] of milestones.entries()) { %>
+        <li <%= index===journey.step?'aria-current=step':'' %> class="<%= index<journey.step?'done':'' %>">
+          <span class="journey-mark" aria-hidden="true"><% if (index<journey.step) { %><%- include('icon',{name:'check'}) %><% } %></span>
+          <span><%= label %><% if (index<journey.step) { %><span class="sr-only"> selesai</span><% } %></span>
+        </li>
+      <% } %>
+    </ol>
+  <% } %>
+  <% if (formError) { %><p class="notice error-message" role="alert"><%= formError %></p>
+  <% } else if (notice) { %><p class="save-feedback" role="status"><%- include('icon',{name:'check'}) %> <%= notice %></p><% } %>
+  <div class="workflow-layout">
+    <div class="stack">
+      <section class="next-action <%= isCustomer?'customer-action':'' %>" aria-labelledby="next-title">
+        <div>
+          <h2 id="next-title"><%= journey.title %></h2>
+          <p><%= journey.key==='PENDING' && isCustomer && order.payment.mode==='demo'
+            ? 'Admin akan memeriksa transaksi simulasi. Status akan berubah setelah admin mencatat hasilnya.' : journey.description %></p>
+        </div>
+        <% if (journey.href) { %>
+          <a class="button" href="<%= journey.href %>"><%= journey.action %> <%- include('icon',{name:'arrow'}) %></a>
+        <% } %>
+      </section>
+      <% if (showClarification) { %>
+        <section class="card workflow-card" id="klarifikasi" tabindex="-1">
+          <h2><%= journey.key==='NEEDS_DETAILS' ? 'Pertanyaan admin'
+            : isCustomer ? 'Pesan yang Anda kirim'
+            : clarification.old_status==='QUOTED' ? 'Permintaan penyesuaian' : 'Detail dari pelanggan' %></h2>
+          <p class="message-box preserve"><%= clarification.detail %></p>
+          <% if (journey.key==='NEEDS_DETAILS' && isCustomer) { %>
+            <form class="stack" method="post" action="/api/v1/inquiries/<%= inquiry.id %>/actions">
+              <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+              <label>Jawaban untuk admin<textarea name="detail" maxlength="500" rows="3" required></textarea></label>
+              <button name="action" value="respond">Kirim jawaban</button>
+            </form>
+          <% } %>
+        </section>
+      <% } %>
+      <% if (user.manager && dispatchFirst) { %><%- include('managed-dispatch') %><% } %>
+      <% if (canChoose) { %><%- include('managed-reassign') %><% } %>
+      <% if (latest && !order) { %><%- include('managed-quote',{latest,isCustomer}) %><% } %>
+      <% if (editQuote && journey.key==='QUOTED' && !quoteError) { %>
+        <details class="card workflow-options"><summary>Revisi penawaran</summary><%- include('quote-editor',{latest,staffBase}) %></details>
+      <% } else if (editQuote) { %><%- include('quote-editor',{latest,staffBase}) %><% } %>
+      <% if (order?.fitting_state) { %><%- include('managed-fitting',{isCustomer}) %><% } %>
+      <% if (user.manager && progressAction) { %>
+        <section class="card workflow-card" id="pengerjaan" tabindex="-1">
+          <h2>Pengerjaan</h2>
+          <p><%= progressAction[0]==='start' ? 'Catat setelah penjahit mulai mengerjakan pesanan.'
+            : fittingOutstanding ? 'Catat bahwa fitting sudah selesai sebelum membuka pembayaran.'
+            : 'Tandai jahitan siap agar pelanggan bisa membayar.' %></p>
+          <% if (progressAction[0]==='start' || !fittingOutstanding) { %>
+            <form method="post" action="<%= orderPath %>">
+              <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
+              <button name="action" value="<%= progressAction[0] %>"><%= progressAction[1] %></button>
+            </form>
+          <% } %>
+        </section>
+      <% } %>
+      <% if (showHandover) { %><%- include('managed-handover',{isCustomer}) %><% } %>
+      <% if (hasPayment) { %><%- include('order-payment') %><% } %>
+      <% if (user.manager && !dispatchFirst && (open || progressAction || order?.status==='READY')) { %><%- include('managed-dispatch') %><% } %>
+      <% if (open || (user.manager && order?.status==='CONFIRMED')) { %>
+        <details class="card workflow-options">
+          <summary><%= user.manager?'Tindakan lain':'Batalkan permintaan' %></summary>
+          <% if (user.manager && open && ['NEW','UNDER_REVIEW'].includes(inquiry.status)) { %>
+            <form class="stack" action="/api/v1/inquiries/<%= inquiry.id %>/actions" method="post">
+              <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+              <label>Pertanyaan untuk pelanggan<textarea name="detail" maxlength="500" rows="2" required></textarea></label>
+              <button class="secondary" name="action" value="clarify">Minta detail pelanggan</button>
+            </form>
+          <% } %>
+          <form class="stack" method="post" action="<%= open?'/api/v1/inquiries/'+inquiry.id+'/actions':orderPath %>">
+            <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= open?inquiry.revision:order.revision %>">
+            <label>Alasan <%= user.manager && open?'penutupan':'pembatalan' %><textarea name="detail" maxlength="500" rows="2" required></textarea></label>
+            <button class="secondary" name="action" value="<%= user.manager && open?'decline':'cancel' %>"><%= user.manager && open?'Tutup permintaan':open?'Batalkan permintaan':'Batalkan pesanan' %></button>
+          </form>
+        </details>
+      <% } %>
+    </div>
+    <div class="stack">
+      <section class="card order-summary" aria-labelledby="summary-title">
+        <h2 id="summary-title"><%= order?'Detail pesanan':'Ringkasan permintaan' %></h2>
+        <div class="price-highlight">
+          <span><%= order?'Harga disepakati':'Perkiraan awal' %></span>
+          <strong><%= order ? money(order.amount) : inquiry.estimate ? money(inquiry.estimate) : 'Sesuai penawaran' %></strong>
+        </div>
+        <% if (!order) { %><p class="muted">Harga akhir mengikuti penawaran yang Anda setujui.</p><% } %>
+        <dl class="summary-list">
+          <div><dt>Penjahit</dt><dd><% if (inquiry.published) { %><a href="/penjahit/<%= inquiry.slug %>"><%= inquiry.business %></a><% } else { %><%= inquiry.business %><% } %></dd></div>
+          <div><dt>Jumlah pakaian</dt><dd><%= inquiry.quantity ?? 1 %></dd></div>
+          <% if (order || inquiry.desired_date) { %><div><dt><%= order?'Perkiraan selesai':'Target pelanggan' %></dt>
+            <dd><%= localDate(order?.eta ?? inquiry.desired_date) %></dd></div><% } %>
+          <% if (order?.handover || inquiry.requested_handover) { %><div><dt><%= order?'Serah terima':'Pilihan serah terima' %></dt>
+            <dd><%= handoverLabels[order?.handover ?? inquiry.requested_handover] %></dd></div><% } %>
+          <% if (!order && inquiry.fitting_requested!==null) { %><div><dt>Fitting</dt><dd><%= inquiry.fitting_requested?'Diminta pelanggan':'Tidak diminta' %></dd></div><% } %>
+        </dl>
+        <% if (order) { %><%- include('quote-breakdown',{items:order.line_items}) %>
+          <% if (!showHandover) { %><p class="preserve"><%= order.terms %></p><% } %><% } %>
+        <% if (inquiry.previous_inquiry_id) { %><p><a href="/requests/<%= inquiry.previous_inquiry_id %>">Riwayat penjahit sebelumnya</a></p><% } %>
+        <% if (user.manager) { %><div class="contact-summary">
+          <span class="muted">Pelanggan</span><strong><%= contacts.display_name %></strong>
+          <% if (contacts.phone) { %><a target="_blank" rel="noreferrer" href="https://wa.me/<%= contacts.phone %>">WhatsApp pelanggan <span class="sr-only">(tab baru)</span></a><% } %>
+          <% if (contacts.address && (order?.handover ?? inquiry.requested_handover)==='delivery') { %>
+            <details><summary>Alamat di profil</summary><p class="preserve"><%= contacts.address %></p></details>
+          <% } %>
+        </div><% } %>
+      </section>
+      <section class="card workflow-card" id="detail" tabindex="-1">
+        <h2>Detail permintaan</h2><p class="preserve"><%= inquiry.description %></p>
+        <% if (inquiry.fit_notes) { %><p class="preserve"><strong>Catatan ukuran</strong><br><%= inquiry.fit_notes %></p><% } %>
+      </section>
+      <%- include('inquiry-photos') %>
+      <% if (quotes.length>1) { %>
+        <details class="card workflow-options"><summary>Versi penawaran sebelumnya</summary>
+          <ul class="quote-history"><% for (const quote of quotes.slice(1)) { %><li>
+            <strong>Versi <%= quote.version %> · <%= money(quote.amount) %> · <%= statusLabel(quote.status) %></strong>
+            <%- include('quote-breakdown',{items:quote.line_items}) %>
+          </li><% } %></ul>
+        </details>
+      <% } %>
+      <% if (conversation && intakeEnabled) { %><p><a href="/workspace/intake/<%= conversation.id %>">Buka percakapan simulasi</a></p><% } %>
+      <details class="card timeline workflow-options"><summary>Riwayat aktivitas</summary>
+        <ol><% for (const item of shownEvents) { %><li>
+          <strong><%= eventLabel(item.kind) %></strong>
+          <time datetime="<%= item.created_at.toISOString() %>"><%= dateTime(item.created_at) %></time>
+          <% if (item.detail) { %><p class="preserve"><%= item.detail %></p><% } %>
+        </li><% } %></ol>
+      </details>
+    </div>
+  </div>
+</section>
+<%- include('footer') %>

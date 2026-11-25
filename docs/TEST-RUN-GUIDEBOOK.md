@@ -2,11 +2,53 @@
 
 Update this guide with every change. Record the affected roles, prerequisites, steps, expected results, verification method, and any unverified behavior.
 
+## Marajut naming and SEVENT X verification · 26 November 2026 WIB
+
+**Roles and setup.** Use a guest, customer, tailor and platform admin against a disposable Marajut database. Maintainers can repeat the upgrade and restore checks. Copy `.env.example`, set synthetic passwords and choose unused loopback ports. Build once with `docker compose -p marajut-naming-qa build web`, start with `docker compose -p marajut-naming-qa up -d --wait --no-build` and run `docker compose -p marajut-naming-qa run --rm seed npm run db:seed -- --workday`. Use `docker-compose` where that is the installed command.
+
+| Step | Action | Expected result |
+| --- | --- | --- |
+| Repository and screenshots | Search current filenames and file contents for the former branding, including hidden files. Inspect the archived screenshots and storefront images with OCR and check local image links in Markdown. | Current files use Marajut. Archived images with the previous wordmark are gone, and all retained image links resolve. The competition record gives the earlier entry and archive checksum in neutral terms. |
+| Branding and sign-in | Open the local marketplace and `/health/ready`. Sign in separately with `customer@marajut.test`, `operator@marajut.test` and `tailor@marajut.test` and the stack's demo password. | Readiness is 200. Marajut is used in the app, package, worker output, account mail and demo addresses. The customer, admin and tailor each reach their own workspace. |
+| Role regressions | Set `APP_ORIGIN`, `MAIL_ORIGIN`, `DEMO_PASSWORD` and `BROWSER_CHANNEL=chrome` for the disposable stack. Run `node scripts/browser-smoke.js`, `node scripts/inbound-browser-smoke.js`, `node scripts/pilot-browser-smoke.js` and `docker compose -p marajut-naming-qa run --rm test`. | The customer completes fitting, simulated payment and delivery, the admin records the workflow, and an existing tailor retains scoped access. Guest verification, quote revision, pickup and simulated chat conversion work. |
+| Database upgrade | On synthetic data at migration 007, record the IDs and related records for the five original demo accounts. Apply migration 008 twice. Repeat with an occupied address, a role mismatch and an unrelated address. On a separate snapshot, rerun with the previously recorded 008 checksum, then try an unexpected checksum. | Eligible demo addresses change in place with their UUIDs, password digests, memberships and orders intact. Existing owners and unrelated accounts keep their addresses. The migrator accepts the approved 008 checksums and rejects an unrecognized checksum. |
+| Backup and rehearsal | Set `MARAJUT_BACKUP_PASSPHRASE` and run the backup and restore rehearsal below on the isolated Compose project. Check both the current format and a synthetic file with the prior format. | Both encrypted backups authenticate and restore into a temporary database. The report gives the same schema and fixture counts for both. |
+| Competition documents | Compare the [eligibility checklist](adr/ADR-0009-competition-eligibility.md#sevent-x-website-checklist) with pp. 9–11 and 14 of the supplied rulebook. | The checklist identifies the chosen subtheme, prior-work disclosure, tested functionality and remaining submission materials. |
+| GitHub publication | With write access to `origin`, run `npm.cmd run build`, `docker-compose config --quiet` and `git diff --cached --check`. Validate the staged files and use Marajut in the commit title and description. Push `main`, then compare `git rev-parse HEAD` with `git ls-remote origin refs/heads/main`. | The checks pass, local secrets and backup files stay outside the commit, and both hashes match. |
+
+**Checks run.** Built the image from the renamed source with `npm ci`, started the separate Compose stack on ports 3164 and 3165, and confirmed readiness and Marajut startup logs. JavaScript syntax and Compose validation passed. All 21 integration tests and all three Chrome smoke paths passed, including the pilot's automated axe checks. A separate 007-to-008 upgrade test verified unchanged customer and tailor IDs, password digests, history and memberships, an occupied-address case, and sign-ins using the new addresses. Both backup formats restored seven requests and four orders at schema 008. GitHub repository metadata confirmed public visibility.
+
+**Naming cleanup checks.** Ran `npm.cmd run build`, all 21 PostgreSQL and HTTP tests, and all three Chrome walkthroughs on the new isolated stack on ports 3166 and 3167. Fresh and previously applied migrations passed in disposable schemas. The five accounts kept their UUIDs, password digests, order history and memberships. Role mismatches and address conflicts stayed intact. Unexpected checksums for 001 and 008 were rejected. Both encrypted backup formats restored ten requests, seven orders and two photos with matching byte counts. Scanned current file contents, filenames and Markdown image links. OCR identified ten archived screenshots for removal and found no remaining matches in the retained screenshots or storefront WebP assets. Existing hosted builds and Git history were outside the verification scope.
+
+**Publication preflight.** Repeated the JavaScript build check, Compose validation and staged whitespace check. The staged filename and content scan passed. The local environment file remained ignored and the staged tree contained no database backups or key files.
+
+**Unverified for submission.** Written organizer eligibility clearance, roster and registration evidence, an externally reachable deployment, proposal and signed originality form, and the final YouTube demo remain pending. Live WhatsApp delivery and live payment settlement were outside the synthetic rehearsal.
+
+## Customer and admin order walkthrough · 26 November 2026 WIB
+
+**Roles and prerequisites.** Use a guest, customer, platform manager, and an existing tailor in separate browser sessions. Use a disposable database with migration `007_order_followthrough.sql`, seeded accounts, the worker, and `PAYMENT_MODE=demo`. The optional `--workday` seed adds orders at different stages, including a fitting appointment. Use synthetic contact details and inspect WhatsApp drafts before returning to the order.
+
+| Step | Action | Expected result |
+| --- | --- | --- |
+| 1. Estimate and preferences | Open a service with a Rp25.000 starting price and select two garments. Choose fitting and delivery. Submit, then add a reference photo. | The form and saved request show a Rp50.000 estimate. The customer sees the order code, current stage and next action. The admin sees the preferences and can open the private photo. |
+| 2. Find and coordinate | As admin, open **Pesanan**. Filter **Koordinasi** and search by the short order code, customer name or tailor. Open the request. Inspect the WhatsApp group draft and private link, then record contact and the tailor's availability. | The queue shows counts, customer names and next steps. Search and filters can be used together. On a phone, the **Antrean** disclosure expands the filters. Group drafts omit customer details. Recording the reply advances the order to quote preparation. |
+| 3. Ask for details and quote | Ask for a clarification under **Tindakan lain**. Answer as customer. Enter price lines, an estimated completion date, delivery and a fitting time and location. Send the offer. | The question and answer appear on the order. The customer sees the negotiated total and schedule above secondary details. Delivery is preselected from the request. The customer can approve, request a revision, or decline. |
+| 4. Decline or revise | On a separate request, decline the quote or record an unavailable tailor. Choose another service and inspect both requests. For a price change, use **Minta penyesuaian** and issue a revised offer. | The replacement request keeps the brief, preferences, and photos. The original quote stays in its history. A revision requires the customer to review the new offer. |
+| 5. Change the fitting | Accept an offer with a fitting. Select **Minta jadwal lain**. As admin, propose a new time and location. Confirm it as customer, then record the finished fitting as admin. | The new time appears in WIB and waits for confirmation. The agreed price stays the same. **Tandai jahitan siap** becomes available after the fitting is recorded as finished. |
+| 6. Pay and hand over | Start work, mark it ready, and simulate payment as the customer. As admin, open the **Pembayaran** queue and verify the amount. For delivery, record the courier or tracking information and finish after receipt. For pickup, finish after the handover. | The customer sees when to pay, when payment is verified, and whether their clothes are ready for pickup or in transit. Delivery cannot be recorded before payment. Completed orders appear in both histories. |
+| 7. Directory, reports, and existing orders | Navigate to **Mitra**, **Kinerja**, and **Operasional**. Publish a synthetic shop and open the public listing. Open a managed order as its assigned legacy tailor and repeat a pre-006 cash order in the legacy test schema. | Admin tasks have separate pages. The directory protects the private number from storefront visitors. The tailor can view assigned managed work and still complete pre-006 orders through the legacy flow. |
+
+**Checks run.** JavaScript syntax and Compose configuration passed. The Express/PostgreSQL suite passed all 21 tests with separate legacy and managed schemas. It checked reassignment, preserved intake preferences, role checks, stale fitting updates, fitting completion before checkout, payment failure and retry, replay-safe settlement, and recording shipment before handover. A separate upgrade test applied migration 007 twice to a schema at 006 and preserved five existing order states, their accepted prices and quotes, and a legacy cash receipt. It verified the fitting backfill for open and already finished work.
+
+**Browser checks.** Repository Chrome smoke scripts covered the customer and admin delivery flow with fitting rescheduling, the pickup flow with guest verification and a revised quote, simulated inbound conversion, and the existing tailor dashboard. They checked customer order and admin report widths at 320, 375 and 768 px, keyboard and responsive checks on shared navigation, and the pilot's automated axe checks. Browser automation ran against a disposable app, worker, database and mailbox. The separate Compose preview uses its own data volume. Both synthetic sign-ins were verified on the preview. The admin opened the order queue and the customer saw the seeded fitting appointment.
+
+**Unverified.** Actual WhatsApp messages, physical fittings and handover, clipboard behavior on a real payment page, and live Midtrans settlement remain outside this rehearsal. Gateway tests used fixture responses.
+
 ## Admin-managed tailoring orders · 25 November 2026 WIB
 
 Use this scenario for new orders. The older tailor-operated quotation and cash scenarios below cover requests already in progress when migration 006 was applied.
 
-**Roles and setup.** Use a guest, a customer, the platform manager and a legacy tailor in separate browser sessions. Use a disposable PostgreSQL database with migrations through `006_managed_orders.sql`, a worker, synthetic seed data and `PAYMENT_MODE=demo`. With the local Docker prerequisites below, `node scripts/sandbox.js 3156 3157` creates a separate app and mailbox on those ports. Use available ports if those are occupied. Use `customer@djahit.test`, `operator@djahit.test` and `tailor@djahit.test` with that stack's `DEMO_PASSWORD`. Use synthetic contact data and inspect WhatsApp drafts locally during rehearsal.
+**Roles and setup.** Use a guest, a customer, the platform manager and a legacy tailor in separate browser sessions. Use a disposable PostgreSQL database with migrations through `006_managed_orders.sql`, a worker, synthetic seed data and `PAYMENT_MODE=demo`. With the local Docker prerequisites below, `node scripts/sandbox.js 3156 3157` creates a separate app and mailbox on those ports. Use available ports if those are occupied. Use `customer@marajut.test`, `operator@marajut.test` and `tailor@marajut.test` with that stack's `DEMO_PASSWORD`. Use synthetic contact data and inspect WhatsApp drafts locally during rehearsal.
 
 | Step | Action | Expected result |
 | --- | --- | --- |
@@ -19,7 +61,7 @@ Use this scenario for new orders. The older tailor-operated quotation and cash s
 | 7. Payment | Start a demo payment from the ready order. As admin use **Pembayaran** to open the order. Try a failed payment, retry as the customer, then verify it and complete handover. | Handover completion requires verified payment. With the default 5% commission, Rp80,000 yields Rp4,000 for the platform and Rp76,000 for the partner. Repeated verification counts the payment once. Demo commission appears under **Komisi uji**. |
 | 8. History and complaint | Open the completed request from customer history. Submit a complaint. As admin, open **Keluhan terbuka**, record the resolution and inspect **Kinerja layanan**. | Both roles see the outcome and the service's completed count increases. The public profile exposes only the aggregate completion count. |
 
-**Regression commands.** Run `npm run check` and `npm test` with `DJAHIT_ENV=test` and the disposable PostgreSQL connection variables set. For browser tests set `APP_ORIGIN`, `MAIL_ORIGIN` and `DEMO_PASSWORD` for the same disposable app, worker and mailbox. Use `BROWSER_CHANNEL=chrome` for installed Chrome. Run `npm run test:browser`, `npm run test:inbound-browser` and `npm run test:pilot-browser`.
+**Regression commands.** Run `npm run check` and `npm test` with `MARAJUT_ENV=test` and the disposable PostgreSQL connection variables set. For browser tests set `APP_ORIGIN`, `MAIL_ORIGIN` and `DEMO_PASSWORD` for the same disposable app, worker and mailbox. Use `BROWSER_CHANNEL=chrome` for installed Chrome. Run `npm run test:browser`, `npm run test:inbound-browser` and `npm run test:pilot-browser`.
 
 **Checks run.** The Express/PostgreSQL suite passed all 21 tests with separate legacy and managed schemas. The managed test registered and published an accountless partner, updated a customer profile, rejected and reassigned a quote, accepted a delivery with a fitting, and verified commission and complaint resolution. Gateway fixtures exercised a lost charge response, simultaneous retries, expiry and replacement, signature and amount validation, duplicate settlement and role restrictions. The three Chrome smoke scripts ran against a disposable web server, worker, database and mailbox. They covered mobile customer checkout, the existing tailor dashboard and read-only managed order, admin quote revision, guest verification, simulated payment, customer history, inbound chat conversion and the pilot accessibility assertions. JavaScript syntax and Compose configuration were checked.
 
@@ -29,34 +71,34 @@ Before publishing to GitHub, the JavaScript syntax check, Compose configuration 
 
 ## Before testing
 
-- Open [Marajut](http://127.0.0.1:3100/) and check [readiness](http://127.0.0.1:3100/health/ready). The hosted legacy reference has a separate deployment. Existing fixture logins and the Compose project still use the Djahit technical names.
+- Open [Marajut](http://127.0.0.1:3100/) and check [readiness](http://127.0.0.1:3100/health/ready). Use the port configured for the stack under test. The account table below uses the current demo addresses.
 - From the project directory, start a stopped local app with `docker-compose up -d --wait`. To refresh it after source changes, run `docker-compose up -d --wait --build`. For fixture accounts, run `docker-compose run --rm seed`.
 - To demonstrate several tailor work states on a **disposable demo database**, run `docker-compose run --rm seed npm run db:seed -- --workday`. The examples are marked as demo and use ordinary domain commands. Repeating the command leaves those existing examples in their current state.
 - Use separate Chrome profiles or regular and private windows for each role. Fixture accounts use the local `DEMO_PASSWORD`. Give a new request a unique synthetic tag.
 
 | Account | Role |
 | --- | --- |
-| `customer@djahit.test` | Customer for the web request |
-| `tailor@djahit.test` | Jahit Rina tailor |
-| `customer2@djahit.test` | Customer for simulated WhatsApp |
-| `tailor2@djahit.test` | Ruang Jahit Dewi tailor |
-| `operator@djahit.test` | Platform manager for dispatch, payments, catalog and triage |
+| `customer@marajut.test` | Customer for the web request |
+| `tailor@marajut.test` | Jahit Rina tailor |
+| `customer2@marajut.test` | Customer for simulated WhatsApp |
+| `tailor2@marajut.test` | Ruang Jahit Dewi tailor |
+| `operator@marajut.test` | Platform manager for dispatch, payments, catalog and triage |
 
 ## Dev mode: native app with auto-restart (Postgres and MailCatcher in Docker)
 
 Affected roles: none in behavior; this is a developer workflow for all roles. It runs beside, not instead of, the full Docker stack above.
 
-Prerequisites: Docker, Node 22+, a `.env` with `POSTGRES_PASSWORD` and `DEMO_PASSWORD`. Create a gitignored `.env.dev` with `DJAHIT_ENV=local`, `PGHOST=127.0.0.1`, `PGPORT=5433`, `PGUSER=djahit`, `PGDATABASE=djahit`, `PGPASSWORD` (same value as `POSTGRES_PASSWORD`), `DEMO_PASSWORD`, `PORT=3100`, `BIND_HOST=127.0.0.1`, `APP_ORIGIN=http://localhost:3100`, `MESSAGING_MODE=simulated`, `SMTP_HOST=127.0.0.1`, `SMTP_PORT=1025`. Stop the Docker `web` and `worker` services first if running, since they use port 3100.
+Prerequisites: Docker, Node 22+, a `.env` with `POSTGRES_PASSWORD` and `DEMO_PASSWORD`. Create a gitignored `.env.dev` with `MARAJUT_ENV=local`, `PGHOST=127.0.0.1`, `PGPORT=5433`, `PGUSER=marajut`, `PGDATABASE=marajut`, `PGPASSWORD` (same value as `POSTGRES_PASSWORD`), `DEMO_PASSWORD`, `PORT=3100`, `BIND_HOST=127.0.0.1`, `APP_ORIGIN=http://localhost:3100`, `MESSAGING_MODE=simulated`, `SMTP_HOST=127.0.0.1`, `SMTP_PORT=1025`. Stop the Docker `web` and `worker` services first if running, since they use port 3100.
 
 | Step | Action | Expected result |
 | --- | --- | --- |
 | 1 | `docker compose -f compose.yaml -f compose.dev.yaml up -d --wait db mail`, then `npm ci`. | `db` (127.0.0.1:5433) and `mail` (UI 3101, SMTP 1025) are healthy. |
 | 2 | `npm run dev:migrate`, then `npm run dev:seed`. | Migrations 001–005 apply and fixture accounts are ready. |
-| 3 | In two terminals run `npm run dev` and `npm run dev:worker`. | Web logs `Djahit listening`. Worker logs `Djahit worker started`. `/health/ready` returns 200. |
-| 4 | Edit a source file under `apps/djahit/`. | Node restarts the process automatically. This is a server restart, not browser hot reload, so refresh the page. EJS views are re-read on request in non-production only if Express view caching is off; if a view change does not show, restart. |
-| 5 | Sign up as a guest and open [MailCatcher](http://127.0.0.1:3101/). | The verification email arrives. It uses the `SMTP_HOST` and `SMTP_PORT` override in `apps/djahit/mail.js`, which applies only in local and test environments. Docker-only runs still default to host `mail`, port 1025. |
+| 3 | In two terminals run `npm run dev` and `npm run dev:worker`. | Web logs `Marajut listening`. Worker logs `Marajut worker started`. `/health/ready` returns 200. |
+| 4 | Edit a source file under `apps/marajut/`. | Node restarts the process automatically. This is a server restart, not browser hot reload, so refresh the page. EJS views are re-read on request in non-production only if Express view caching is off; if a view change does not show, restart. |
+| 5 | Sign up as a guest and open [MailCatcher](http://127.0.0.1:3101/). | The verification email arrives. It uses the `SMTP_HOST` and `SMTP_PORT` override in `apps/marajut/mail.js`, which applies only in local and test environments. Docker-only runs still default to host `mail`, port 1025. |
 
-Checked in this change: migrate, seed, web start, worker start and heartbeat row, and `/health/ready` returned 200 on the native app. Not verified: automatic restart on file edit, EJS caching behavior, the MailCatcher email path from the native app, the customer and tailor regression paths T1 and T2, and the full Docker build. The first `docker compose up --build` failed with `image "djahit-local:latest": already exists`, a Docker Desktop containerd naming clash when several services build the same tag. It is unresolved, so rerun it or build once with `docker compose build web` before `up`. `npm test` was not run.
+Checked in this change: migrate, seed, web start, worker start and heartbeat row, and `/health/ready` returned 200 on the native app. Not verified: automatic restart on file edit, EJS caching behavior, the MailCatcher email path from the native app, the customer and tailor regression paths T1 and T2, and the full Docker build. The first `docker compose up --build` failed when several services tried to create the same image tag in Docker Desktop. It is unresolved, so rerun it or build once with `docker compose build web` before `up`. `npm test` was not run.
 
 ## T1 · Customer discovery and tailor order
 
@@ -71,9 +113,9 @@ Checked in this change: migrate, seed, web start, worker start and heartbeat row
 
 ## T2 · WhatsApp handoff inside the workspace
 
-1. As `customer2@djahit.test`, open **Pesanan Saya → Simulasi WhatsApp**. Send a simulated message, choose **Ruang Jahit Dewi · Perbaikan jahitan lepas** (**Seam repair** on older seeds), and send tailoring details. Use **Muat ulang** after submitting delayed events.
+1. As `customer2@marajut.test`, open **Pesanan Saya → Simulasi WhatsApp**. Send a simulated message, choose **Ruang Jahit Dewi · Perbaikan jahitan lepas** (**Seam repair** on older seeds), and send tailoring details. Use **Muat ulang** after submitting delayed events.
 2. If needed, choose **Tautkan pengirim**, send the proof and complete **Konfirmasi tautan** in the same session. The draft becomes available. Select **Minta bantuan penjahit**.
-3. As `tailor2@djahit.test`, open **Ringkasan → Chat WhatsApp · simulasi**. Check the conversation source label, open it, select **Tangani percakapan**, and send a reply. The customer sees a **Balasan simulasi**.
+3. As `tailor2@marajut.test`, open **Ringkasan → Chat WhatsApp · simulasi**. Check the conversation source label, open it, select **Tangani percakapan**, and send a reply. The customer sees a **Balasan simulasi**.
 4. Choose **Buat permintaan layanan**. The request shows **Percakapan terkait**. Send a quote and have the customer accept it from their own account. Return to the conversation and choose **Selesaikan percakapan**. It leaves the tailor queue and the customer sees the resolved conversation.
 5. Try the active conversation URL as Jahit Rina. Expect denied access and no other-business counts. WhatsApp is simulated throughout this path.
 
@@ -118,7 +160,7 @@ Use a seeded disposable Docker project, a customer and the Jahit Rina tailor in 
 
 ## T8 · Guest request, verification and account recovery
 
-Use a seeded disposable stack and its local MailCatcher inbox. The default inbox is at [127.0.0.1:3101](http://127.0.0.1:3101/). Use a unique `@djahit.test` address and keep proof codes within the test session.
+Use a seeded disposable stack and its local MailCatcher inbox. The default inbox is at [127.0.0.1:3101](http://127.0.0.1:3101/). Use a unique `@marajut.test` address and keep proof codes within the test session.
 
 1. Signed out, choose a service, fill in the request and email, and select **Simpan draf dan verifikasi email**. Add an optional synthetic JPEG or PNG on the confirmation page.
 2. Check the tailor's inbox before confirming. The draft and photo should be absent. Open the confirmation link or copy its code from the local inbox, choose **Periksa tautan**, review the draft and set your name and password. An existing customer uses their current password.
@@ -128,7 +170,7 @@ Use a seeded disposable stack and its local MailCatcher inbox. The default inbox
 
 ## T9 · Staff, orders and maintenance
 
-1. As `operator@djahit.test`, open **Pengelolaan → Undang usaha baru**. Enter a synthetic email and re-enter the operator password. As the invitee, open the local invitation and set a password. Add an active service as the new tailor. The shop must stay out of public discovery until the operator publishes it with a reason.
+1. As `operator@marajut.test`, open **Pengelolaan → Undang usaha baru**. Enter a synthetic email and re-enter the operator password. As the invitee, open the local invitation and set a password. Add an active service as the new tailor. The shop must stay out of public discovery until the operator publishes it with a reason.
 2. As the customer, check the newly published shop and submit a request. Send a quote as the tailor. The customer's **Tanyakan rincian penawaran** returns it for review and removes acceptance on that revision. An expired revision also becomes unavailable and the worker writes its expiry to the timeline. Send a new quote and have the customer accept it.
 3. Move the accepted order to **Siap diambil**. As the tailor, record cash only after confirming receipt. As the customer, check **Catatan tunai** and the separate work status. Void the receipt with a reason and check that the timeline shows the correction.
 4. As the tailor, use **Ajukan pembatalan kepada pengelola** on an active or ready order. Review as the operator. Approval must fail while a cash receipt is current. After the receipt is corrected and approval recorded, both parties see **Dibatalkan**. Use a reason appropriate for both parties to read.
@@ -139,9 +181,9 @@ Use a seeded disposable stack and its local MailCatcher inbox. The default inbox
 
 Use a disposable Compose project. Run `node scripts/sandbox.js 3122 3123` with two unused ports for a clean workday seed. The script prints a new project name and its two URLs. It creates a separate volume each run.
 
-Set `DJAHIT_BACKUP_PASSPHRASE` to a generated secret of at least 24 characters in the current shell. Save with `node scripts/db-backup.js save <project> <new-file>` and rehearse with `node scripts/db-backup.js rehearse <project> <file>`. Compare schema, request/order counts and photo bytes. An incorrect key must fail before temporary database creation. The restore removes its temporary database and scratch dump after verification.
+Set `MARAJUT_BACKUP_PASSPHRASE` to a generated secret of at least 24 characters in the current shell. Save with `node scripts/db-backup.js save <project> <new-file>` and rehearse with `node scripts/db-backup.js rehearse <project> <file>`. Compare schema, request/order counts and photo bytes. An incorrect key must fail before temporary database creation. The restore removes its temporary database and scratch dump after verification.
 
-Run `docker-compose -p <project> exec worker node apps/djahit/maintenance.js` for a count-only preview. In the isolated automated suite, age a closed request's photo past 90 days and run apply. Expect only the eligible image to disappear, with the order and timeline retained. The main demo uses preview mode for historical data.
+Run `docker-compose -p <project> exec worker node apps/marajut/maintenance.js` for a count-only preview. In the isolated automated suite, age a closed request's photo past 90 days and run apply. Expect only the eligible image to disappear, with the order and timeline retained. The main demo uses preview mode for historical data.
 
 ## T11 · Marajut discovery and workspace
 
@@ -181,24 +223,24 @@ For each update record the date, build or change, test IDs, test method and obse
 | 19 November 2026 | Automated T1–T4 coverage and local deployment. | All 13 PostgreSQL/HTTP tests passed, including work-queue counts, scope, profile edits and service visibility. Build and optional workday seed passed. On port 3100, Chrome confirmed the new catalog, six tailor queues and profile editor. |
 | 19 November 2026 | Structured service and private media slice, T1/T2/T5/T6 in separate Compose QA. | All 15 PostgreSQL/HTTP tests passed, including wrong totals, stale revisions, corrupt and oversized files, attachment limits and cross-account denial. Both Chrome walkthroughs passed. The build and production dependency audit passed. |
 | 19 November 2026 | Modern visual update and original-volume deployment. | Reviewed 360 px and desktop marketplace screenshots and the quote editor. Port 3100 reached readiness on migration 004. The original volume kept five inquiries and four orders across the update. |
-| 19 November 2026 | Marketplace and workday redesign on disposable Compose project `djahit-studio-qa`, port 3115, with workday fixtures. Ran `npm.cmd run build`, `docker-compose -p djahit-studio-qa run --rm test`, `npm.cmd run test:browser` and `npm.cmd run test:inbound-browser` with Chrome. | Build and all 15 PostgreSQL/HTTP tests passed. Both Chrome walkthroughs passed. Verified category/search reset, sign-in continuity, mobile shop navigation and queue switching, clarification, private photo, itemized quote, customer action grouping, pickup, completion and the simulated handoff. Confirmed the guest header stays on one row at 320, 360, 768 and 1366 px and the keyboard skip link moves focus to main. |
+| 19 November 2026 | Marketplace and workday redesign in a disposable Compose project on port 3115 with workday fixtures. Ran `npm.cmd run build`, the Compose integration suite, and both Chrome walkthroughs. | Build and all 15 PostgreSQL/HTTP tests passed. Both Chrome walkthroughs passed. Verified category/search reset, sign-in continuity, mobile shop navigation and queue switching, clarification, private photo, itemized quote, customer action grouping, pickup, completion and the simulated handoff. Confirmed the guest header stays on one row at 320, 360, 768 and 1366 px and the keyboard skip link moves focus to main. |
 
-After the QA run, the primary project was rebuilt with `docker-compose -p djahit up -d --wait --build`. On port 3100 the readiness check passed, the new catalog and visual assets loaded, and both fixture roles signed in to their respective workspaces. The primary database contained five inquiries and four orders before and after the rebuild.
+After QA, the primary Compose project was rebuilt. On port 3100 the readiness check passed, the new catalog and visual assets loaded, and both fixture roles signed in to their respective workspaces. The primary database contained five inquiries and four orders before and after the rebuild.
 
-Visual checkpoints from that run show the [desktop marketplace](product/evidence/studio-market-desktop.png), [mobile marketplace](product/evidence/studio-market-mobile.png), [tailor desktop](product/evidence/studio-workspace-desktop.png), [tailor mobile](product/evidence/studio-workspace-mobile.png) and [customer action list](product/evidence/studio-orders-mobile.png). Walkthroughs used automated Chrome sessions with synthetic records. Physical devices, screen-reader sessions and usability sessions with working tailors have yet to be tested. The [earlier quote editor checkpoint](product/evidence/structured-quote-editor.png) documents the structured quote workflow.
+Visual checkpoints from that run show the [mobile marketplace](product/evidence/studio-market-mobile.png), [tailor desktop](product/evidence/studio-workspace-desktop.png) and [customer action list](product/evidence/studio-orders-mobile.png). Walkthroughs used automated Chrome sessions with synthetic records. Physical devices, screen-reader sessions and usability sessions with working tailors have yet to be tested. The [earlier quote editor checkpoint](product/evidence/structured-quote-editor.png) documents the structured quote workflow.
 
 ### Migration 005 · 19 November 2026 WIB
 
 | Environment | Checks run | Observed result |
 | --- | --- | --- |
-| Disposable Compose project `djahit-pilot-qa`, ports 3120 and 3121 | Build, PostgreSQL integration suite, and all three Chrome walkthroughs | All 19 integration tests passed. Chrome completed the regular order, simulated WhatsApp handoff, and invited-tailor and verified-guest journeys. The pilot walkthrough used the local SMTP service and confirmed standalone signup, quote questions and revision, receipt display, password reset and loss of the old session. |
+| Disposable Compose project on ports 3120 and 3121 | Build, PostgreSQL integration suite, and all three Chrome walkthroughs | All 19 integration tests passed. Chrome completed the regular order, simulated WhatsApp handoff, and invited-tailor and verified-guest journeys. The pilot walkthrough used the local SMTP service and confirmed standalone signup, quote questions and revision, receipt display, password reset and loss of the old session. |
 | Same Chrome pilot run | axe-core WCAG A/AA rules on marketplace, signup, management and order screens | Zero violations in the checked states. The last local walkthrough observed 289 ms for the marketplace load and 40 ms for signup. Those timings are a loopback sample. |
 | Disposable backup rehearsal | Encrypted save, restore, wrong-key check | Restored schema 005, nine requests, six orders and two photos containing 548 bytes. A wrong key was rejected before restore. |
 | Fresh sandbox on ports 3122 and 3123 | Sandbox create, seed, readiness and retention preview | New isolated stack reached readiness. Preview returned zero eligible historical records. The integration suite separately verified that an aged image could be removed while the cancelled order and audit remained readable. |
 | Rebuilt QA containers | Graceful Docker stop after switching the web and worker entrypoints to Node | Web, worker, mail and database exited with status 0. The primary deployment reached readiness with the same entrypoints. |
-| Primary Compose project `djahit` | In-place migration, readiness, mailbox, sign-in smoke | Migration 005 applied to the original volume. Customer, tailor and platform operator signed in. Five inquiries and four orders were present before and after. |
+| Primary Compose project | In-place migration, readiness, mailbox, sign-in smoke | Migration 005 applied to the original volume. Customer, tailor and platform operator signed in. Five inquiries and four orders were present before and after. |
 
-Screenshots show [guest confirmation](product/evidence/pilot-verifikasi.png), [platform management](product/evidence/pilot-pengelola.png), and [cash receipt in the customer workspace](product/evidence/pilot-tunai.png).
+The pilot screenshot shows the [cash receipt in the customer workspace](product/evidence/pilot-tunai.png).
 
 The operator notification-retry control remains unverified in Chrome. The CI workflow was added to the workspace and has not run on GitHub. Production email, official WhatsApp delivery, off-host backup scheduling, field usability and real-data retention remain unverified. Historical retention was not applied to the primary volume.
 

@@ -1,0 +1,23 @@
+<%- include('header') %>
+<section class="section admin-page">
+  <header class="page-heading admin-heading">
+    <div><h1>Mitra penjahit</h1><p>Kelola kontak, profil publik, dan layanan penjahit.</p></div>
+    <a class="button" href="/pengelola/mitra/baru">Tambah mitra <%- include('icon',{name:'arrow'}) %></a>
+  </header>
+  <% if (!shops.length) { %><div class="queue-empty"><strong>Belum ada mitra.</strong><p>Tambahkan profil dan layanan penjahit untuk membuka katalog.</p></div><% } %>
+  <div class="partner-directory"><% for (const shop of shops) { %>
+    <article class="card stack">
+      <div class="section-caption">
+        <span class="metric-icon"><%- include('icon',{name:'shop'}) %></span>
+        <span class="status" data-tone="<%= shop.published?'complete':'neutral' %>"><%= shop.published?'Di marketplace':'Draf profil' %></span>
+      </div>
+      <div><h2><%= shop.name %></h2><p class="muted"><%= shop.area %><% if (shop.specialty) { %> · <%= shop.specialty %><% } %></p></div>
+      <dl class="summary-list">
+        <div><dt>Layanan aktif</dt><dd><%= shop.offers %></dd></div>
+        <div><dt>WhatsApp mitra</dt><dd><%= shop.whatsapp ? '+'+shop.whatsapp : 'Belum diisi' %></dd></div>
+      </dl>
+      <a class="button secondary" href="/pengelola/mitra/<%= shop.id %>">Kelola <%= shop.name %> <%- include('icon',{name:'arrow'}) %></a>
+    </article>
+  <% } %></div>
+</section>
+<%- include('footer') %>

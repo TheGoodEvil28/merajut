@@ -7,4 +7,4 @@ COPY db ./db
 COPY scripts ./scripts
 COPY tests ./tests
 USER node
-CMD ["node", "apps/djahit/server.js"]
+CMD ["node", "apps/marajut/server.js"]

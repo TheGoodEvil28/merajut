@@ -1,6 +1,6 @@
-# Djahit ADR register
+# Marajut ADR register
 
-All architecture decisions are drafts dated 18 November 2026 WIB. Approvals belong to the named Djahit roles. Individual assignees are open.
+All architecture decisions are drafts dated 18 November 2026 WIB. Approvals belong to the named project roles. Individual assignees are open.
 
 | ADR | Status |
 | --- | --- |

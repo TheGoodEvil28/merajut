@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
-import { seedEmails } from '../apps/djahit/seed.js';
+import { seedEmails } from '../apps/marajut/seed.js';
 
 const base = new URL(process.env.APP_ORIGIN ?? 'http://localhost:' + (process.env.APP_PORT ?? '3100'));
 const password = process.env.DEMO_PASSWORD;
@@ -86,6 +86,9 @@ try {
   const description = 'Uji pesanan: pendekkan celana 3 cm. ' + new Date().toISOString();
   await customer.getByLabel('Apa yang perlu dikerjakan?').fill(description);
   await customer.getByLabel('Jumlah pakaian').fill('2');
+  await customer.getByText(/Rp\s?50\.000/, {exact:false}).first().waitFor();
+  await customer.getByLabel('Perlu fitting?').selectOption('true');
+  await customer.getByLabel('Cara serah terima').selectOption('delivery');
   await customer.getByLabel('Ukuran atau catatan khusus').fill('Panjang akhir yang diinginkan 90 cm.');
   await customer.getByRole('button', { name: 'Kirim permintaan' }).click();
   await customer.getByText(description, { exact: true }).waitFor();
@@ -96,6 +99,7 @@ try {
   await customer.getByRole('button', { name: 'Unggah foto' }).click();
   await customer.getByRole('img', { name: 'Foto referensi 1' }).waitFor();
   await customer.getByRole('navigation', { name: 'Navigasi utama' }).getByRole('link', { name: 'Pesanan Saya' }).click();
+  await customer.getByText('Simulasi dan notifikasi uji',{exact:true}).click();
   await customer.getByRole('link', { name: 'Notifikasi simulasi' }).click();
   const enable = customer.getByRole('button', { name: 'Aktifkan notifikasi simulasi', exact: true });
   if (await enable.isVisible()) {
@@ -133,21 +137,26 @@ try {
   await tailor.locator('.queue-entry').filter({ has: tailor.locator('a[href="' + requestPath + '"]') })
     .getByText('Ayu', { exact: true }).waitFor();
   await tailor.locator('a[href="' + requestPath + '"]').click();
-  assert.equal(tailor.url(), requestUrl);
+  assert.equal(new URL(tailor.url()).pathname, requestPath);
   await tailor.getByText('Panjang akhir yang diinginkan 90 cm.', { exact: false }).waitFor();
   await tailor.getByRole('img', { name: 'Foto referensi 1' }).waitFor();
   assert.equal(await tailor.getByRole('button',{name:'Kirim penawaran'}).count(),0);
   await signIn(admin,seedEmails.operator,'**/pengelola');
+  if (screenshotDir) await admin.screenshot({ path: screenshotDir + '/admin-board.png', fullPage: true });
+  await admin.getByRole('navigation',{name:'Filter pesanan'}).getByRole('link',{name:/Koordinasi/}).click();
+  await admin.getByLabel('Cari pesanan').fill('#'+requestPath.split('/').at(-1).slice(0,8));
+  await admin.getByRole('button',{name:'Cari',exact:true}).click();
+  assert.equal(await admin.locator('.desk-list li').count(),1);
   await admin.locator('a[href="'+requestPath+'"]').click();
-  await admin.getByLabel('Catat hasil WhatsApp').selectOption('AVAILABLE');
-  await admin.getByRole('button',{name:'Simpan pembaruan'}).click();
-  await admin.getByText('Klarifikasi atau tutup permintaan', { exact: true }).click();
-  await admin.getByLabel('Catatan untuk pelanggan dan penjahit').fill('Berapa panjang akhir yang diinginkan?');
-  await admin.getByRole('button', { name: 'Minta klarifikasi' }).click();
+  await admin.getByRole('button',{name:'Catat sudah dihubungi'}).click();
+  await admin.getByRole('button',{name:'Penjahit bersedia'}).click();
+  await admin.getByText('Tindakan lain',{exact:true}).click();
+  await admin.getByLabel('Pertanyaan untuk pelanggan').fill('Berapa panjang akhir yang diinginkan?');
+  await admin.getByRole('button',{name:'Minta detail pelanggan'}).click();
   await customer.reload();
-  await customer.getByText('Berapa panjang akhir yang diinginkan?', { exact: true }).waitFor();
-  await customer.getByLabel('Catatan untuk pelanggan dan penjahit').fill('Panjang akhir 90 cm.');
-  await customer.getByRole('button', { name: 'Kirim detail' }).click();
+  await customer.locator('#klarifikasi').getByText('Berapa panjang akhir yang diinginkan?', { exact: true }).waitFor();
+  await customer.getByLabel('Jawaban untuk admin').fill('Panjang akhir 90 cm.');
+  await customer.getByRole('button', { name: 'Kirim jawaban' }).click();
   await admin.reload();
   await admin.getByLabel(/Harga satuan/).first().fill('15000');
   await admin.getByRole('button', { name: 'Tambah rincian' }).click();
@@ -160,32 +169,55 @@ try {
     await admin.screenshot({ path: screenshotDir + '/quote-editor.png' });
   }
   await admin.getByLabel('Perkiraan selesai').fill(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
-  await admin.getByLabel('Rincian pengerjaan dan pengambilan').fill('Pendekkan celana. Ambil langsung di tempat jahit.');
+  assert.equal(await admin.getByLabel('Cara serah terima').inputValue(),'delivery');
+  const fittingDay = new Date(Date.now()+3*86400000).toISOString().slice(0,10);
+  await admin.getByLabel('Waktu fitting (WIB)').fill(fittingDay+'T10:30');
+  await admin.getByLabel('Lokasi fitting').fill('Studio latihan');
+  await admin.getByLabel('Rincian pengerjaan dan pengambilan').fill('Pendekkan celana. Kurir mengantar setelah pelanggan membayar.');
   await admin.getByRole('button', { name: 'Kirim penawaran' }).click();
-  await admin.getByRole('heading', { name: 'Penawaran v1' }).waitFor();
+  await admin.getByRole('heading', { name: 'Penawaran harga' }).waitFor();
 
   await customer.goto('/workspace');
   const attention = customer.locator('.order-group').filter({ has: customer.getByRole('heading', { name: /Perlu tindakan Anda/ }) });
   if (screenshotDir) await customer.screenshot({ path: screenshotDir + '/orders-mobile.png' });
   await attention.locator('a[href="' + requestPath + '"]').click();
-  await customer.getByRole('link', { name: 'Tinjau penawaran v1' }).click();
+  await customer.getByRole('link', { name: 'Tinjau penawaran',exact:true }).click();
+  if (screenshotDir) await customer.screenshot({path:screenshotDir+'/customer-quote.png'});
   await customer.getByText('Benang', { exact: true }).waitFor();
-  await customer.getByRole('button', { name: 'Setujui penawaran v1' }).click();
+  await customer.getByRole('button', { name: 'Setujui penawaran' }).click();
   await customer.getByRole('heading', { name: 'Detail pesanan' }).waitFor();
+  await customer.getByText('Minta jadwal lain',{exact:true}).click();
+  await customer.getByLabel('Waktu yang cocok untuk Anda').fill('Saya bisa datang pukul 14.00.');
+  await customer.getByRole('button',{name:'Minta jadwal baru'}).click();
   await admin.reload();
-  await admin.getByRole('button', { name: 'Mulai pengerjaan' }).click();
-  await admin.getByRole('button', { name: 'Tandai siap diambil' }).click();
+  await admin.getByLabel('Waktu baru (WIB)').fill(fittingDay+'T14:00');
+  await admin.getByRole('button',{name:'Kirim jadwal baru'}).click();
+  await customer.reload();
+  await customer.getByRole('button',{name:'Setujui jadwal fitting'}).click();
+  await admin.reload();
+  await admin.getByRole('button',{name:'Catat fitting selesai'}).click();
+  await admin.getByRole('button',{name:'Mulai pengerjaan'}).click();
+  await admin.getByRole('button',{name:'Tandai jahitan siap'}).click();
   await customer.goto('/workspace');
-  await attention.locator('a[href="' + requestPath + '"]').getByText('Pembayaran dan serah terima').click();
-  assert.equal(await customer.locator('.order-progress [aria-current="step"]').innerText(), 'Siap diambil');
+  await attention.locator('a[href="' + requestPath + '"]').getByText('Buka pembayaran').click();
+  assert.equal(await customer.locator('.journey [aria-current="step"]').innerText(), 'Pembayaran');
   await customer.getByRole('button',{name:'Mulai pembayaran simulasi'}).click();
   await admin.reload();
   await admin.getByRole('button',{name:'Verifikasi simulasi lunas'}).click();
-  await admin.getByRole('button', { name: 'Selesaikan pesanan' }).click();
-  await admin.getByText('Selesai', { exact: true }).first().waitFor();
-
+  await admin.getByLabel('Kurir, nomor resi, atau catatan pengantaran').fill('Kurir uji, resi QA-3160.');
+  await admin.getByRole('button',{name:'Catat sudah dikirim'}).click();
   await customer.reload();
-  assert.equal(await customer.locator('.order-progress [aria-current="step"]').innerText(), 'Selesai');
+  await customer.locator('.workflow-heading .status').getByText('Dalam pengiriman',{exact:true}).waitFor();
+  await customer.locator('#serah-terima').getByText('Kurir uji, resi QA-3160.',{exact:true}).waitFor();
+  await admin.getByRole('button',{name:'Selesaikan pesanan'}).click();
+  await admin.locator('.workflow-heading .status').getByText('Pesanan selesai',{exact:true}).waitFor();
+  await customer.reload();
+  assert.equal(await customer.locator('.journey .done').count(),5);
+  for (const width of [320,375,768]) {
+    await customer.setViewportSize({width,height:844});
+    assert.equal(await customer.evaluate(()=>document.documentElement.scrollWidth),width);
+  }
+  await customer.setViewportSize({width:375,height:844});
   if (screenshotDir) {
     await customer.screenshot({ path: screenshotDir + '/customer-mobile.png', fullPage: true });
     await tailor.reload();
@@ -195,9 +227,10 @@ try {
   await customer.getByRole('navigation', { name: 'Navigasi utama' }).getByRole('link', { name: 'Pesanan Saya' }).click();
   await customer.locator('.order-group').filter({ has: customer.getByRole('heading', { name: /Riwayat/ }) })
     .locator('a[href="' + requestPath + '"]').waitFor();
+  await customer.getByText('Simulasi dan notifikasi uji',{exact:true}).click();
   await customer.getByRole('link', { name: 'Notifikasi simulasi' }).click();
   const currentOrderMessage = customer.getByRole('listitem')
-    .filter({ has: customer.getByRole('link', { name: /Pesanan siap diambil/ }) })
+    .filter({ has: customer.getByRole('link', { name: /Jahitan siap dibayar/ }) })
     .filter({ has: customer.locator('a[href="' + new URL(requestUrl).pathname + '"]') });
   const simulated = currentOrderMessage.getByText('Notifikasi simulasi', { exact: true });
   const deadline = Date.now() + 10000;
@@ -206,8 +239,24 @@ try {
     await customer.reload();
   }
   assert.ok(await simulated.isVisible(), 'The worker should record a simulated collection notice for this order.');
+  await admin.getByRole('navigation',{name:'Navigasi utama'}).getByRole('link',{name:'Kinerja',exact:true}).click();
+  await admin.getByRole('heading',{name:'Kinerja layanan'}).waitFor();
+  for (const width of [320,375,768]) {
+    await admin.setViewportSize({width,height:844});
+    assert.equal(await admin.evaluate(()=>document.documentElement.scrollWidth),width);
+  }
+  await admin.getByRole('navigation',{name:'Navigasi utama'}).getByRole('link',{name:'Pesanan',exact:true}).click();
+  await admin.getByRole('heading',{name:'Papan pesanan'}).waitFor();
+  await admin.setViewportSize({width:375,height:844});
+  assert.equal(await admin.evaluate(()=>document.documentElement.scrollWidth),375);
+  if (screenshotDir) await admin.screenshot({path:screenshotDir+'/admin-board-mobile.png'});
+  const compactDesk = admin.locator('[data-desk-filter-menu]');
+  assert.equal(await compactDesk.getAttribute('open'),null);
+  await compactDesk.locator('summary').click();
+  await admin.getByRole('navigation',{name:'Filter pesanan'}).getByRole('link',{name:/Pembayaran/}).click();
+  assert.equal(new URL(admin.url()).searchParams.get('filter'),'payment');
   assert.deepEqual(pageErrors, []);
-  console.log('Browser workflow passed at mobile customer and desktop tailor sizes.');
+  console.log('Browser workflow passed for customer, administrator, and legacy tailor views.');
 } finally {
   await browser.close();
 }

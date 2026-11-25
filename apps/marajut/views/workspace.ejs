@@ -1,0 +1,63 @@
+<%- include('header') %>
+<% const groups = {action:[], ongoing:[], history:[]};
+for (const item of items) {
+  if (item.dispatch_state) {
+    const journey = orderJourney(item,'customer',paymentMode);
+    groups[journey.group].push({item,journey});
+    continue;
+  }
+  const state = item.order_status ?? (item.status==='QUOTED' && item.quote_expired?'EXPIRED':item.status);
+  const group = ['QUOTED','NEEDS_DETAILS','READY'].includes(state) ? 'action'
+    : ['COMPLETED','CANCELLED','DECLINED'].includes(state) ? 'history' : 'ongoing';
+  const actions = { QUOTED:'Tinjau penawaran', NEEDS_DETAILS:'Lengkapi detail', READY:'Lihat pengambilan' };
+  groups[group].push({item,journey:{label:statusLabel(state),action:actions[state]}});
+}
+const sections = [['action','Perlu tindakan Anda'],['ongoing','Sedang diproses'],['history','Riwayat']];
+%>
+<section class="section orders-home customer-orders">
+  <header class="page-heading orders-heading">
+    <div><p class="location"><%= user.display_name %></p><h1>Pesanan Saya</h1>
+      <p>Pantau penawaran, pengerjaan, dan pembayaran jahitan Anda.</p></div>
+    <a class="button" href="/requests/new">Buat permintaan <%- include('icon',{name:'arrow'}) %></a>
+  </header>
+  <% if (items.length) { %><nav class="section-links" aria-label="Bagian pesanan Anda">
+    <% for (const [key,title] of sections) { if (!groups[key].length) continue; %>
+      <a href="#pesanan-<%= key %>"><%= title %> <span><%= groups[key].length %></span></a>
+    <% } %>
+  </nav><% } %>
+  <% if (items.length===100) { %><p class="muted">Menampilkan 100 permintaan terbaru.</p><% } %>
+  <% if (!items.length) { %><div class="queue-empty"><%- include('icon',{name:'bag'}) %>
+    <strong>Belum ada permintaan.</strong><p><a href="/#services">Cari penjahit</a> dan pilih layanan untuk memulai.</p></div><% } %>
+  <% for (const [key,title] of sections) { if (!groups[key].length) continue; %>
+    <section class="card order-group order-group-<%= key %>" id="pesanan-<%= key %>">
+      <h2><%= title %> <span class="group-count"><%= groups[key].length %></span></h2>
+      <ul class="record-list">
+        <% for (const {item,journey} of groups[key]) { %>
+          <li><a href="/requests/<%= item.id %>">
+            <span class="order-record">
+              <span class="order-ref">#<%= orderReference(item.id) %></span>
+              <strong><%= item.service %></strong><small><%= item.business %> · <%= dateTime(item.created_at) %></small>
+            </span>
+            <span class="order-row-summary">
+              <span class="status" data-tone="<%= journey.tone ?? 'neutral' %>"><%= journey.label %></span>
+              <% if (item.order_status && item.amount) { %><small><%= money(item.amount) %></small>
+              <% } else if (item.quote_status==='SENT') { %><small><%= money(item.quote_amount) %></small>
+              <% } else if (item.estimate) { %><small>Perkiraan <%= money(item.estimate) %></small><% } %>
+            </span>
+            <span class="record-cta"><%= journey.action ?? 'Lihat detail' %> <%- include('icon',{name:'arrow'}) %></span>
+          </a></li>
+        <% } %>
+      </ul>
+    </section>
+  <% } %>
+  <% if (mode==='simulated' || intakeEnabled) { %>
+    <details class="workflow-options demo-tools">
+      <summary>Simulasi dan notifikasi uji</summary>
+      <div class="actions">
+        <% if (intakeEnabled) { %><a href="/workspace/intake">Simulasi WhatsApp</a><% } %>
+        <% if (mode==='simulated') { %><a href="/workspace/messages">Notifikasi simulasi</a><% } %>
+      </div>
+    </details>
+  <% } %>
+</section>
+<%- include('footer') %>

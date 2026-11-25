@@ -1,0 +1,73 @@
+<% const queueLink = (key,next=1) => {
+  const params = new URLSearchParams();
+  if (key!=='all') params.set('filter',key);
+  if (search) params.set('q',search);
+  if (next>1) params.set('page',next);
+  return '/pengelola'+(params.size?'?'+params:'')+'#papan-pesanan';
+};
+const metrics = [
+  ['dispatch','Koordinasi penjahit','chat'],
+  ['work','Pengerjaan','scissors'],
+  ['payment','Pembayaran','quote'],
+  ['handover','Serah terima','bag']
+];
+%>
+<nav class="desk-metrics" aria-label="Ringkasan antrean">
+  <% for (const [key,label,icon] of metrics) { %>
+    <a class="desk-metric" href="<%= queueLink(key) %>" <%= filter===key?'aria-current=true':'' %>>
+      <span class="metric-icon"><%- include('icon',{name:icon}) %></span>
+      <strong><%= counts[key] ?? 0 %></strong><span><%= label %></span>
+    </a>
+  <% } %>
+</nav>
+<section class="card desk-queue" id="papan-pesanan" aria-labelledby="queue-title">
+  <div class="section-caption desk-heading">
+    <h2 id="queue-title">Papan pesanan</h2>
+    <form class="desk-search" role="search" action="/pengelola#papan-pesanan" method="get">
+      <% if (filter!=='all') { %><input type="hidden" name="filter" value="<%= filter %>"><% } %>
+      <label class="sr-only" for="desk-query">Cari pesanan</label>
+      <input id="desk-query" name="q" type="search" placeholder="Kode, nama, atau layanan" maxlength="80" value="<%= search %>">
+      <button class="secondary"><%- include('icon',{name:'search'}) %> Cari</button>
+    </form>
+  </div>
+  <details class="desk-filter-menu" data-desk-filter-menu open>
+    <summary>Antrean <strong><%= deskFilters[filter] %></strong><span><%= counts[filter] ?? 0 %></span></summary>
+    <nav class="desk-filters" aria-label="Filter pesanan">
+      <% for (const [key,label] of Object.entries(deskFilters)) { %>
+        <a href="<%= queueLink(key) %>" <%= key===filter?'aria-current=true':'' %>><%= label %><span><%= counts[key] ?? 0 %></span></a>
+      <% } %>
+    </nav>
+  </details>
+  <% if (search) { %><p class="desk-results muted"><%= counts[filter] ?? 0 %> hasil untuk “<%= search %>”
+    <a href="/pengelola<%= filter==='all'?'':'?filter='+filter %>#papan-pesanan">Hapus pencarian</a></p><% } %>
+  <% if (!queue.length) { %>
+    <div class="queue-empty"><strong><%= search?'Pesanan tidak ditemukan.':'Antrean ini kosong.' %></strong>
+      <p><%= search?'Coba kode pesanan, nama pelanggan, atau nama penjahit lain.':'Pesanan akan muncul di sini sesuai tahap pengerjaannya.' %></p></div>
+  <% } else { %>
+    <div class="desk-row desk-columns" aria-hidden="true"><span>Pesanan</span><span>Pelanggan</span><span>Tahap berikutnya</span><span></span></div>
+    <ul class="desk-list"><% for (const item of queue) {
+      const journey = item.dispatch_state ? orderJourney(item,'admin',paymentMode) : null;
+      const status = item.order_status ?? (item.quote_expired?'EXPIRED':item.status);
+      const complaint = item.complaint_open;
+      const due = item.fitting_state==='SCHEDULED' ? null : item.due_date;
+      %><li><a class="desk-row" href="/requests/<%= item.id %><%= complaint?'#keluhan':'' %>">
+        <span class="order-record">
+          <span class="order-ref">#<%= orderReference(item.id) %></span><strong><%= item.service %></strong>
+          <small><%= item.business %></small>
+        </span>
+        <span class="desk-customer"><strong><%= item.customer %></strong><small><%= dateTime(item.created_at) %></small></span>
+        <span class="desk-state">
+          <span class="status" data-tone="<%= complaint?'attention':journey?.tone ?? 'neutral' %>"><%= complaint?'Keluhan terbuka':journey?.label ?? statusLabel(status) %></span>
+          <small><%= complaint?'Tanggapi keluhan':journey?.title ?? 'Lihat pesanan' %></small>
+          <% if (!complaint && item.fitting_state==='SCHEDULED' && item.fitting_at) { %><small><%= dateTime(item.fitting_at) %></small>
+          <% } else if (due && item.queue_stage!=='history') { %><small><%= item.order_status?'Perkiraan':'Target' %> <%= localDate(due) %></small><% } %>
+        </span>
+        <span class="desk-open"><span class="sr-only">Buka pesanan</span><%- include('icon',{name:'arrow'}) %></span>
+      </a></li><% } %></ul>
+  <% } %>
+  <% if (page>1 || nextPage) { %><nav class="desk-pagination actions" aria-label="Halaman papan pesanan">
+    <% if (page>1) { %><a class="button secondary" href="<%= queueLink(filter,page-1) %>">Sebelumnya</a><% } %>
+    <span>Halaman <%= page %></span>
+    <% if (nextPage) { %><a class="button secondary" href="<%= queueLink(filter,page+1) %>">Berikutnya</a><% } %>
+  </nav><% } %>
+</section>

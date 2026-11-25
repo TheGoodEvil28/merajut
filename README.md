@@ -1,6 +1,8 @@
 # Marajut
 
-**Dari Web ke Chat, Setiap Jahitan Terhubung.** Customers find local tailoring services, agree on quotations and follow their orders on the web. Admins manage partner listings, coordinate jobs with tailors through WhatsApp, and publish negotiated quotes, appointments and order updates. Customers pay from the order page once the work is ready. A separate local simulator supports rehearsing inbound chat. The new experience uses the existing Djahit Express application, PostgreSQL database and notification worker. [Marajut transition assessment](docs/product/MARAJUT-PHASE-1.md)
+Marajut helps residents of Semarang find and book local tailoring services. Customers review prices, arrange fittings, and track work through payment and handover. Admins manage the marketplace and coordinate with tailors over WhatsApp. Express serves the website, PostgreSQL stores orders and their history, and a separate worker handles email and simulated notifications.
+
+Marajut is aligned with the SEVENT X Website subtheme **Decent Work and Economic Growth (SDG 8)** through service discovery for independent tailors and a documented path from quote to paid work. See the review of the attached rulebook and the prior-work eligibility question. [Competition requirements](docs/adr/ADR-0009-competition-eligibility.md) · [Project provenance](LEGACY_ORIGIN.md)
 
 ## Start locally
 
@@ -9,24 +11,25 @@
 3. From this directory run:
 
 ```sh
-docker compose up -d --wait --build
+docker compose build web
+docker compose up -d --wait --no-build
 docker compose run --rm seed
 docker compose ps
 ```
 
-On older Docker Desktop setups that expose Compose as `docker-compose`, use that command in place of `docker compose`. Open [127.0.0.1:3100](http://127.0.0.1:3100/) or [localhost:3100](http://localhost:3100/). The port is bound to loopback. If your browser reports a refused connection, include the port and check `docker compose ps`. Start the stack with the command above if it stopped. Restarting preserves the named data volume.
+On older Docker Desktop setups that expose Compose as `docker-compose`, use that command in place of `docker compose`. Open [127.0.0.1:3100](http://127.0.0.1:3100/) or [localhost:3100](http://localhost:3100/). The port is bound to loopback. If your browser reports a refused connection, include the port and check `docker compose ps`. The default Compose project, image and database use the Marajut name. To upgrade an existing database, retain its connection settings or set its current PostgreSQL user and database in `POSTGRES_USER` and `POSTGRES_DB` and use its existing Compose project name. Migration 008 updates the five demo account addresses in place where the new address is available. Sign in again with the updated demo address after a cookie-name change.
 
 The seed creates two published businesses, three services and five synthetic accounts. They use your local `DEMO_PASSWORD`.
 
 | Role | Account | Scope |
 | --- | --- | --- |
-| Customer | `customer@djahit.test` | Ayu's own requests and messages |
-| Customer | `customer2@djahit.test` | Separate customer for access checks |
-| Tailor | `tailor@djahit.test` | Jahit Rina |
-| Tailor | `tailor2@djahit.test` | Ruang Jahit Dewi |
-| Platform operator | `operator@djahit.test` | Admin desk, partner directory, order dispatch, payments and performance |
+| Customer | `customer@marajut.test` | Ayu's own requests and messages |
+| Customer | `customer2@marajut.test` | Separate customer for access checks |
+| Tailor | `tailor@marajut.test` | Jahit Rina |
+| Tailor | `tailor2@marajut.test` | Ruang Jahit Dewi |
+| Platform operator | `operator@marajut.test` | Admin desk, partner directory, order dispatch, payments and performance |
 
-Use separate browser profiles for the customer and admin. Customers start in **Cari Penjahit** and manage contact details in **Profil saya**. Admins open **Pengelolaan platform**, add partners and services, publish listings, and open incoming requests from **Papan pesanan**. A new partner needs only a private WhatsApp number. Existing tailor logins can view their assigned work. The original cash workflow remains available for requests created before migration 006.
+Use separate browser profiles for the customer and admin. Customers start in **Cari Penjahit** and manage contact details in **Profil saya**. Admins open **Pengelolaan platform**, add partners and services, publish listings, and open incoming requests from **Papan pesanan**. Search the admin order queue by its reference, customer, tailor, or service. Customers can request a fitting and select pickup or delivery when submitting the request. They can confirm a revised fitting time on the order page. Admins can record delivery after checkout and close the order after handover. A new partner needs only a private WhatsApp number. Existing tailor logins can view their assigned work. The original cash workflow remains available for requests created before migration 006.
 
 Set `ADMIN_WHATSAPP` to the admin's international-format number to offer WhatsApp partner registration from the storefront. Without it, the storefront accepts a registration for admin review. For an order, **Bagikan ke grup WhatsApp** opens the chat chooser, and **WhatsApp pribadi mitra** opens the saved partner number. The admin sends the message in WhatsApp and records the reply on the order.
 
@@ -42,9 +45,9 @@ For a disposable demo database, add optional synthetic rows for the two tailor a
 
 ## Demo inbound intake and handoff
 
-1. Sign in as `customer2@djahit.test` and open **Pesanan Saya → Simulasi WhatsApp**. Send a message, choose **Ruang Jahit Dewi · Perbaikan jahitan lepas** (**Seam repair** on older seeds), and submit **Detail jahitan**.
+1. Sign in as `customer2@marajut.test` and open **Pesanan Saya → Simulasi WhatsApp**. Send a message, choose **Ruang Jahit Dewi · Perbaikan jahitan lepas** (**Seam repair** on older seeds), and submit **Detail jahitan**.
 2. If the sender is unlinked, choose **Tautkan pengirim**, send the proof and refresh. Select **Konfirmasi tautan** in the session that generated the code.
-3. Choose **Minta bantuan penjahit**. As `tailor2@djahit.test`, open **Ringkasan → Percakapan WhatsApp**. Choose the conversation and select **Tangani percakapan**.
+3. Choose **Minta bantuan penjahit**. As `tailor2@marajut.test`, open **Ringkasan → Percakapan WhatsApp**. Choose the conversation and select **Tangani percakapan**.
 4. Send **Kirim balasan simulasi** and refresh the customer conversation to see it. Choose **Buat permintaan layanan** or link a matching existing request. The operator can handle unassigned conversations.
 5. As the admin, open the linked request, record that the partner is available and send a quote. The customer accepts the displayed version in their signed-in workspace. Resolve the conversation or return it to automated intake from the tailor view.
 
@@ -56,17 +59,17 @@ After selecting a business, the conversation stays scoped to that business even 
 
 ## Database and services
 
-`compose.yaml` runs PostgreSQL 17, a one-shot migration command, the web app and the worker. The migrator runs before the web app and worker. Migration 001 creates users, sessions, businesses, memberships, services, inquiries, quotes, decisions, orders and events. Migration 002 creates simulation preferences, the outbox, deduplicated simulation receipts and worker heartbeats. Migration 003 adds the scoped operator role, synthetic senders, session-bound challenges, conversations, a retryable inbound inbox and simulated conversation history. The migration upgrades the existing volume in place.
+`compose.yaml` runs PostgreSQL 17, a one-shot migration command, the web app and the worker. The migrator runs before the web app and worker. Migration 001 creates users, sessions, businesses, memberships, services, inquiries, quotes, decisions, orders and events. Migration 002 creates simulation preferences, the outbox, deduplicated simulation receipts and worker heartbeats. Later migrations add account verification, the admin order workflow, payment records, fitting and delivery tracking, and the demo account rename. The migrator applies pending files to the PostgreSQL database you configure.
 
 ```sh
 docker compose run --rm migrate
 docker compose run --rm seed
 docker compose logs web worker
-docker compose exec db psql -U djahit -d djahit -c "SELECT mode, seen_at FROM worker_heartbeats;"
+docker compose exec db psql -U marajut -d marajut -c "SELECT mode, seen_at FROM worker_heartbeats;"
 docker compose stop
 ```
 
-The migrator stores checksums and applies pending files under a PostgreSQL advisory lock. Seed reruns refresh the fixture passwords and preserve service edits and business history. To rehearse from an empty database, use a fresh Compose project name and a different `APP_PORT`. For a PostgreSQL instance you provision separately, set standard `PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE` and `PGPASSWORD` variables. Run `npm ci`, `npm run db:migrate`, and `npm run db:seed` with `DJAHIT_ENV=local` and `DEMO_PASSWORD`. Start `npm start` and `npm run worker` in separate terminals. Align `PORT` and `APP_ORIGIN` with the browser URL when overriding defaults.
+The migrator stores checksums and applies pending files under a PostgreSQL advisory lock. Seed reruns refresh the fixture passwords and preserve service edits and business history. To rehearse from an empty database, use a fresh Compose project name and a different `APP_PORT`. For a PostgreSQL instance you provision separately, set standard `PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE` and `PGPASSWORD` variables. Run `npm ci`, `npm run db:migrate`, and `npm run db:seed` with `MARAJUT_ENV=local` and `DEMO_PASSWORD`. Start `npm start` and `npm run worker` in separate terminals. Align `PORT` and `APP_ORIGIN` with the browser URL when overriding defaults.
 
 Health endpoints are `/health/live` and `/health/ready`. Readiness depends on the database and schema version. Browser forms and JSON clients share the same handlers. JSON clients first fetch `GET /api/v1/session`, retain the cookie and send the returned value as `X-CSRF-Token` on writes. Refresh the session endpoint after sign-in or logout, which rotates that token.
 
@@ -82,10 +85,10 @@ Migration `005_pilot_workflows.sql` adds verification challenges, scoped staff p
 node scripts/sandbox.js 3122 3123
 node scripts/db-backup.js save <project> <new-backup-file>
 node scripts/db-backup.js rehearse <project> <backup-file>
-docker compose -p <project> exec worker node apps/djahit/maintenance.js
+docker compose -p <project> exec worker node apps/marajut/maintenance.js
 ```
 
-An approved deployment can schedule encrypted backup creation and retain copies off-host. The maintenance command previews the draft 90-day closed-photo and 30-day abandoned-thread policies. Apply requires an approved policy and the explicit `--apply` switch with `DJAHIT_RETENTION_POLICY=approved-90-30`. Rehearse on synthetic data first.
+An approved deployment can schedule encrypted backup creation and retain copies off-host. The maintenance command previews the draft 90-day closed-photo and 30-day abandoned-thread policies. Apply requires an approved policy and the explicit `--apply` switch with `MARAJUT_RETENTION_POLICY=approved-90-30`. Rehearse on synthetic data first.
 
 ## Tests
 
@@ -109,7 +112,7 @@ The JavaScript build check runs syntax validation. There is no frontend bundler 
 
 `MESSAGING_MODE=simulated` queues quote and collection notices. The worker uses leased jobs, bounded retry and a durable per-intent simulation receipt. It checks the customer's simulation preference before recording a message. `MESSAGING_MODE=disabled` stops new intents. The adapter boundary allows a future vendor transport to declare replay behavior. Live mode is rejected and no Meta or BSP requests are sent.
 
-Local pilots support pre-verified fixtures, verified guest accounts, password recovery, private photo uploads and operator-managed tailor invitations and publication. Automated WhatsApp API delivery requires an approved Business account and number, external HTTPS callback configuration, verified sender binding with real contacts, consent and template approval, receipt reconciliation and real delivery tests. Competition publication and submission remain on hold.
+Local pilots support pre-verified fixtures, verified guest accounts, password recovery, private photo uploads and operator-managed tailor invitations and publication. Automated WhatsApp API delivery requires an approved Business account and number, external HTTPS callback configuration, verified sender binding with real contacts, consent and template approval, receipt reconciliation and real delivery tests. The [SEVENT X checklist](docs/adr/ADR-0009-competition-eligibility.md#sevent-x-website-checklist) records the remaining eligibility and submission evidence.
 
 ## Local Git baseline
 
@@ -120,13 +123,11 @@ If this directory still has no Git history, first confirm the intended repositor
 | Area | Files |
 | --- | --- |
 | Local build and setup | `package.json`, `package-lock.json`, `.env.example`, `.gitignore`, `.dockerignore`, `compose.yaml`, `infra/Dockerfile` |
-| Database and identities | `db/migrations/{001_core,002_messaging}.sql`, `apps/djahit/{db,migrate,seed,identity}.js` |
-| Business and messaging | `apps/djahit/{catalog,inquiries,quotes,orders,outbox,worker}.js` |
-| HTTP and UI | `apps/djahit/{app,server,errors,validation}.js`, `apps/djahit/views/*.ejs`, `apps/djahit/public/style.css` |
+| Database and identities | `db/migrations/{001_core,002_messaging}.sql`, `apps/marajut/{db,migrate,seed,identity}.js` |
+| Business and messaging | `apps/marajut/{catalog,inquiries,quotes,orders,outbox,worker}.js` |
+| HTTP and UI | `apps/marajut/{app,server,errors,validation}.js`, `apps/marajut/views/*.ejs`, `apps/marajut/public/style.css` |
 | Verification | `scripts/{check,browser-smoke}.js`, `tests/workflow.test.js` |
-| Delivery docs | `README.md`, `LEGACY_ORIGIN.md`, `docs/roadmap/DJAHIT-IMPLEMENTATION-ROADMAP.md` |
+| Delivery docs | `README.md`, `LEGACY_ORIGIN.md`, `docs/roadmap/MARAJUT-IMPLEMENTATION-ROADMAP.md` |
 
-Milestone 2 changed `.env.example`, `compose.yaml`, `package.json`, `apps/djahit/{app,inquiries,migrate,seed,worker}.js`, `apps/djahit/views/header.ejs`, `tests/workflow.test.js`, this README and the roadmap. It added `db/migrations/003_inbound.sql`, `apps/djahit/{inbound,inbound-adapter,intake-routes}.js`, `apps/djahit/views/{intake,intake-bind,intake-list,intake-thread}.ejs`, and `scripts/inbound-browser-smoke.js`.
-
-See [RFC-0001](docs/rfc/RFC-0001-DJAHIT-RECONSTRUCTION.md), the [ADR register](docs/adr/README.md) and the [roadmap](docs/roadmap/DJAHIT-IMPLEMENTATION-ROADMAP.md) for remaining release work.
+See [RFC-0001](docs/rfc/RFC-0001-MARAJUT-RECONSTRUCTION.md), the [ADR register](docs/adr/README.md) and the [roadmap](docs/roadmap/MARAJUT-IMPLEMENTATION-ROADMAP.md) for remaining release work.
 "# merajut" 

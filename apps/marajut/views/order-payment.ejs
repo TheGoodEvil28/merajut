@@ -1,0 +1,72 @@
+<% const payment = order.payment;
+const pending = payment?.state==='PENDING';
+const ready = order.status==='READY';
+const beforeReady = ['CONFIRMED','IN_PROGRESS'].includes(order.status);
+const modeUsed = pending || payment?.state==='PAID' ? payment.mode : paymentMode;
+const blocked = ready && (paymentMode==='disabled' || (pending && payment.mode!==paymentMode));
+const visibleMethod = { demo:'Simulasi lokal', sandbox:'Sandbox Midtrans', live:'Virtual account BNI', disabled:'Pembayaran belum tersedia' };
+const canStart = ready && user.role==='customer' && !blocked &&
+  (!payment || payment.state==='FAILED' || (pending && !payment.va_number && modeUsed!=='demo'));
+const canCheck = ready && pending && !blocked && (user.manager || (user.role==='customer' && modeUsed!=='demo' && payment.va_number));
+%>
+<section class="card workflow-card payment-card" id="pembayaran" tabindex="-1">
+  <div class="section-caption">
+    <div><h2>Pembayaran</h2><% if (!beforeReady) { %><p class="muted"><%= visibleMethod[modeUsed] %></p><% } %></div>
+    <% if (payment) { %><span class="status" data-state="<%= payment.state %>"><%= statusLabel(payment.state) %><% if (payment.mode!=='live') { %> · transaksi uji<% } %></span><% } %>
+  </div>
+  <% if (beforeReady) { %>
+    <p>Tagihan tersedia setelah admin menandai jahitan siap.</p>
+  <% } else { %>
+    <div class="price-highlight"><span><%= payment?.state==='PAID'?'Jumlah dibayar':'Total tagihan' %></span><strong><%= money(order.amount) %></strong></div>
+    <% if (payment?.checked_at) { %><p class="muted form-help">Diperiksa <%= dateTime(payment.checked_at) %></p><% } %>
+    <% if (blocked && payment?.state!=='PAID') { %><p class="notice">Pembayaran sedang tidak tersedia. Silakan periksa kembali nanti.</p><% } %>
+    <% if (!blocked && payment?.state==='FAILED') { %>
+      <p><%= user.role==='customer'?'Tagihan sebelumnya sudah ditutup. Buat tagihan baru untuk melanjutkan.':'Pelanggan dapat membuka tagihan baru.' %></p>
+    <% } %>
+    <% if (pending && payment.va_number && !blocked && (user.manager || user.role==='customer')) { %>
+      <div class="bank-details">
+        <div><strong>Nomor virtual account BNI</strong><p class="bank-number" id="virtual-account"><%= payment.va_number %></p></div>
+        <button type="button" class="secondary" data-copy="virtual-account" hidden>Salin nomor</button>
+        <span class="muted" data-copy-status role="status"></span>
+      </div>
+      <p>Transfer tepat <strong><%= money(order.amount) %></strong> ke nomor di atas, lalu pilih <strong>Periksa status pembayaran</strong>.</p>
+    <% } %>
+    <% if (pending && modeUsed==='demo' && user.role==='customer' && !blocked) { %><p>Admin sedang menunggu untuk mencatat hasil transaksi simulasi.</p><% } %>
+    <% if (canStart) { %>
+      <% if (modeUsed==='demo') { %><p>Pembayaran ini digunakan untuk latihan. Admin akan mencatat hasilnya.</p><% } %>
+      <form method="post" action="/api/v1/orders/<%= order.id %>/checkout"><input type="hidden" name="_csrf" value="<%= csrf %>">
+        <button><%= modeUsed==='demo'?'Mulai pembayaran simulasi':pending?'Muat ulang tagihan':'Buat tagihan pembayaran' %></button></form>
+    <% } %>
+    <% if (canCheck) { %>
+      <form method="post" class="actions" action="/api/v1/payments/<%= payment.id %>/check"><input type="hidden" name="_csrf" value="<%= csrf %>">
+        <% if (modeUsed==='demo') { %>
+          <button name="action" value="confirm">Verifikasi simulasi lunas</button>
+          <button class="secondary" name="action" value="reject">Tandai simulasi gagal</button>
+        <% } else { %><button>Periksa status pembayaran</button><% } %>
+      </form>
+    <% } %>
+    <% if (user.manager || user.role==='provider') { const fee=payment?.fee ?? Math.round(order.amount*order.fee_bps/10000); %>
+      <dl class="summary-list payment-split">
+        <div><dt>Komisi platform (<%= order.fee_bps/100 %>%)</dt><dd><%= money(fee) %></dd></div>
+        <div><dt>Bagian penjahit</dt><dd><%= money(order.amount-fee) %></dd></div>
+      </dl>
+    <% } %>
+  <% } %>
+</section>
+<% if (['READY','COMPLETED'].includes(order.status) && (user.role==='customer' || user.manager || order.complaint)) { %>
+  <details class="card workflow-options" id="keluhan" <%= order.complaint?'open':'' %>>
+    <summary><%= order.complaint ? 'Keluhan pesanan' : 'Laporkan kendala pesanan' %></summary>
+    <% if (order.complaint) { %>
+      <p class="message-box preserve"><%= order.complaint %></p>
+      <% if (order.resolution) { %><p><strong>Tanggapan admin</strong></p><p class="preserve"><%= order.resolution %></p>
+      <% } else if (!user.manager) { %><p class="muted">Menunggu tanggapan admin.</p><% } %>
+    <% } %>
+    <% if ((user.role==='customer' && !order.complaint) || (user.manager && order.complaint && !order.resolution)) { %>
+      <form class="stack" method="post" action="/api/v1/orders/<%= order.id %>/complaint">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <label><%= user.manager?'Tanggapan untuk pelanggan':'Ceritakan kendala pesanan' %><textarea name="note" minlength="5" maxlength="500" required></textarea></label>
+        <button><%= user.manager?'Catat penyelesaian':'Kirim keluhan' %></button>
+      </form>
+    <% } %>
+  </details>
+<% } %>

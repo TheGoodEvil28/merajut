@@ -1,0 +1,27 @@
+<% const choosePath = '/api/v1/'+(user.manager?'management/':'')+'inquiries/'+inquiry.id+'/reassign'; %>
+<% if (['UNAVAILABLE','REJECTED'].includes(journey.key)) { %>
+  <section class="card workflow-card" id="ganti-penjahit" tabindex="-1">
+    <h2>Pilih penjahit lain</h2>
+<% } else { %>
+  <details class="card workflow-options" id="ganti-penjahit"><summary>Pilih penjahit lain</summary>
+<% } %>
+  <% if (alternatives.length) { %>
+    <form class="stack" method="post" action="<%= choosePath %>">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+      <label>Layanan pengganti<select name="serviceId" required>
+        <option value="">Pilih layanan</option>
+        <% for (const [label,similar] of [['Kategori yang sama',true],['Layanan lainnya',false]]) {
+          const matches = alternatives.filter(service=>service.same_category===similar);
+          if (!matches.length) continue; %>
+          <optgroup label="<%= label %>"><% for (const service of matches) { %>
+            <option value="<%= service.id %>"><%= service.business %> · <%= service.name %><%= service.price_hint?' · mulai '+money(service.price_hint):'' %></option>
+          <% } %></optgroup>
+        <% } %>
+      </select></label>
+      <p class="muted form-help">Kami akan meneruskan detail dan foto yang sudah Anda kirim. Penawaran lama tetap tersimpan di riwayat.</p>
+      <button><%= user.manager?'Alihkan permintaan':'Kirim ke penjahit ini' %></button>
+    </form>
+  <% } else { %>
+    <p>Belum ada pilihan lain yang tersedia. Admin dapat mencarikan penjahit untuk permintaan ini.</p>
+  <% } %>
+<% if (['UNAVAILABLE','REJECTED'].includes(journey.key)) { %></section><% } else { %></details><% } %>

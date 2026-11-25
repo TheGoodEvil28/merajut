@@ -1,0 +1,8 @@
+<section class="card">
+  <h2>Koordinasi admin</h2>
+  <dl class="terms">
+    <div><dt>Kesediaan</dt><dd><%= statusLabel(inquiry.dispatch_state) %></dd></div>
+    <div><dt>Perkiraan awal</dt><dd><%= inquiry.estimate ? money(inquiry.estimate) : 'Sesuai penawaran' %></dd></div>
+  </dl>
+  <p class="muted">Sampaikan kabar pengerjaan kepada admin melalui WhatsApp.</p>
+</section>

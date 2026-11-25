@@ -1,0 +1,21 @@
+<%- include('header') %>
+<section class="section admin-page">
+  <header class="page-heading admin-heading">
+    <div><h1>Kinerja layanan</h1><p>Jumlah pesanan dan nilai pembayaran per layanan.</p></div>
+  </header>
+  <section class="card">
+    <% if (!performance.length) { %><p>Tambahkan layanan pada profil penjahit untuk melihat kinerjanya di sini.</p>
+    <% } else { %><div class="desk-table" tabindex="0" role="region" aria-label="Tabel kinerja layanan">
+      <table><caption>Seluruh periode · pendapatan dari pembayaran terverifikasi</caption>
+        <thead><tr><th scope="col">Layanan dan mitra</th><th scope="col">Permintaan</th><th scope="col">Diterima</th>
+          <th scope="col">Selesai</th><th scope="col">Bagian mitra</th><th scope="col">Komisi platform</th><th scope="col">Komisi uji</th></tr></thead>
+        <tbody><% for (const row of performance) { %>
+          <tr><th scope="row"><%= row.service %><br><small><%= row.name %></small></th>
+            <td><%= row.requests %></td><td><%= row.accepted %></td><td><%= row.completed %></td>
+            <td><%= money(row.partner_net) %></td><td><%= money(row.revenue) %></td><td><%= money(row.test_revenue) %></td></tr>
+        <% } %></tbody>
+      </table>
+    </div><% } %>
+  </section>
+</section>
+<%- include('footer') %>

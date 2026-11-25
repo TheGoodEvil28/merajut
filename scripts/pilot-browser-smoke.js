@@ -15,8 +15,8 @@ const browser=await chromium.launch(process.env.BROWSER_CHANNEL ? {channel:proce
 const screenshots=process.env.BROWSER_SCREENSHOTS;
 const metric=[];
 const tag=randomBytes(4).toString('hex');
-const guestEmail='guest-'+tag+'@djahit.test';
-const providerEmail='tailor-'+tag+'@djahit.test';
+const guestEmail='guest-'+tag+'@marajut.test';
+const providerEmail='tailor-'+tag+'@marajut.test';
 const guest=await browser.newPage({baseURL:app.origin,viewport:{width:360,height:844}});
 const staff=await browser.newPage({baseURL:app.origin,viewport:{width:1366,height:900}});
 const provider=await browser.newPage({baseURL:app.origin,viewport:{width:1024,height:900}});
@@ -70,8 +70,9 @@ try {
     await checkScreen(guest,name);
   }
   await staff.goto('/login');
-  await signIn(staff,'operator@djahit.test');
+  await signIn(staff,'operator@marajut.test');
   await checkScreen(staff,'management');
+  await staff.getByRole('link',{name:'Operasional',exact:true}).click();
   await staff.getByText('Undang pengguna ruang usaha lama',{exact:true}).click();
   const invite=staff.locator('form').filter({has:staff.getByRole('button',{name:'Kirim undangan',exact:true})});
   const business='Jahit Uji '+tag;
@@ -93,13 +94,11 @@ try {
   await provider.getByLabel('Harga awal').fill('20000');
   await provider.getByRole('button',{name:'Tambah layanan'}).click();
   await provider.getByText('Permak Celana '+tag,{exact:true}).waitFor();
-  await staff.goto('/pengelola');
-  const row=staff.locator('.ops-entry').filter({hasText:business});
-  await row.locator('summary').click();
-  await row.getByLabel('Tindakan').selectOption('publish');
-  await row.getByLabel('Alasan perubahan').fill('Katalog demo telah ditinjau.');
-  await row.getByLabel('Kata sandi pengelola').fill(password);
-  await row.getByRole('button',{name:'Simpan keputusan'}).click();
+  await staff.getByRole('navigation',{name:'Navigasi utama'}).getByRole('link',{name:'Mitra',exact:true}).click();
+  await staff.getByRole('link',{name:'Kelola '+business,exact:false}).click();
+  await staff.getByLabel('Alasan perubahan').fill('Katalog demo telah ditinjau.');
+  await staff.locator('#publikasi details').first().getByLabel('Kata sandi pengelola').fill(password);
+  await staff.getByRole('button',{name:'Publikasikan profil'}).click();
   await staff.getByText('Perubahan tercatat.').waitFor();
   await capture(staff,'pengelola');
 
@@ -123,27 +122,27 @@ try {
   await provider.goto(path);
   await provider.getByRole('img',{name:'Foto referensi 1'}).waitFor();
   await staff.goto(path);
-  await staff.getByLabel('Catat hasil WhatsApp').selectOption('AVAILABLE');
-  await staff.getByRole('button',{name:'Simpan pembaruan'}).click();
+  await staff.getByRole('button',{name:'Penjahit bersedia'}).click();
+  await staff.getByLabel('Cara serah terima').selectOption('pickup');
   await staff.getByLabel(/Harga satuan/).first().fill('20000');
   await staff.getByLabel('Perkiraan selesai').fill(new Date(Date.now()+7*86400000).toISOString().slice(0,10));
   await staff.getByLabel('Rincian pengerjaan dan pengambilan').fill('Ambil di toko jika pakaian siap.');
   await staff.getByRole('button',{name:'Kirim penawaran'}).click();
-  await staff.getByRole('heading',{name:'Penawaran v1'}).waitFor();
+  await staff.locator('#penawaran').getByText(/Versi 1/).waitFor();
   await guest.reload();
-  await guest.getByText('Tanyakan rincian penawaran',{exact:true}).click();
-  await guest.getByLabel('Pertanyaan untuk penjahit').fill('Apakah bisa diambil di toko?');
-  await guest.getByRole('button',{name:'Kirim pertanyaan'}).click();
-  await guest.getByText('Apakah bisa diambil di toko?',{exact:true}).waitFor();
-  assert.equal(await guest.getByRole('button',{name:'Setujui penawaran v1'}).count(),0);
+  await guest.getByText('Minta penyesuaian',{exact:true}).click();
+  await guest.getByLabel('Pesan untuk admin').fill('Apakah bisa diambil di toko?');
+  await guest.getByRole('button',{name:'Kirim permintaan penyesuaian'}).click();
+  await guest.locator('#klarifikasi').getByText('Apakah bisa diambil di toko?',{exact:true}).waitFor();
+  assert.equal(await guest.getByRole('button',{name:'Setujui penawaran'}).count(),0);
   await staff.reload();
   await staff.getByRole('button',{name:'Kirim penawaran'}).click();
-  await staff.getByRole('heading',{name:'Penawaran v2'}).waitFor();
+  await staff.locator('#penawaran').getByText(/Versi 2/).waitFor();
   await guest.reload();
-  await guest.getByRole('button',{name:'Setujui penawaran v2'}).click();
+  await guest.getByRole('button',{name:'Setujui penawaran'}).click();
   await guest.getByRole('heading',{name:'Detail pesanan'}).waitFor();
   await staff.reload();
-  for (const label of ['Mulai pengerjaan','Tandai siap diambil']) await staff.getByRole('button',{name:label}).click();
+  for (const label of ['Mulai pengerjaan','Tandai jahitan siap']) await staff.getByRole('button',{name:label}).click();
   await guest.reload();
   await guest.getByRole('button',{name:'Mulai pembayaran simulasi'}).click();
   await staff.reload();
@@ -153,6 +152,9 @@ try {
   await guest.locator('#pembayaran').scrollIntoViewIfNeeded();
   await capture(guest,'pembayaran');
   await checkScreen(guest,'order');
+  await staff.getByRole('button',{name:'Selesaikan pesanan'}).click();
+  await guest.reload();
+  await guest.locator('.workflow-heading .status').getByText('Pesanan selesai',{exact:true}).waitFor();
 
   await reset.goto('/akun/lupa');
   await reset.getByLabel('Email').fill(guestEmail);
@@ -167,7 +169,7 @@ try {
   await signIn(reset,guestEmail,password+'-baru');
 
   const signup=await browser.newPage({baseURL:app.origin,viewport:{width:360,height:844}});
-  const signupEmail='signup-'+tag+'@djahit.test';
+  const signupEmail='signup-'+tag+'@marajut.test';
   await signup.goto('/akun/daftar');
   await signup.getByLabel('Email').fill(signupEmail);
   await signup.getByRole('button',{name:'Kirim tautan'}).click();

@@ -1,0 +1,59 @@
+<% const dispatchPath='/api/v1/management/inquiries/'+inquiry.id+'/dispatch';
+const reference=orderReference(inquiry.id);
+const group = 'Pekerjaan '+reference+' · '+inquiry.service+' · '+(inquiry.quantity ?? 1)+' pakaian. Silakan kabari admin secara pribadi jika tersedia.';
+const direct = order ? [
+  'Halo '+inquiry.business+', mohon kabari admin tentang pesanan '+reference+' · '+inquiry.service+'.',
+  'Harga yang disetujui '+money(order.amount)+'. Perkiraan selesai '+localDate(order.eta)+'.',
+  ['SCHEDULED','DONE'].includes(order.fitting_state) ? 'Fitting '+dateTime(order.fitting_at)+' di '+order.fitting_place+'.' : '',
+  handoverLabels[order.handover] ? handoverLabels[order.handover]+'.' : ''
+] : [
+  'Halo '+inquiry.business+', apakah bisa mengerjakan permintaan '+reference+'?',
+  inquiry.service+' · '+(inquiry.quantity ?? 1)+' pakaian. '+inquiry.description,
+  inquiry.desired_date ? 'Tanggal yang diharapkan '+localDate(inquiry.desired_date)+'.' : '',
+  inquiry.fit_notes ? 'Catatan ukuran · '+inquiry.fit_notes : '',
+  'Mohon kabari admin mengenai harga akhir, tanggal selesai, dan jadwal fitting jika diperlukan.'
+];
+const isWaiting = ['NEW','CONTACTED','UNAVAILABLE'].includes(journey.key);
+const lastPost=events.findLast(item => item.kind==='GROUP_POSTED');
+%>
+<section class="card workflow-card" id="koordinasi" tabindex="-1">
+  <div class="section-caption"><div><h2>Koordinasi penjahit</h2><p class="muted"><%= inquiry.business %> · <%= statusLabel(inquiry.dispatch_state) %></p></div></div>
+  <div class="actions">
+    <% if (contacts.whatsapp) { %>
+      <a class="button <%= journey.key==='NEW'?'':'secondary' %>" target="_blank" rel="noreferrer" href="https://wa.me/<%= contacts.whatsapp %>?text=<%= encodeURIComponent(direct.filter(Boolean).join('\n')) %>"><%- include('icon',{name:'chat'}) %> WhatsApp pribadi mitra <span class="sr-only">(tab baru)</span></a>
+    <% } else { %>
+      <a class="button secondary" href="/pengelola/mitra/<%= inquiry.business_id %>">Lengkapi WhatsApp mitra</a>
+    <% } %>
+    <% if (open) { %>
+      <a class="button secondary" target="_blank" rel="noreferrer" href="https://wa.me/?text=<%= encodeURIComponent(group) %>">Bagikan ke grup WhatsApp <span class="sr-only">(tab baru)</span></a>
+    <% } %>
+  </div>
+  <% if (open) { %>
+    <p class="form-help muted">Kirim pesan dari WhatsApp, lalu catat respons penjahit di sini.</p>
+    <% if (isWaiting || inquiry.status==='NEEDS_DETAILS') { %>
+      <form class="dispatch-actions" method="post" action="<%= dispatchPath %>">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+        <% if (inquiry.dispatch_state!=='CONTACTED' && inquiry.dispatch_state!=='AVAILABLE') { %>
+          <button class="secondary" name="state" value="CONTACTED">Catat sudah dihubungi</button>
+        <% } %>
+        <% if (inquiry.dispatch_state!=='AVAILABLE') { %><button name="state" value="AVAILABLE">Penjahit bersedia</button><% } %>
+        <% if (inquiry.dispatch_state!=='UNAVAILABLE') { %><button class="secondary" name="state" value="UNAVAILABLE">Penjahit berhalangan</button><% } %>
+      </form>
+    <% } else { %>
+      <details class="form-disclosure"><summary>Penjahit berhalangan</summary>
+        <p>Catat perubahan kesediaan untuk membuka pilihan penjahit pengganti.<% if (journey.key==='QUOTED') { %> Penawaran saat ini akan ditarik.<% } %></p>
+        <form method="post" action="<%= dispatchPath %>">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+          <button class="secondary" name="state" value="UNAVAILABLE">Catat penjahit berhalangan</button>
+        </form>
+      </details>
+    <% } %>
+    <div class="activity-line">
+      <form method="post" action="<%= dispatchPath %>">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+        <button class="quiet" name="state" value="GROUP">Catat sudah dibagikan ke grup</button>
+      </form>
+      <% if (lastPost) { %><small class="muted">Terakhir dibagikan <%= dateTime(lastPost.created_at) %></small><% } %>
+    </div>
+  <% } %>
+</section>

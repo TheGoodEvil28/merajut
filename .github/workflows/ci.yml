@@ -1,4 +1,4 @@
-name: Djahit checks
+name: Marajut checks
 on: [push, pull_request]
 permissions:
   contents: read
@@ -18,7 +18,8 @@ jobs:
       - name: Start a synthetic workspace
         run: |
           printf 'POSTGRES_PASSWORD=%s\nDEMO_PASSWORD=%s\n' "$(openssl rand -hex 20)" "$(openssl rand -hex 18)" > .env
-          docker compose up -d --wait --build
+          docker compose build web
+          docker compose up -d --wait --no-build
           docker compose run --rm seed npm run db:seed -- --workday
       - run: docker compose run --rm test
       - run: npm run test:browser

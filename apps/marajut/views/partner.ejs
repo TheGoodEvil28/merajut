@@ -1,0 +1,70 @@
+<%- include('header') %>
+<% const activeCount = services.filter(service=>service.active).length; %>
+<section class="section admin-page">
+  <a class="back" href="/pengelola/mitra">Mitra penjahit</a>
+  <header class="page-heading admin-heading">
+    <div><h1><%= business?.name ?? 'Tambah mitra' %></h1>
+      <p><%= business?.area ?? 'Simpan profil untuk menambahkan layanan penjahit.' %></p></div>
+    <% if (business?.published) { %><a class="button secondary" href="/penjahit/<%= business.slug %>">Lihat profil publik <%- include('icon',{name:'external'}) %></a><% } %>
+  </header>
+  <% if (saved) { %><p class="save-feedback" role="status"><%- include('icon',{name:'check'}) %> Perubahan tercatat.</p><% } %>
+  <div class="workflow-layout">
+    <div class="stack">
+      <form class="card stack" method="post" action="/api/v1/management/partners<%= business?'/'+business.id:'' %>">
+        <h2>Profil mitra</h2>
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <% if (business) { %><input type="hidden" name="revision" value="<%= business.moderation_revision %>"><% } %>
+        <div class="field-pair">
+          <label>Nama usaha<input name="name" required minlength="3" maxlength="80" value="<%= business?.name ?? '' %>"></label>
+          <label>Area layanan<input name="area" required minlength="3" maxlength="100" value="<%= business?.area ?? '' %>"></label>
+        </div>
+        <label>Spesialisasi<input name="specialty" required minlength="2" maxlength="160" value="<%= business?.specialty ?? '' %>"></label>
+        <label>Tentang penjahit<textarea name="description" required minlength="10" maxlength="600" rows="3"><%= business?.description ?? '' %></textarea></label>
+        <label>WhatsApp pribadi mitra<input name="whatsapp" type="tel" required maxlength="32" placeholder="0812 3456 7890" value="<%= business?.whatsapp ?? '' %>"></label>
+        <p class="muted form-help">Kontak WhatsApp digunakan admin untuk koordinasi pesanan.</p>
+        <button>Simpan mitra</button>
+      </form>
+      <% if (business) { const serviceBase='/api/v1/management/partners/'+business.id+'/services'; %>
+        <section class="card stack" id="layanan-mitra"><h2>Layanan mitra</h2>
+          <% for (const service of services) { %>
+            <details class="form-disclosure"><summary>
+              <strong><%= service.name %></strong> <span class="muted">· <%= service.active?'Aktif':'Disembunyikan' %> · <%= service.price_hint?money(service.price_hint):'Sesuai penawaran' %></span>
+            </summary><%- include('service-form',{service,serviceBase}) %></details>
+          <% } %>
+          <details class="form-disclosure" <%= services.length?'':'open' %>><summary>Tambah layanan</summary>
+            <%- include('service-form',{service:null,serviceBase}) %>
+          </details>
+        </section>
+      <% } %>
+    </div>
+    <% if (business) { %><section class="card stack" id="publikasi">
+      <div class="section-caption"><h2>Marketplace</h2><span class="status" data-tone="<%= business.published?'complete':'neutral' %>"><%= business.published?'Aktif':'Draf' %></span></div>
+      <dl class="summary-list">
+        <div><dt>Layanan aktif</dt><dd><%= activeCount %></dd></div>
+        <div><dt>Kontak WhatsApp</dt><dd><%= business.whatsapp?'Tersimpan':'Belum diisi' %></dd></div>
+      </dl>
+      <% if (business.published || (activeCount && (business.whatsapp || business.operator))) { %>
+        <details class="form-disclosure" <%= business.published?'':'open' %>>
+          <summary><%= business.published?'Ubah publikasi':'Publikasikan profil' %></summary>
+          <form class="stack" action="/api/v1/management/shops/<%= business.id %>" method="post">
+            <input type="hidden" name="revision" value="<%= business.moderation_revision %>">
+            <label>Alasan perubahan<textarea name="reason" required minlength="5" maxlength="500" rows="2"></textarea></label>
+            <%- include('reauth') %>
+            <button name="action" value="<%= business.published?'hide':'publish' %>"><%= business.published?'Sembunyikan profil':'Publikasikan profil' %></button>
+          </form>
+        </details>
+      <% } else { %><p>Simpan kontak WhatsApp dan tambahkan layanan aktif untuk memublikasikan profil.</p><% } %>
+      <% if (business.operator) { %>
+        <details class="form-disclosure">
+          <summary>Akses akun penjahit</summary><p><%= business.operator %></p>
+          <form class="stack" action="/api/v1/management/shops/<%= business.id %>" method="post">
+            <input type="hidden" name="revision" value="<%= business.moderation_revision %>">
+            <label>Alasan pencabutan<textarea name="reason" required minlength="5" maxlength="500" rows="2"></textarea></label>
+            <%- include('reauth') %><button class="secondary" name="action" value="revoke">Cabut akses dan sembunyikan profil</button>
+          </form>
+        </details>
+      <% } %>
+    </section><% } %>
+  </div>
+</section>
+<%- include('footer') %>

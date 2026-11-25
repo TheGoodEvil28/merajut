@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
-import { seedEmails } from '../apps/djahit/seed.js';
+import { seedEmails } from '../apps/marajut/seed.js';
 
 const origin = new URL(process.env.APP_ORIGIN ?? 'http://127.0.0.1:' + (process.env.APP_PORT ?? '3100'));
 const password = process.env.DEMO_PASSWORD;
@@ -79,17 +79,17 @@ try {
   await admin.goto('/login');
   await signIn(admin,seedEmails.operator,'**/pengelola');
   await admin.goto(tailor.url());
-  await admin.getByLabel('Catat hasil WhatsApp').selectOption('AVAILABLE');
-  await admin.getByRole('button',{name:'Simpan pembaruan'}).click();
+  await admin.getByRole('button',{name:'Penjahit bersedia'}).click();
+  await admin.getByLabel('Cara serah terima').selectOption('pickup');
   await admin.getByLabel(/Harga satuan/).first().fill('24000');
   await admin.getByLabel('Perkiraan selesai').fill(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
   await admin.getByLabel('Rincian pengerjaan dan pengambilan').fill('Repair jacket seam, collect in person.');
   await admin.getByRole('button', { name: 'Kirim penawaran' }).click();
-  await admin.getByRole('heading', { name: 'Penawaran v1' }).waitFor();
+  await admin.getByRole('heading', { name: 'Penawaran harga' }).waitFor();
 
   await customer.reload();
   await customer.getByRole('link', { name: 'Buka permintaan layanan' }).click();
-  await customer.getByRole('button', { name: 'Setujui penawaran v1' }).click();
+  await customer.getByRole('button', { name: 'Setujui penawaran' }).click();
   await customer.getByRole('heading', { name: 'Detail pesanan' }).waitFor();
   assert.equal(new URL(customer.url()).pathname, new URL(tailor.url()).pathname);
   await tailor.goto(conversationUrl);

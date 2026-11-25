@@ -8,13 +8,20 @@ import { pipeline } from 'node:stream/promises';
 import { startCompose, checkedExit } from './compose.js';
 
 const scrypt=promisify(scryptCallback);
-const magic=Buffer.from('DJAHTBK1');
+const magic = Buffer.from('MRJUTBK1');
+const previousBackupHeader = Buffer.from('444a414854424b31', 'hex');
 const headerLength=magic.length+16+12;
 const tagLength=16;
 const [command,project,file]=process.argv.slice(2);
-const passphrase=process.env.DJAHIT_BACKUP_PASSPHRASE;
-if (!['save','rehearse'].includes(command) || !/^djahit(?:-[a-z0-9][a-z0-9-]*)?$/.test(project??'') || !file || !passphrase || passphrase.length<24) {
-  throw new Error('Use db-backup.js save|rehearse <djahit-compose-project> <file> with a backup passphrase of at least 24 characters.');
+const passphrase=process.env.MARAJUT_BACKUP_PASSPHRASE;
+const composeProject = /^[a-z0-9][a-z0-9_-]*$/;
+const databaseEnvironment = 'export PGUSER="$POSTGRES_USER" PGDATABASE="$POSTGRES_DB"\nexec "$@"';
+
+function databaseCommand(args, options = {stdio:'inherit'}) {
+  return startCompose(project, ['exec','-T','db','sh','-ec',databaseEnvironment,'postgres',...args], options);
+}
+if (!['save','rehearse'].includes(command) || !composeProject.test(project??'') || !file || !passphrase || passphrase.length<24) {
+  throw new Error('Use db-backup.js save|rehearse <compose-project> <file> with a backup passphrase of at least 24 characters.');
 }
 
 if (command==='save') {
@@ -25,7 +32,7 @@ if (command==='save') {
   cipher.setAAD(header);
   const target=await open(file,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL,0o600);
   try {
-    const pg=startCompose(project,['exec','-T','db','pg_dump','-U','djahit','-Fc','--no-owner','--no-acl','djahit'],
+    const pg=databaseCommand(['pg_dump','-Fc','--no-owner','--no-acl'],
       {stdio:['ignore','pipe','inherit']});
     const dumped=checkedExit(pg);
     async function* encrypt() {
@@ -49,12 +56,11 @@ if (command==='save') {
     throw error;
   }
 } else {
-  if (!/^djahit-(?:sandbox|[a-z0-9-]+-qa)(?:-|$)/.test(project)) throw new Error('Restore rehearsal requires a separate QA or sandbox project.');
+  if (!/^marajut-(?:sandbox|[a-z0-9-]+-qa)(?:-|$)/.test(project)) throw new Error('Restore rehearsal requires a separate QA or sandbox project.');
   const source=await open(file,'r');
-  const scratch=await mkdtemp(join(tmpdir(),'djahit-restore-'));
+  const scratch=await mkdtemp(join(tmpdir(),'marajut-restore-'));
   const dump=join(scratch,'verified.dump');
-  const database='djahit_rehearsal_'+randomBytes(8).toString('hex');
-  const dbCommand=args=>startCompose(project,['exec','-T','db',...args],{stdio:'inherit'});
+  const database='marajut_rehearsal_'+randomBytes(8).toString('hex');
   let created=false;
   try {
     const {size}=await source.stat();
@@ -62,22 +68,23 @@ if (command==='save') {
     const header=Buffer.alloc(headerLength), tag=Buffer.alloc(tagLength);
     await source.read(header,0,headerLength,0);
     await source.read(tag,0,tagLength,size-tagLength);
-    if (!header.subarray(0,magic.length).equals(magic)) throw new Error('Unknown backup format.');
+    const format=header.subarray(0,magic.length);
+    if (!format.equals(magic) && !format.equals(previousBackupHeader)) throw new Error('Unknown backup format.');
     const key=await scrypt(passphrase,header.subarray(magic.length,magic.length+16),32);
     const decipher=createDecipheriv('aes-256-gcm',key,header.subarray(-12));
     decipher.setAAD(header);
     decipher.setAuthTag(tag);
     await pipeline(source.createReadStream({start:headerLength,end:size-tagLength-1}),
       decipher,createWriteStream(dump,{flags:'wx',mode:0o600}));
-    await checkedExit(dbCommand(['createdb','-U','djahit',database]));
+    await checkedExit(databaseCommand(['createdb',database]));
     created=true;
-    const restore=startCompose(project,['exec','-T','db','pg_restore','-U','djahit','--single-transaction','--no-owner','--no-acl','-d',database],
+    const restore=databaseCommand(['pg_restore','--single-transaction','--no-owner','--no-acl','-d',database],
       {stdio:['pipe','inherit','inherit']});
     await Promise.all([checkedExit(restore),pipeline(createReadStream(dump),restore.stdin)]);
-    await checkedExit(dbCommand(['psql','-U','djahit','-d',database,'-v','ON_ERROR_STOP=1','-c',
+    await checkedExit(databaseCommand(['psql','-d',database,'-v','ON_ERROR_STOP=1','-c',
       "SELECT (SELECT max(name) FROM schema_migrations) AS schema, (SELECT count(*) FROM inquiries) AS requests, (SELECT count(*) FROM orders) AS orders, (SELECT count(*) FROM inquiry_photos) AS photos, (SELECT coalesce(sum(octet_length(content)),0) FROM inquiry_photos) AS photo_bytes"]));
   } finally {
-    try { if (created) await checkedExit(dbCommand(['dropdb','-U','djahit',database])); }
+    try { if (created) await checkedExit(databaseCommand(['dropdb',database])); }
     finally {
       await source.close();
       await unlink(dump).catch(error => { if (error.code !== 'ENOENT') throw error; });

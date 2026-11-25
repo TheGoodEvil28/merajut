@@ -1,0 +1,70 @@
+<%- include('header') %>
+<% const selected = services.find(service=>service.id===fields.serviceId);
+const count = Number(fields.quantity ?? 1);
+const total = selected?.price_hint && Number.isInteger(count) && count>=1 && count<=50 ? selected.price_hint*count : null;
+%>
+<section class="section request-start">
+  <a class="back" href="<%= user?'/workspace':'/#services' %>"><%= user?'Pesanan Saya':'Cari Penjahit' %></a>
+  <header class="page-heading workflow-heading">
+    <div><h1>Minta penawaran</h1><p>Ceritakan kebutuhan jahitan Anda. Admin akan memeriksa harga dan jadwal dengan penjahit.</p></div>
+  </header>
+  <% if (!services.length) { %>
+    <p class="notice">Belum ada layanan yang menerima permintaan saat ini.</p>
+  <% } else { %>
+    <% if (formError) { %><p class="notice error-message" role="alert"><%= formError %></p><% } %>
+    <% if (!user) { %><p class="notice">Verifikasi email untuk mengirim permintaan. Sudah memiliki akun?
+      <a href="/login<%= selected?'?next='+encodeURIComponent('/requests/new?service='+selected.id):'' %>">Masuk ke akun</a></p><% } %>
+    <div class="workflow-layout">
+      <form class="card stack" method="post" action="<%= user?'/api/v1/inquiries':'/akun/permintaan' %>" id="request-intake">
+        <h2>Detail jahitan</h2>
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="key" value="<%= key %>">
+        <% if (!user) { %><label>Email untuk verifikasi<input name="email" type="email" autocomplete="email" value="<%= fields.email ?? '' %>" maxlength="254" required></label><% } %>
+        <label>Penjahit dan layanan<select id="intake-service" name="serviceId" data-service-picker required>
+          <option value="">Pilih layanan</option>
+          <% for (const service of services) { %>
+            <option value="<%= service.id %>" data-price="<%= service.price_hint %>" data-hint="<%= service.intake_hint ?? '' %>"
+              <%= service.id===selected?.id?'selected':'' %>><%= service.business %> · <%= service.name %><%= service.price_hint?' · '+money(service.price_hint)+'/pakaian':'' %></option>
+          <% } %>
+        </select></label>
+        <div class="field-pair">
+          <label>Jumlah pakaian<input id="intake-quantity" name="quantity" type="number" min="1" max="50" value="<%= fields.quantity ?? 1 %>" required></label>
+          <label>Target selesai <span class="label-optional">(opsional)</span><input type="date" name="desiredDate" value="<%= fields.desiredDate ?? '' %>"></label>
+        </div>
+        <label>Apa yang perlu dikerjakan?<textarea name="description" minlength="10" maxlength="1500" rows="4" required
+          aria-describedby="service-hint"><%= fields.description ?? '' %></textarea></label>
+        <p class="form-help muted" id="service-hint" data-service-hint><%= selected?.intake_hint ?? 'Jelaskan bagian pakaian dan perubahan yang Anda inginkan.' %></p>
+        <label>Ukuran atau catatan khusus <span class="label-optional">(opsional)</span>
+          <textarea name="fitNotes" maxlength="500" rows="2" placeholder="Misalnya, panjang akhir 90 cm."><%= fields.fitNotes ?? '' %></textarea></label>
+        <div class="field-pair">
+          <label>Perlu fitting?<select name="fittingRequested">
+            <option value="">Diskusikan dengan admin</option>
+            <option value="true" <%= String(fields.fittingRequested)==='true'?'selected':'' %>>Ya, perlu ukur atau coba pakaian</option>
+            <option value="false" <%= String(fields.fittingRequested)==='false'?'selected':'' %>>Tidak perlu</option>
+          </select></label>
+          <label>Cara serah terima<select name="requestedHandover">
+            <option value="">Diskusikan dengan admin</option>
+            <% for (const [value,label] of Object.entries(handoverLabels)) { %>
+              <option value="<%= value %>" <%= fields.requestedHandover===value?'selected':'' %>><%= label %></option>
+            <% } %>
+          </select></label>
+        </div>
+        <p class="form-help muted">Anda dapat menambahkan foto referensi setelah mengirim atau menyimpan draf.</p>
+        <div class="mobile-estimate price-highlight"><span>Perkiraan awal</span>
+          <output form="request-intake" for="intake-service intake-quantity" data-request-estimate aria-label="Perkiraan awal di formulir"><%= total ? money(total) : selected ? 'Sesuai penawaran' : 'Pilih layanan' %></output>
+        </div>
+        <button><%= user?'Kirim permintaan':'Simpan draf dan verifikasi email' %></button>
+      </form>
+      <aside class="card order-summary" aria-labelledby="estimate-title">
+        <h2 id="estimate-title">Perkiraan awal</h2>
+        <div class="price-highlight desktop-estimate"><output data-request-estimate aria-label="Perkiraan total"><%= total ? money(total) : selected ? 'Sesuai penawaran' : 'Pilih layanan' %></output></div>
+        <p>Perkiraan dihitung dari harga awal layanan dan jumlah pakaian. Anda akan meninjau harga akhir sebelum memesan.</p>
+        <ol class="request-next">
+          <li>Admin menghubungi penjahit.</li>
+          <li>Anda meninjau harga dan jadwal.</li>
+          <li>Bayar saat jahitan siap diserahkan.</li>
+        </ol>
+      </aside>
+    </div>
+  <% } %>
+</section>
+<%- include('footer') %>

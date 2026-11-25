@@ -2,11 +2,11 @@
 
 **Status** [PROPOSAL] Pending review · **Date** 18 November 2026 WIB
 
-[Parent RFC](../rfc/RFC-0001-DJAHIT-RECONSTRUCTION.md)
+[Parent RFC](../rfc/RFC-0001-MARAJUT-RECONSTRUCTION.md)
 
 ## Decision
 
-Use one Djahit-managed number and official Meta Cloud API behind an adapter. Switch to an approved BSP if it provides better provisioned access and verifiable data handling. Keep provider coordination in the dashboard. Use a labeled simulator until approval and delivery are demonstrated.
+Use one Marajut-managed number and official Meta Cloud API behind an adapter. Switch to an approved BSP if it provides better provisioned access and verifiable data handling. Keep provider coordination in the dashboard. Use a labeled simulator until approval and delivery are demonstrated.
 
 ## Alternatives
 

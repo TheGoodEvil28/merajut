@@ -1,0 +1,26 @@
+<% const path = '/api/v1/management/orders/'+order.id+'/transitions'; %>
+<section class="card workflow-card" id="serah-terima" tabindex="-1">
+  <div class="section-caption"><div><h2>Serah terima</h2><p class="muted"><%= handoverLabels[order.handover] %></p></div></div>
+  <p class="preserve"><%= order.terms %></p>
+  <% if (order.shipped_at) { %>
+    <dl class="terms"><div><dt>Dikirim</dt><dd><%= dateTime(order.shipped_at) %></dd></div></dl>
+    <p class="message-box preserve"><%= order.shipping_note %></p>
+  <% } %>
+  <% if (order.status==='READY' && isCustomer && order.handover==='delivery' && !order.shipped_at) { %>
+    <p><a href="/akun/profil">Periksa alamat pengiriman di profil</a></p>
+  <% } %>
+  <% if (order.status==='READY' && user.manager) { %>
+    <form class="stack" method="post" action="<%= path %>">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
+      <% if (order.handover==='delivery' && !order.shipped_at) { %>
+        <div><strong>Alamat di profil pelanggan</strong>
+          <p class="preserve"><%= contacts.address || 'Alamat belum diisi. Konfirmasi alamat dengan pelanggan.' %></p></div>
+        <label>Kurir, nomor resi, atau catatan pengantaran<textarea name="detail" maxlength="500" rows="2" required></textarea></label>
+        <button name="action" value="ship">Catat sudah dikirim</button>
+      <% } else { %>
+        <p class="form-help muted"><%= order.handover==='delivery' ? 'Selesaikan setelah pelanggan menerima kiriman.' : 'Selesaikan setelah pelanggan mengambil pakaian.' %></p>
+        <button name="action" value="complete">Selesaikan pesanan</button>
+      <% } %>
+    </form>
+  <% } %>
+</section>

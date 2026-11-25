@@ -1,0 +1,46 @@
+<% const rows = quoteDraft?.items?.length ? quoteDraft.items.slice(0,8) : latest?.line_items ?? [{
+  name:inquiry.service, quantity:latest ? 1 : inquiry.quantity ?? 1, unitPrice:latest?.amount
+}];
+const fittingAt = latest?.fitting_at ? new Date(+new Date(latest.fitting_at)+7*3600000).toISOString().slice(0,16) : '';
+const handover = quoteDraft?.handover ?? latest?.handover ?? inquiry.requested_handover ?? '';
+%>
+<section class="card" id="editor-penawaran" tabindex="-1">
+  <h2><%= latest ? 'Buat revisi penawaran' : 'Buat penawaran' %></h2>
+  <% if (inquiry.dispatch_state) { %><p class="muted">Gunakan harga dan jadwal yang sudah dibahas dengan penjahit. Pelanggan akan meninjau total ini sebelum menyetujui.</p><% } %>
+  <% if (quoteError) { %><p class="notice error-message" role="alert"><%= quoteError %></p><% } %>
+  <form class="stack" data-quote-editor action="<%= staffBase %>/inquiries/<%= inquiry.id %>/quotes" method="post">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <input type="hidden" name="revision" value="<%= inquiry.revision %>">
+    <fieldset class="price-editor">
+      <legend>Rincian harga</legend>
+      <div data-quote-lines><% for (const [index,item] of rows.entries()) { %>
+        <%- include('quote-line', { item,index:index+1,first:index===0 }) %>
+      <% } %></div>
+      <template><%- include('quote-line',{item:{},index:2,first:false}) %></template>
+      <button type="button" class="secondary" data-add-line hidden>Tambah rincian</button>
+      <div class="price-total"><span>Total penawaran</span><output aria-live="polite" aria-label="Total penawaran"></output></div>
+    </fieldset>
+    <div class="field-pair">
+      <label>Perkiraan selesai<input type="date" name="eta" value="<%= quoteDraft?.eta ?? latest?.eta ?? '' %>" required></label>
+      <label>Masa berlaku (jam)<input type="number" name="validHours" value="<%= quoteDraft?.validHours ?? 48 %>" min="1" max="168" required></label>
+    </div>
+    <% if (inquiry.dispatch_state) { %>
+      <label>Cara serah terima<select name="handover" required>
+        <option value="">Pilih cara serah terima</option>
+        <% for (const [value,label] of Object.entries(handoverLabels)) { %>
+          <option value="<%= value %>" <%= handover===value?'selected':'' %>><%= label %></option>
+        <% } %>
+      </select></label>
+      <details class="form-disclosure" <%= inquiry.fitting_requested || quoteDraft?.fittingAt || quoteDraft?.fittingPlace || fittingAt ? 'open' : '' %>>
+        <summary>Jadwalkan fitting <span class="muted"><%= inquiry.fitting_requested ? '· diminta pelanggan' : '· opsional' %></span></summary>
+        <div class="stack">
+          <label>Waktu fitting (WIB)<input type="datetime-local" name="fittingAt" value="<%= quoteDraft?.fittingAt ?? fittingAt %>"></label>
+          <label>Lokasi fitting<input name="fittingPlace" maxlength="200" value="<%= quoteDraft?.fittingPlace ?? latest?.fitting_place ?? '' %>"></label>
+          <p class="form-help muted">Isi waktu dan lokasi untuk menyertakan janji fitting.</p>
+        </div>
+      </details>
+    <% } %>
+    <label>Rincian pengerjaan dan pengambilan<textarea name="terms" minlength="5" maxlength="1000" rows="3" required><%= quoteDraft?.terms ?? latest?.terms ?? '' %></textarea></label>
+    <button>Kirim penawaran</button>
+  </form>
+</section>

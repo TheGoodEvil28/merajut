@@ -1,0 +1,17 @@
+<%- include('header') %>
+<section class="narrow section">
+  <a class="back" href="/workspace">Pesanan Saya</a>
+  <header class="page-heading workflow-heading"><div><h1>Profil saya</h1><p>Gunakan kontak yang bisa dihubungi untuk jadwal fitting dan serah terima.</p></div></header>
+  <% if (formError) { %><p class="notice error-message" role="alert"><%= formError %></p><% } %>
+  <% if (saved) { %><p class="notice" role="status">Profil tersimpan.</p><% } %>
+  <form class="card stack" action="/akun/profil" method="post">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label>Nama pelanggan<input name="name" minlength="2" maxlength="80" autocomplete="name" value="<%= profile.display_name %>" required></label>
+    <div><strong>Email terverifikasi</strong><p><%= profile.email %></p></div>
+    <label>Nomor WhatsApp<input name="phone" type="tel" autocomplete="tel" maxlength="32" placeholder="0812 3456 7890" value="<%= profile.phone ?? '' %>"></label>
+    <label>Alamat pengiriman <span class="label-optional">(untuk pesanan kirim)</span><textarea name="address" maxlength="400" autocomplete="street-address"><%= profile.address ?? '' %></textarea></label>
+    <p class="form-help muted">Kontak dan alamat tersedia untuk admin yang mengurus pesanan Anda.</p>
+    <button>Simpan profil</button>
+  </form>
+</section>
+<%- include('footer') %>

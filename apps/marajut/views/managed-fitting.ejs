@@ -1,0 +1,52 @@
+<% const path = '/api/v1/orders/'+order.id+'/fitting';
+const upcoming = new Date(order.fitting_at) > new Date();
+const active = ['CONFIRMED','IN_PROGRESS'].includes(order.status) && order.fitting_state!=='DONE';
+const requested = events.findLast(item=>item.kind==='FITTING_CHANGE_REQUESTED');
+const fitForm = fittingDraft?.action === 'propose' ? fittingDraft : {};
+%>
+<section class="card workflow-card" id="fitting" tabindex="-1">
+  <div class="section-caption"><h2>Jadwal fitting</h2><span class="status"><%= fittingLabels[order.fitting_state] %></span></div>
+  <dl class="terms">
+    <div><dt><%= order.fitting_state==='REQUESTED' ? 'Jadwal sebelumnya' : 'Waktu' %></dt><dd><%= dateTime(order.fitting_at) %></dd></div>
+    <div><dt>Lokasi</dt><dd><%= order.fitting_place %></dd></div>
+  </dl>
+  <% if (order.fitting_state==='REQUESTED' && requested?.detail) { %><p class="message-box preserve"><%= requested.detail %></p><% } %>
+  <% if (active && order.fitting_state==='PROPOSED' && !upcoming) { %><p class="notice">Waktu yang diusulkan sudah lewat. Jadwalkan ulang fitting.</p><% } %>
+  <% if (active && isCustomer && ['SCHEDULED','PROPOSED'].includes(order.fitting_state)) { %>
+    <% if (order.fitting_state==='PROPOSED' && upcoming) { %>
+      <form method="post" action="<%= path %>">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
+        <button name="action" value="confirm">Setujui jadwal fitting</button>
+      </form>
+    <% } %>
+    <details class="form-disclosure" <%= fittingDraft?.action==='request'?'open':'' %>>
+      <summary>Minta jadwal lain</summary>
+      <form class="stack" method="post" action="<%= path %>">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
+        <label>Waktu yang cocok untuk Anda<textarea name="note" minlength="5" maxlength="500" rows="2" required><%= fittingDraft?.note ?? '' %></textarea></label>
+        <button class="secondary" name="action" value="request">Minta jadwal baru</button>
+      </form>
+    </details>
+  <% } %>
+  <% if (active && user.manager) { %>
+    <% if (order.fitting_state==='SCHEDULED') { %>
+      <form method="post" action="<%= path %>">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
+        <button name="action" value="done">Catat fitting selesai</button>
+      </form>
+    <% } %>
+    <details class="form-disclosure" <%= order.fitting_state==='REQUESTED' || fittingDraft?.action==='propose'?'open':'' %>>
+      <summary>Ajukan jadwal lain</summary>
+      <form class="stack" method="post" action="<%= path %>">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
+        <div class="field-pair">
+          <label>Waktu baru (WIB)<input name="fittingAt" type="datetime-local" required value="<%= fitForm.fittingAt ?? '' %>"></label>
+          <label>Lokasi fitting<input name="fittingPlace" minlength="3" maxlength="200" required value="<%= fitForm.fittingPlace ?? order.fitting_place %>"></label>
+        </div>
+        <label>Pesan untuk pelanggan <span class="label-optional">(opsional)</span><textarea name="note" maxlength="500" rows="2"><%= fitForm.note ?? '' %></textarea></label>
+        <p class="form-help muted">Pelanggan akan mengonfirmasi jadwal baru di halaman pesanan.</p>
+        <button name="action" value="propose">Kirim jadwal baru</button>
+      </form>
+    </details>
+  <% } %>
+</section>

@@ -4,17 +4,17 @@ import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import pg from 'pg';
 import sharp from 'sharp';
-import { createApp } from '../apps/djahit/app.js';
-import { migrate } from '../apps/djahit/migrate.js';
-import { seed, seedEmails } from '../apps/djahit/seed.js';
-import { enqueue, messagingMode, processNext, simulator } from '../apps/djahit/outbox.js';
-import { normalizeSimulation } from '../apps/djahit/inbound-adapter.js';
-import { processInbound } from '../apps/djahit/inbound.js';
-import { processAccountMail } from '../apps/djahit/mail.js';
-import { midtrans } from '../apps/djahit/payments.js';
+import { createApp } from '../apps/marajut/app.js';
+import { migrate } from '../apps/marajut/migrate.js';
+import { seed, seedEmails } from '../apps/marajut/seed.js';
+import { enqueue, messagingMode, processNext, simulator } from '../apps/marajut/outbox.js';
+import { normalizeSimulation } from '../apps/marajut/inbound-adapter.js';
+import { processInbound } from '../apps/marajut/inbound.js';
+import { processAccountMail } from '../apps/marajut/mail.js';
+import { midtrans } from '../apps/marajut/payments.js';
 import { createServer } from 'node:http';
-import { expireQuotes } from '../apps/djahit/quotes.js';
-import { retentionSweep } from '../apps/djahit/maintenance.js';
+import { expireQuotes } from '../apps/marajut/quotes.js';
+import { retentionSweep } from '../apps/marajut/maintenance.js';
 
 function browserClient(base) {
   const cookies = new Map();
@@ -25,7 +25,7 @@ function browserClient(base) {
       if (body) {
         headers['content-type'] ??= 'application/json';
         headers.origin ??= base;
-        headers['x-csrf-token'] ??= cookies.get('djahit_csrf') ?? '';
+        headers['x-csrf-token'] ??= cookies.get('marajut_csrf') ?? '';
       }
       const response = await fetch(base + path, { method: body ? 'POST' : 'GET',
         body: Buffer.isBuffer(body) ? body : body ? JSON.stringify(body) : undefined, headers, redirect: 'manual' });
@@ -46,7 +46,7 @@ test('Live messaging cannot be selected', () => {
 });
 
 async function isolatedDatabase(t) {
-  assert.equal(process.env.DJAHIT_ENV, 'test', 'Run in the isolated test environment documented in README.');
+  assert.equal(process.env.MARAJUT_ENV, 'test', 'Run in the isolated test environment documented in README.');
   const schema = 'test_' + randomBytes(12).toString('hex');
   const administration = new pg.Pool();
   await administration.query(`CREATE SCHEMA "${schema}"`);
@@ -424,7 +424,7 @@ test('Express and PostgreSQL workflow', async t => {
     const publicPage = await client.request('/penjahit/jahit-rina', { raw: true });
     assert.match(publicPage, /Jahit Rina Semarang/);
     assert.match(publicPage, /Semarang Tengah dan sekitarnya/);
-    assert.doesNotMatch(publicPage, /@djahit\.test/);
+    assert.ok(!publicPage.includes(seedEmails.provider));
     const catalog = await client.request('/api/v1/services');
     assert.ok(catalog.some(row => row.business === profile.name && row.about === profile.description));
     const other = await client.request('/penjahit/ruang-jahit-dewi', { raw: true });
@@ -554,7 +554,7 @@ test('Express and PostgreSQL workflow', async t => {
   await t.test('a verified guest claims one request and its private photo; recovery revokes sessions',async() => {
     const guest=browserClient(base);
     const outsider=browserClient(base);
-    const email='guest-pilot@djahit.test';
+    const email='guest-pilot@marajut.test';
     await guest.request('/api/v1/session');
     await outsider.request('/api/v1/session');
     const draft={...createRequest(),email,quantity:2};
@@ -573,7 +573,7 @@ test('Express and PostgreSQL workflow', async t => {
     assert.equal(request.photos.length,1);
     await details(foreignTailor,claim.inquiryId,404);
     const recovery=await outsider.request('/akun/lupa',{body:{email},status:202});
-    assert.deepEqual(await outsider.request('/akun/lupa',{body:{email:'absent@djahit.test'},status:202}),recovery);
+    assert.deepEqual(await outsider.request('/akun/lupa',{body:{email:'absent@marajut.test'},status:202}),recovery);
     const reset=await getProof(email,'recovery');
     const replacement=password+'2';
     await outsider.request('/akun/konfirmasi',{body:{code:reset,password:replacement}});
@@ -585,7 +585,7 @@ test('Express and PostgreSQL workflow', async t => {
 
   await t.test('manager invites, publishes and revokes one tailor with an audit trail',async() => {
     const newTailor=browserClient(base);
-    const email='new-tailor@djahit.test';
+    const email='new-tailor@marajut.test';
     await customer.request('/api/v1/management',{status:403});
     const invite={name:'Jahit Uji',area:'Semarang Timur',description:'Permak pakaian untuk uji coba.',email,password};
     await operator.request('/api/v1/management/invites',{body:{...invite,password:'wrong'},status:403});
@@ -719,15 +719,18 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   assert.match(publicPage,/Jahit jas/);
   assert.doesNotMatch(publicPage,/6281234567890/);
   assert.equal((await pool.query('SELECT * FROM provider_memberships WHERE business_id=$1',[shop.id])).rowCount,0);
-  await post(customer,'/akun/profil',{name:'Ayu QA',address:'Alamat sintetis',phone:'081234567891'});
+  await post(customer,'/akun/profil',{name:'Ayu QA',address:'Alamat sintetis',phone:'+62 812 3456 7891'});
   assert.match(await page(customer,'/akun/profil'),/Alamat sintetis/);
-  const original=await post(customer,'/api/v1/inquiries',{key:randomUUID(),serviceId:service.id,quantity:2,description:'Pesanan jas sintetis.'},201);
+  const original=await post(customer,'/api/v1/inquiries',{key:randomUUID(),serviceId:service.id,quantity:2,
+    description:'Pesanan jas sintetis.',requestedHandover:'delivery',fittingRequested:true},201);
   const cloth=await sharp({create:{width:10,height:10,channels:3,background:'#778899'}}).png().toBuffer();
   await customer.request('/api/v1/inquiries/'+original.id+'/photos',{
     body:cloth,headers:{'content-type':'image/png'},status:201
   });
   const detail=await read(customer,original.id);
   assert.equal(detail.inquiry.dispatch_state,'OPEN');
+  assert.equal(detail.inquiry.requested_handover,'delivery');
+  assert.equal(detail.inquiry.fitting_requested,true);
   assert.equal(Number(detail.inquiry.estimate),service.price_hint*2);
   const action=(id,kind)=>prefix+'/inquiries/'+id+'/'+kind;
   const quote={amount:81000,revision:1,eta:'2099-02-10',terms:'Antar setelah fitting.',validHours:48,handover:'delivery',
@@ -752,6 +755,7 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   const replacementDetail=await read(customer,id);
   assert.equal(replacementDetail.inquiry.previous_inquiry_id,original.id);
   assert.equal(replacementDetail.photos.length,1);
+  assert.equal(replacementDetail.inquiry.requested_handover,'delivery');
   assert.notEqual(replacementDetail.photos[0].id,detail.photos[0].id);
   await tailor.request('/api/v1/inquiries/'+id,{status:404});
   const adminPage=await page(admin,'/requests/'+id);
@@ -770,11 +774,26 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   assert.equal(new Date(accepted.fitting_at).toISOString(),'2099-02-08T04:00:00.000Z');
   assert.match(await page(customer,'/requests/'+id),/Studio uji/);
   const checkout='/api/v1/orders/'+orderId+'/checkout';
-  const change=(action,revision,status=200)=>post(admin,prefix+'/orders/'+orderId+'/transitions',{action,revision},status);
+  const fitting='/api/v1/orders/'+orderId+'/fitting';
+  const change=(action,revision,status=200,detail)=>post(admin,prefix+'/orders/'+orderId+'/transitions',{action,revision,detail},status);
   await post(customer,checkout,{},409);
-  await change('start',1);
-  await change('ready',2);
-  await change('complete',3,409);
+  await post(other,fitting,{action:'request',revision:1,note:'Sabtu pagi.'},404);
+  assert.equal((await post(customer,fitting,{action:'request',revision:1,note:'Sabtu pagi.'})).fittingState,'REQUESTED');
+  await post(admin,fitting,{action:'propose',revision:1,fittingAt:'2099-02-09T09:00',fittingPlace:'Studio uji'},409);
+  await post(admin,fitting,{action:'propose',revision:2,fittingAt:'2000-02-09T09:00',fittingPlace:'Studio uji'},422);
+  await post(admin,fitting,{action:'propose',revision:2,fittingAt:'2099-02-09T09:00',fittingPlace:'Studio uji'});
+  assert.ok((await admin.request(prefix+'?filter=quotes')).queue.some(row=>row.id===id));
+  assert.match(await page(customer,'/requests/'+id),/Setujui jadwal fitting/);
+  const updated=(await read(customer,id)).order;
+  assert.equal(updated.amount,81000);
+  assert.equal(new Date(updated.fitting_at).toISOString(),'2099-02-09T02:00:00.000Z');
+  await post(customer,fitting,{action:'confirm',revision:3});
+  await change('start',4);
+  await change('ready',5,409);
+  await post(admin,fitting,{action:'done',revision:5});
+  await change('ready',6);
+  await change('complete',7,409);
+  await change('ship',7,409,'Kurir uji · nomor 81');
   await post(other,checkout,{},404);
   await post(customer,checkout,{amount:1},503);
   await Promise.all([post(customer,checkout,{}),post(customer,checkout,{})]);
@@ -804,7 +823,14 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   await post(admin,'/api/v1/payments/'+invoice.id+'/check',{},503);
   settled.gross_amount='81000.00';
   for (let n=0;n<2;n++) assert.equal((await callback({...settled,signature_key:signature})).status,200);
-  await change('complete',3);
+  const search = await admin.request(prefix+'?q='+encodeURIComponent('#'+id.slice(0,8).toUpperCase()));
+  assert.deepEqual(search.queue.map(row=>row.id),[id]);
+  assert.equal(search.counts.handover,1);
+  await change('complete',7,409);
+  await change('ship',7,200,'Kurir uji · nomor 81');
+  await change('ship',8,409,'Kurir uji · nomor 81');
+  assert.match(await page(customer,'/requests/'+id),/Dalam pengiriman/);
+  await change('complete',8);
   await post(customer,'/api/v1/orders/'+orderId+'/complaint',{note:'Periksa jahitan lengan.'});
   assert.ok((await admin.request(prefix+'?filter=complaints')).queue.some(row=>row.id===id));
   await post(admin,'/api/v1/orders/'+orderId+'/complaint',{note:'Jadwal perbaikan disepakati.'});
@@ -821,7 +847,7 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   const another=await post(customer,'/api/v1/inquiries',{key:randomUUID(),serviceId:service.id,description:'Permintaan kedua sintetis.'},201);
   await post(admin,action(another.id,'dispatch'),{revision:1,state:'UNAVAILABLE'});
   await post(admin,action(another.id,'reassign'),{serviceId:replacementService.id,revision:2},201);
-  assert.match(await page(customer,'/requests/'+another.id),/mitra pengganti/);
+  assert.match(await page(customer,'/requests/'+another.id),/Buka permintaan baru/);
   const ownPerformance=(await tailor.request('/api/v1/provider/workspace')).performance;
   assert.ok(ownPerformance.some(row=>row.service_id===service.id));
   assert.ok(ownPerformance.every(row=>row.service_id!==replacementService.id));

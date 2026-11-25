@@ -1,0 +1,39 @@
+<section class="card quote-review" id="penawaran" tabindex="-1">
+  <div class="section-caption">
+    <div><h2>Penawaran harga</h2><p class="muted"><%= inquiry.business %> · Versi <%= latest.version %></p></div>
+    <span class="status" data-state="<%= latest.status %>"><%= statusLabel(latest.status) %></span>
+  </div>
+  <div class="price-highlight">
+    <span>Total penawaran</span><strong><%= money(latest.amount) %></strong>
+  </div>
+  <%- include('quote-breakdown',{items:latest.line_items}) %>
+  <dl class="terms"><div><dt>Perkiraan selesai</dt><dd><%= localDate(latest.eta) %></dd></div>
+    <% if (latest.status==='SENT') { %><div><dt>Berlaku sampai</dt><dd><%= dateTime(latest.expires_at) %></dd></div><% } %>
+  </dl>
+  <%- include('logistics',{proposal:latest}) %>
+  <p class="preserve"><%= latest.terms %></p>
+  <% if (isCustomer && journey.key==='QUOTED') { %>
+    <p class="form-help muted">Dengan menyetujui penawaran, Anda memesan sesuai rincian di atas. Pembayaran dilakukan saat jahitan siap.</p>
+    <form method="post" action="/api/v1/quotes/<%= latest.id %>/decisions">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="version" value="<%= latest.version %>">
+      <button name="decision" value="ACCEPTED">Setujui penawaran</button>
+    </form>
+    <details class="form-disclosure">
+      <summary>Minta penyesuaian</summary>
+      <form class="stack" method="post" action="/api/v1/inquiries/<%= inquiry.id %>/actions">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+        <label>Pesan untuk admin<textarea name="detail" rows="3" maxlength="500" required></textarea></label>
+        <p class="form-help muted">Admin akan menindaklanjuti permintaan Anda dan mengirim versi penawaran baru.</p>
+        <button class="secondary" name="action" value="question">Kirim permintaan penyesuaian</button>
+      </form>
+    </details>
+    <details class="form-disclosure">
+      <summary>Tolak penawaran</summary>
+      <p>Anda dapat memilih penjahit lain atau menunggu penawaran baru setelah menolak.</p>
+      <form method="post" action="/api/v1/quotes/<%= latest.id %>/decisions">
+        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="version" value="<%= latest.version %>">
+        <button class="secondary" name="decision" value="REJECTED">Tolak penawaran ini</button>
+      </form>
+    </details>
+  <% } %>
+</section>
