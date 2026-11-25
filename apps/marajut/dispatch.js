@@ -6,7 +6,7 @@ import { event, lockInquiry, orderIndex, persistInquiry } from './inquiries.js';
 const openStates = ['NEW','UNDER_REVIEW','NEEDS_DETAILS','QUOTED','EXPIRED'];
 
 const deskFilters = {
-  all:'Semua', dispatch:'Koordinasi', quotes:'Menunggu pelanggan', work:'Pengerjaan',
+  all:'Semua', 'follow-up':'Perlu tindak lanjut', dispatch:'Koordinasi', quotes:'Menunggu pelanggan', work:'Pengerjaan',
   payment:'Pembayaran', handover:'Serah terima', complaints:'Keluhan', history:'Riwayat'
 };
 
@@ -14,6 +14,8 @@ export async function deskOverview(pool, query) {
   const filter=typeof query.filter==='string' && Object.hasOwn(deskFilters,query.filter) ? query.filter : 'all';
   const search=typeof query.q==='string' ? query.q.trim().slice(0,80) : '';
   const page=typeof query.page==='string' && /^\d{1,6}$/.test(query.page) ? Math.max(1,Number(query.page)) : 1;
+  const ordering = filter === 'follow-up' ? 'follow_up_priority, created_at, id'
+    : "complaint_open DESC, queue_stage='history', created_at DESC, id";
   const result=await one(pool,`WITH records AS (${orderIndex}), filtered AS (
     SELECT records.*, u.display_name AS customer,
       CASE
@@ -24,18 +26,32 @@ export async function deskOverview(pool, query) {
         WHEN order_status IN ('CONFIRMED','IN_PROGRESS') THEN 'work'
         WHEN status='NEEDS_DETAILS' OR (status='QUOTED' AND quote_status='SENT') THEN 'quotes'
         ELSE 'dispatch'
-      END AS queue_stage
+      END AS queue_stage,
+      CASE
+        WHEN complaint_open THEN 1
+        WHEN order_status IN ('CONFIRMED','IN_PROGRESS') AND (
+          fitting_state='REQUESTED' OR (fitting_state IN ('SCHEDULED','PROPOSED') AND fitting_at<=now())
+        ) THEN 2
+        WHEN order_status IN ('CONFIRMED','IN_PROGRESS') AND due_date::date < (now() AT TIME ZONE 'Asia/Jakarta')::date THEN 3
+      END AS follow_up_priority
     FROM records JOIN users u ON u.id=records.customer_id
     WHERE strpos(lower(concat_ws(' ',records.id::text,u.display_name,business,service)),lower($1))>0 OR $1=''
   ), selected AS (
-    SELECT * FROM filtered WHERE $2='all' OR queue_stage=$2 OR ($2='complaints' AND complaint_open)
-    ORDER BY complaint_open DESC, queue_stage='history', created_at DESC, id LIMIT 26 OFFSET $3
+    SELECT filtered.*, CASE WHEN complaint_open THEN (
+      SELECT created_at FROM domain_events WHERE inquiry_id=filtered.id AND kind='COMPLAINT_OPEN'
+      ORDER BY sequence DESC LIMIT 1
+    ) END AS complaint_at
+    FROM filtered
+    WHERE $2='all' OR queue_stage=$2 OR ($2='complaints' AND complaint_open)
+      OR ($2='follow-up' AND follow_up_priority IS NOT NULL)
+    ORDER BY ${ordering} LIMIT 26 OFFSET $3
   )
-  SELECT COALESCE((SELECT jsonb_agg(to_jsonb(selected) ORDER BY complaint_open DESC, queue_stage='history',created_at DESC,id)
+  SELECT COALESCE((SELECT jsonb_agg(to_jsonb(selected) ORDER BY ${ordering})
          FROM selected),'[]'::jsonb) AS queue,
     COALESCE((SELECT jsonb_object_agg(queue_stage,amount) FROM
          (SELECT queue_stage,count(*)::int AS amount FROM filtered GROUP BY queue_stage) counts),'{}'::jsonb)
-       || jsonb_build_object('all',count(*)::int,'complaints',count(*) FILTER (WHERE complaint_open)::int) AS counts
+       || jsonb_build_object('all',count(*)::int,'complaints',count(*) FILTER (WHERE complaint_open)::int,
+         'follow-up',count(follow_up_priority)::int) AS counts
   FROM filtered`,[search.replace(/^#/,'').trim(),filter,(page-1)*25]);
   return { filter,search,deskFilters,counts:result.counts,queue:result.queue.slice(0,25),nextPage:result.queue.length>25,page };
 }

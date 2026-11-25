@@ -356,6 +356,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
     const notice = Object.hasOwn(notices,req.query.updated) ? notices[req.query.updated] : null;
     return res.render(template, {
       title: detail.inquiry.service, ...detail, quoteDraft:null, quoteError:null, formError:null, fittingDraft:null,
+      paymentError:null,
       notice, ...options
     });
   }
@@ -399,14 +400,24 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
       return orderFormError(req,res,id,error);
     }
   });
-  async function orderFormError(req,res,id,error,{payment=false,fittingDraft=null}={}) {
+  async function orderFormError(req,res,id,error,{paymentAction=null,fittingDraft=null}={}) {
     if (wantsJson(req) || ![409,422,503].includes(error.status)) throw error;
-    const order=await one(pool,`SELECT o.inquiry_id FROM orders o JOIN inquiries i ON i.id=o.inquiry_id
-      WHERE ($2 OR i.customer_id=$3) AND ${payment
+    const order=await one(pool,`SELECT o.inquiry_id,i.dispatch_state,o.status FROM orders o JOIN inquiries i ON i.id=o.inquiry_id
+      WHERE ($2 OR i.customer_id=$3) AND ${paymentAction==='check'
         ? 'EXISTS (SELECT 1 FROM order_payments p WHERE p.id=$1 AND p.order_id=o.id)' : 'o.id=$1'}`,
       [id,Boolean(req.actor.manager),req.actor.id]);
     if (!order) throw error;
-    return renderRequest(req,res.status(error.status),order.inquiry_id,{formError:displayError(error),fittingDraft});
+    const message=displayError(error);
+    if (paymentAction && order.dispatch_state && order.status!=='CANCELLED') {
+      const recovery={
+        checkout:'Tagihan belum bisa dimuat. Coba lagi dari pesanan ini.',
+        check:'Status pembayaran belum bisa diperiksa. Periksa kembali tagihan ini beberapa saat lagi.'
+      };
+      const paymentError=error.code==='PAYMENT_UNAVAILABLE' && payments.mode!=='disabled'
+        ? recovery[paymentAction] : message;
+      return renderRequest(req,res.status(error.status),order.inquiry_id,{paymentError});
+    }
+    return renderRequest(req,res.status(error.status),order.inquiry_id,{formError:message,fittingDraft});
   }
 
   app.post('/api/v1/orders/:id/fitting',workReader,async(req,res) => {
@@ -432,7 +443,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
       const result=await startPayment(pool,req.actor,id,payments,gateway);
       finish(req,res,result,'/requests/'+result.inquiryId+'#pembayaran');
     } catch (error) {
-      return orderFormError(req,res,id,error);
+      return orderFormError(req,res,id,error,{paymentAction:'checkout'});
     }
   });
   app.post('/api/v1/payments/:id/check',workReader,async(req,res) => {
@@ -442,7 +453,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
       const result=await checkPayment(pool,req.actor,id,payments,gateway,req.body?.action);
       finish(req,res,result,'/requests/'+result.inquiryId+'#pembayaran');
     } catch (error) {
-      return orderFormError(req,res,id,error,{payment:true});
+      return orderFormError(req,res,id,error,{paymentAction:'check'});
     }
   });
   app.post('/api/v1/orders/:id/complaint',workReader,async(req,res) => {

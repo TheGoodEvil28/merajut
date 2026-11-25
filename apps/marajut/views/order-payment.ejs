@@ -1,27 +1,36 @@
 <% const payment = order.payment;
 const pending = payment?.state==='PENDING';
+const failed = payment?.state==='FAILED';
 const ready = order.status==='READY';
 const beforeReady = ['CONFIRMED','IN_PROGRESS'].includes(order.status);
 const modeUsed = pending || payment?.state==='PAID' ? payment.mode : paymentMode;
 const blocked = ready && (paymentMode==='disabled' || (pending && payment.mode!==paymentMode));
 const visibleMethod = { demo:'Simulasi lokal', sandbox:'Sandbox Midtrans', live:'Virtual account BNI', disabled:'Pembayaran belum tersedia' };
 const canStart = ready && user.role==='customer' && !blocked &&
-  (!payment || payment.state==='FAILED' || (pending && !payment.va_number && modeUsed!=='demo'));
+  (!payment || failed || (pending && !payment.va_number && modeUsed!=='demo'));
 const canCheck = ready && pending && !blocked && (user.manager || (user.role==='customer' && modeUsed!=='demo' && payment.va_number));
+const startLabel = modeUsed==='demo' ? (failed ? 'Ulangi pembayaran simulasi' : 'Mulai pembayaran simulasi')
+  : (pending ? 'Muat ulang tagihan' : failed ? 'Buat tagihan baru' : 'Buat tagihan pembayaran');
 %>
 <section class="card workflow-card payment-card" id="pembayaran" tabindex="-1">
   <div class="section-caption">
     <div><h2>Pembayaran</h2><% if (!beforeReady) { %><p class="muted"><%= visibleMethod[modeUsed] %></p><% } %></div>
     <% if (payment) { %><span class="status" data-state="<%= payment.state %>"><%= statusLabel(payment.state) %><% if (payment.mode!=='live') { %> · transaksi uji<% } %></span><% } %>
   </div>
+  <% if (!beforeReady || paymentError) { %>
+    <div class="price-highlight"><span><%= beforeReady?'Harga disepakati':payment?.state==='PAID'?'Jumlah dibayar':'Total tagihan' %></span><strong><%= money(order.amount) %></strong></div>
+  <% } %>
+  <% if (paymentError) { %><p class="notice error-message" role="alert"><%= paymentError %></p><% } %>
   <% if (beforeReady) { %>
     <p>Tagihan tersedia setelah admin menandai jahitan siap.</p>
   <% } else { %>
-    <div class="price-highlight"><span><%= payment?.state==='PAID'?'Jumlah dibayar':'Total tagihan' %></span><strong><%= money(order.amount) %></strong></div>
     <% if (payment?.checked_at) { %><p class="muted form-help">Diperiksa <%= dateTime(payment.checked_at) %></p><% } %>
     <% if (blocked && payment?.state!=='PAID') { %><p class="notice">Pembayaran sedang tidak tersedia. Silakan periksa kembali nanti.</p><% } %>
-    <% if (!blocked && payment?.state==='FAILED') { %>
-      <p><%= user.role==='customer'?'Tagihan sebelumnya sudah ditutup. Buat tagihan baru untuk melanjutkan.':'Pelanggan dapat membuka tagihan baru.' %></p>
+    <% if (ready && !blocked && failed) { %>
+      <p>Tagihan sebelumnya sudah ditutup.
+        <% if (user.role==='customer') { %>Pilih <strong><%= startLabel %></strong> untuk melanjutkan.
+        <% } else { %>Pelanggan dapat membuka tagihan baru.<% } %>
+      </p>
     <% } %>
     <% if (pending && payment.va_number && !blocked && (user.manager || user.role==='customer')) { %>
       <div class="bank-details">
@@ -29,16 +38,21 @@ const canCheck = ready && pending && !blocked && (user.manager || (user.role==='
         <button type="button" class="secondary" data-copy="virtual-account" hidden>Salin nomor</button>
         <span class="muted" data-copy-status role="status"></span>
       </div>
-      <p>Transfer tepat <strong><%= money(order.amount) %></strong> ke nomor di atas, lalu pilih <strong>Periksa status pembayaran</strong>.</p>
+      <% if (user.role==='customer') { %>
+        <% if (modeUsed==='sandbox') { %><p>Gunakan nomor ini untuk transfer uji di simulator Midtrans.</p>
+        <% } else { %><p>Transfer sesuai total tagihan ke nomor virtual account di atas.</p><% } %>
+        <p>Jika sudah transfer, pilih <strong>Periksa status pembayaran</strong> untuk melihat hasil verifikasi.</p>
+      <% } %>
     <% } %>
-    <% if (pending && modeUsed==='demo' && user.role==='customer' && !blocked) { %><p>Admin sedang menunggu untuk mencatat hasil transaksi simulasi.</p><% } %>
+    <% if (pending && modeUsed==='demo' && user.role==='customer' && !blocked) { %><p>Buka kembali pesanan ini setelah admin mencatat hasil simulasi.</p><% } %>
     <% if (canStart) { %>
-      <% if (modeUsed==='demo') { %><p>Pembayaran ini digunakan untuk latihan. Admin akan mencatat hasilnya.</p><% } %>
-      <form method="post" action="/api/v1/orders/<%= order.id %>/checkout"><input type="hidden" name="_csrf" value="<%= csrf %>">
-        <button><%= modeUsed==='demo'?'Mulai pembayaran simulasi':pending?'Muat ulang tagihan':'Buat tagihan pembayaran' %></button></form>
+      <% if (modeUsed==='demo') { %><p>Pembayaran ini digunakan untuk latihan. Admin akan mencatat hasilnya.</p>
+      <% } else if (pending) { %><p>Muat ulang tagihan ini untuk menampilkan nomor virtual account.</p><% } %>
+      <form method="post" action="/api/v1/orders/<%= order.id %>/checkout#pembayaran"><input type="hidden" name="_csrf" value="<%= csrf %>">
+        <button><%= startLabel %></button></form>
     <% } %>
     <% if (canCheck) { %>
-      <form method="post" class="actions" action="/api/v1/payments/<%= payment.id %>/check"><input type="hidden" name="_csrf" value="<%= csrf %>">
+      <form method="post" class="actions" action="/api/v1/payments/<%= payment.id %>/check#pembayaran"><input type="hidden" name="_csrf" value="<%= csrf %>">
         <% if (modeUsed==='demo') { %>
           <button name="action" value="confirm">Verifikasi simulasi lunas</button>
           <button class="secondary" name="action" value="reject">Tandai simulasi gagal</button>

@@ -7,13 +7,16 @@ import sharp from 'sharp';
 import { createApp } from '../apps/marajut/app.js';
 import { migrate } from '../apps/marajut/migrate.js';
 import { seed, seedEmails } from '../apps/marajut/seed.js';
+import { seedWorkday } from '../apps/marajut/demo-workday.js';
+import { createInquiry } from '../apps/marajut/inquiries.js';
+import { updateDispatch } from '../apps/marajut/dispatch.js';
 import { enqueue, messagingMode, processNext, simulator } from '../apps/marajut/outbox.js';
 import { normalizeSimulation } from '../apps/marajut/inbound-adapter.js';
 import { processInbound } from '../apps/marajut/inbound.js';
 import { processAccountMail } from '../apps/marajut/mail.js';
 import { midtrans } from '../apps/marajut/payments.js';
 import { createServer } from 'node:http';
-import { expireQuotes } from '../apps/marajut/quotes.js';
+import { decideQuote, expireQuotes, issueQuote } from '../apps/marajut/quotes.js';
 import { retentionSweep } from '../apps/marajut/maintenance.js';
 
 function browserClient(base) {
@@ -668,6 +671,7 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   const payments={mode:'sandbox',key:'synthetic-server-key',feeBps:750};
   const charges=new Map();
   let loseResponse=true;
+  let loseStatus=false;
   const gateway=midtrans(payments,async(url,options)=>{
     assert.equal(options.headers.Authorization,'Basic '+Buffer.from(payments.key+':').toString('base64'));
     if (options.method==='POST') {
@@ -682,6 +686,7 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
       return Response.json(result);
     }
     assert.match(url,/api\.sandbox\.midtrans\.com\/v2\/[\da-f-]+\/status$/);
+    if (loseStatus) { loseStatus=false; throw Error('Simulated status timeout'); }
     return Response.json(charges.get(url.split('/').at(-2)));
   });
   const base=await serve(t,pool,{payments,gateway});
@@ -696,6 +701,10 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
     }));
   const read=(client,id)=>client.request('/api/v1/inquiries/'+id);
   const post=(client,path,body,status=200)=>client.request(path,{body,status});
+  const submit=(client,path,body,status)=>client.request(path,{
+    body:Buffer.from(new URLSearchParams(body).toString()), headers:{'content-type':'application/x-www-form-urlencoded'},
+    status, raw:true
+  });
   const page=(client,path)=>client.request(path,{raw:true});
   const service=(await guest.request('/api/v1/services')).find(row=>row.slug==='jahit-rina');
   const profile={name:'Mitra tanpa akun',area:'Semarang',description:'Jahit dan fitting dengan janji temu.',
@@ -777,6 +786,8 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   const fitting='/api/v1/orders/'+orderId+'/fitting';
   const change=(action,revision,status=200,detail)=>post(admin,prefix+'/orders/'+orderId+'/transitions',{action,revision,detail},status);
   await post(customer,checkout,{},409);
+  assert.match(await submit(customer,checkout,{},409),
+    /id="pembayaran"[\s\S]*Harga disepakati[\s\S]*Tagihan tersedia setelah admin menandai jahitan siap/);
   await post(other,fitting,{action:'request',revision:1,note:'Sabtu pagi.'},404);
   assert.equal((await post(customer,fitting,{action:'request',revision:1,note:'Sabtu pagi.'})).fittingState,'REQUESTED');
   await post(admin,fitting,{action:'propose',revision:1,fittingAt:'2099-02-09T09:00',fittingPlace:'Studio uji'},409);
@@ -795,24 +806,39 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   await change('complete',7,409);
   await change('ship',7,409,'Kurir uji · nomor 81');
   await post(other,checkout,{},404);
-  await post(customer,checkout,{amount:1},503);
+  const checkoutError=await submit(customer,checkout,{amount:1},503);
+  assert.match(checkoutError,/id="pembayaran"[\s\S]*81\.000[\s\S]*role="alert">Tagihan belum bisa dimuat/);
+  assert.match(checkoutError,/Muat ulang tagihan/);
+  const firstPayment=(await read(customer,id)).order.payment.id;
   await Promise.all([post(customer,checkout,{}),post(customer,checkout,{})]);
   assert.equal(charges.size,1);
   const attempt=(await read(customer,id)).order.payment;
+  assert.equal(attempt.id,firstPayment);
   assert.equal(attempt.amount,81000);
   assert.equal(attempt.fee,6075);
   assert.equal(attempt.va_number,'8800000000001');
   const check='/api/v1/payments/'+attempt.id+'/check';
   await post(other,check,{},404);
+  const pendingPage=await page(customer,'/requests/'+id);
+  assert.match(pendingPage,/transfer uji di simulator Midtrans/);
+  assert.match(pendingPage,/check#pembayaran/);
+  assert.doesNotMatch(pendingPage,/Buat tagihan pembayaran|Buat tagihan baru/);
+  loseStatus=true;
+  const checkError=await submit(customer,check,{},503);
+  assert.match(checkError,/id="pembayaran"[\s\S]*81\.000[\s\S]*role="alert">Status pembayaran belum bisa diperiksa/);
+  assert.deepEqual((await read(customer,id)).order.payment,attempt);
   assert.ok((await admin.request(prefix+'?filter=payment')).queue.some(row=>row.id===id));
   const pendingCheck=await post(admin,check,{action:'confirm'});
   assert.equal(pendingCheck.state,'PENDING');
   charges.get(attempt.id).transaction_status='expire';
   charges.get(attempt.id).status_code='407';
   assert.equal((await post(admin,check,{})).state,'FAILED');
+  assert.match(await page(customer,'/requests/'+id),/Tagihan sebelumnya sudah ditutup[\s\S]*Buat tagihan baru/);
   await post(customer,checkout,{});
   const invoice=(await read(customer,id)).order.payment;
   assert.notEqual(invoice.id,attempt.id);
+  assert.equal(invoice.amount,attempt.amount);
+  assert.equal(invoice.fee,attempt.fee);
   const settled=charges.get(invoice.id);
   settled.status_code='200';
   settled.transaction_status='settlement';
@@ -833,6 +859,8 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   await change('complete',8);
   await post(customer,'/api/v1/orders/'+orderId+'/complaint',{note:'Periksa jahitan lengan.'});
   assert.ok((await admin.request(prefix+'?filter=complaints')).queue.some(row=>row.id===id));
+  const followed=(await admin.request(prefix+'?filter=follow-up&q='+id.slice(0,8))).queue;
+  assert.deepEqual(followed.map(row=>[row.id,row.queue_stage,row.follow_up_priority]),[[id,'history',1]]);
   await post(admin,'/api/v1/orders/'+orderId+'/complaint',{note:'Jadwal perbaikan disepakati.'});
   const completed=await read(customer,id);
   assert.equal(completed.events.filter(e=>e.kind==='PAYMENT_PAID').length,1);
@@ -851,4 +879,95 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   const ownPerformance=(await tailor.request('/api/v1/provider/workspace')).performance;
   assert.ok(ownPerformance.some(row=>row.service_id===service.id));
   assert.ok(ownPerformance.every(row=>row.service_id!==replacementService.id));
+});
+
+test('admin follow-up prioritizes actionable orders across search and pages', async t => {
+  const { pool } = await isolatedDatabase(t);
+  await migrate(pool);
+  const password = randomBytes(18).toString('hex');
+  await seed(pool, randomBytes(18).toString('hex'));
+  await seedWorkday(pool, seedEmails.customer);
+  const readOrders = async () => (await pool.query(`SELECT o.id, o.inquiry_id, o.status, o.revision,
+    o.eta::text, o.fitting_state, i.customer_id, i.service_id
+    FROM orders o JOIN inquiries i ON i.id=o.inquiry_id ORDER BY o.id`)).rows;
+  const original = await readOrders();
+  await seed(pool, password);
+  await seedWorkday(pool, seedEmails.customer);
+  assert.deepEqual(await readOrders(), original);
+
+  const base = await serve(t, pool);
+  const [customer, admin, tailor] = await Promise.all(
+    [seedEmails.customer, seedEmails.operator, seedEmails.provider].map(async email => {
+      const client = browserClient(base);
+      await client.request('/api/v1/session');
+      await client.request('/api/v1/session', { body: { email, password } });
+      return client;
+    }));
+  const manager = (await pool.query('SELECT id, role FROM users WHERE email=$1', [seedEmails.operator])).rows[0];
+  manager.manager = true;
+  const complainant = original.find(order => order.status === 'READY');
+  const fitting = original.find(order => order.fitting_state === 'SCHEDULED');
+  const [late, dueToday] = original.filter(order => order.status === 'IN_PROGRESS');
+  const actor = { id: late.customer_id, role: 'customer' };
+  const more = [];
+  for (let index = 0; index < 24; index += 1) {
+    const inquiry = await createInquiry(pool, actor, {
+      key: randomUUID(), serviceId: late.service_id, description: 'Pesanan antrean uji ' + (index + 1)
+    });
+    await updateDispatch(pool, manager, inquiry.id, { state: 'AVAILABLE', revision: 1 });
+    const quote = await issueQuote(pool, manager, inquiry.id, {
+      amount: 35000, revision: 2, eta: '2099-01-15', terms: 'Ambil di studio.', validHours: 72, handover: 'pickup'
+    }, 'disabled');
+    const { orderId } = await decideQuote(pool, actor, quote.id, { decision: 'ACCEPTED', version: quote.version });
+    more.push({ id: inquiry.id, orderId });
+  }
+  await pool.query("UPDATE orders SET eta=(now() AT TIME ZONE 'Asia/Jakarta')::date-1 WHERE id=ANY($1)",
+    [[late.id, fitting.id, complainant.id, ...more.map(order => order.orderId)]]);
+  await pool.query("UPDATE orders SET eta=(now() AT TIME ZONE 'Asia/Jakarta')::date WHERE id=$1", [dueToday.id]);
+  await pool.query("UPDATE inquiries SET created_at='2000-01-02T00:00:00Z' WHERE id=ANY($1)", [more.map(order => order.id)]);
+  await pool.query("UPDATE inquiries SET created_at='2000-01-01T00:00:00Z' WHERE id=$1", [late.inquiry_id]);
+
+  const path = '/api/v1/management?filter=follow-up';
+  const complaint = '/api/v1/orders/'+complainant.id+'/complaint';
+  const appointment = '/api/v1/orders/'+fitting.id+'/fitting';
+  const byOrder = id => admin.request(path+'&q='+encodeURIComponent('#'+id.slice(0,8)));
+  await customer.request(path, { status: 403 });
+  await tailor.request(path, { status: 403 });
+  assert.equal((await byOrder(complainant.inquiry_id)).counts['follow-up'], 0);
+  assert.equal((await byOrder(dueToday.inquiry_id)).counts['follow-up'], 0);
+  await customer.request(complaint, { body: { note: 'Mohon periksa kembali kelim pakaian.' } });
+  await customer.request(appointment, { body: { action: 'request', revision: fitting.revision, note: 'Mohon jadwal sore.' } });
+  const requested = (await byOrder(fitting.inquiry_id)).queue[0];
+  assert.deepEqual([requested.follow_up_priority, requested.fitting_state], [2, 'REQUESTED']);
+  await admin.request(appointment, {
+    body: { action: 'propose', revision: fitting.revision+1, fittingAt: '2099-01-14T14:00', fittingPlace: 'Studio uji' }
+  });
+  assert.equal((await byOrder(fitting.inquiry_id)).queue[0].follow_up_priority, 3);
+  await pool.query("UPDATE orders SET fitting_at=now()-interval '1 hour' WHERE id=$1", [fitting.id]);
+  assert.equal((await byOrder(fitting.inquiry_id)).queue[0].follow_up_priority, 2);
+  await admin.request(appointment, {
+    body: { action: 'propose', revision: fitting.revision+2, fittingAt: '2099-01-15T14:00', fittingPlace: 'Studio uji' }
+  });
+  await customer.request(appointment, { body: { action: 'confirm', revision: fitting.revision+3 } });
+  await pool.query("UPDATE orders SET fitting_at=now()-interval '1 hour' WHERE id=$1", [fitting.id]);
+
+  const first = await admin.request(path);
+  const second = await admin.request(path+'&page=2');
+  assert.deepEqual([first.counts['follow-up'], second.counts['follow-up']], [27, 27]);
+  assert.deepEqual([first.queue.length, second.queue.length, first.nextPage, second.nextPage], [25, 2, true, false]);
+  assert.deepEqual([...first.queue, ...second.queue].map(row => row.id),
+    [complainant.inquiry_id, fitting.inquiry_id, late.inquiry_id, ...more.map(order => order.id).sort()]);
+  assert.ok(first.queue[0].complaint_at);
+  assert.deepEqual(first.queue.slice(0,3).map(row => row.follow_up_priority), [1,2,3]);
+  assert.equal((await byOrder(fitting.inquiry_id)).counts['follow-up'], 1);
+  const html = await admin.request('/pengelola?filter=follow-up', { raw: true });
+  assert.match(html,/Perlu tindak lanjut/);
+  assert.match(html,/Keluhan terbuka[\s\S]*Diajukan .* WIB/);
+  assert.match(html,/Waktu fitting sudah lewat[\s\S]*Jadwal fitting · .* WIB/);
+  assert.match(html,/Lewat perkiraan selesai/);
+
+  await admin.request(complaint, { body: { note: 'Perbaikan sudah dijadwalkan.' } });
+  await admin.request(appointment, { body: { action: 'done', revision: fitting.revision+4 } });
+  assert.equal((await byOrder(complainant.inquiry_id)).counts['follow-up'], 0);
+  assert.equal((await byOrder(fitting.inquiry_id)).queue[0].follow_up_priority, 3);
 });

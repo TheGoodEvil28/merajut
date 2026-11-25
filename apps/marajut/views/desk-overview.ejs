@@ -42,24 +42,33 @@ const metrics = [
     <a href="/pengelola<%= filter==='all'?'':'?filter='+filter %>#papan-pesanan">Hapus pencarian</a></p><% } %>
   <% if (!queue.length) { %>
     <div class="queue-empty"><strong><%= search?'Pesanan tidak ditemukan.':'Antrean ini kosong.' %></strong>
-      <p><%= search?'Coba kode pesanan, nama pelanggan, atau nama penjahit lain.':'Pesanan akan muncul di sini sesuai tahap pengerjaannya.' %></p></div>
+      <p><%= search ? 'Coba kode pesanan, nama pelanggan, atau nama penjahit lain.'
+        : filter==='follow-up' ? 'Keluhan terbuka, fitting yang perlu ditangani, dan pengerjaan yang melewati perkiraan selesai muncul di sini.'
+        : 'Pesanan akan muncul di sini sesuai tahap pengerjaannya.' %></p></div>
   <% } else { %>
     <div class="desk-row desk-columns" aria-hidden="true"><span>Pesanan</span><span>Pelanggan</span><span>Tahap berikutnya</span><span></span></div>
     <ul class="desk-list"><% for (const item of queue) {
       const journey = item.dispatch_state ? orderJourney(item,'admin',paymentMode) : null;
       const status = item.order_status ?? (item.quote_expired?'EXPIRED':item.status);
       const complaint = item.complaint_open;
+      const followUp = item.follow_up_priority;
+      const anchor = complaint ? '#keluhan' : followUp===2 ? '#fitting' : '';
       const due = item.fitting_state==='SCHEDULED' ? null : item.due_date;
-      %><li><a class="desk-row" href="/requests/<%= item.id %><%= complaint?'#keluhan':'' %>">
+      %><li><a class="desk-row" href="/requests/<%= item.id %><%= anchor %>">
         <span class="order-record">
           <span class="order-ref">#<%= orderReference(item.id) %></span><strong><%= item.service %></strong>
           <small><%= item.business %></small>
         </span>
         <span class="desk-customer"><strong><%= item.customer %></strong><small><%= dateTime(item.created_at) %></small></span>
         <span class="desk-state">
-          <span class="status" data-tone="<%= complaint?'attention':journey?.tone ?? 'neutral' %>"><%= complaint?'Keluhan terbuka':journey?.label ?? statusLabel(status) %></span>
+          <span class="status" data-tone="<%= followUp?'attention':journey?.tone ?? 'neutral' %>"><%= complaint?'Keluhan terbuka':journey?.label ?? statusLabel(status) %></span>
           <small><%= complaint?'Tanggapi keluhan':journey?.title ?? 'Lihat pesanan' %></small>
-          <% if (!complaint && item.fitting_state==='SCHEDULED' && item.fitting_at) { %><small><%= dateTime(item.fitting_at) %></small>
+          <% if (complaint) { %>
+            <% if (item.complaint_at) { %><small>Diajukan <%= dateTime(item.complaint_at) %></small><% } %>
+          <% } else if (followUp===2) { %>
+            <small><%= item.fitting_state==='REQUESTED' ? 'Jadwal sebelumnya' : 'Jadwal fitting' %> · <%= dateTime(item.fitting_at) %></small>
+          <% } else if (followUp===3) { %><small>Lewat perkiraan selesai · <%= localDate(item.due_date) %></small>
+          <% } else if (item.fitting_state==='SCHEDULED' && item.fitting_at) { %><small><%= dateTime(item.fitting_at) %></small>
           <% } else if (due && item.queue_stage!=='history') { %><small><%= item.order_status?'Perkiraan':'Target' %> <%= localDate(due) %></small><% } %>
         </span>
         <span class="desk-open"><span class="sr-only">Buka pesanan</span><%- include('icon',{name:'arrow'}) %></span>

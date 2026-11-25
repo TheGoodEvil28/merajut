@@ -82,7 +82,13 @@ if (command==='save') {
       {stdio:['pipe','inherit','inherit']});
     await Promise.all([checkedExit(restore),pipeline(createReadStream(dump),restore.stdin)]);
     await checkedExit(databaseCommand(['psql','-d',database,'-v','ON_ERROR_STOP=1','-c',
-      "SELECT (SELECT max(name) FROM schema_migrations) AS schema, (SELECT count(*) FROM inquiries) AS requests, (SELECT count(*) FROM orders) AS orders, (SELECT count(*) FROM inquiry_photos) AS photos, (SELECT coalesce(sum(octet_length(content)),0) FROM inquiry_photos) AS photo_bytes"]));
+      `SELECT (SELECT max(name) FROM schema_migrations) AS schema,
+        (SELECT count(*) FROM users) AS accounts,
+        (SELECT count(*) FROM inquiries) AS requests,
+        (SELECT count(*) FROM orders) AS orders,
+        (SELECT count(*) FROM domain_events WHERE order_id IS NOT NULL) AS order_events,
+        (SELECT count(*) FROM inquiry_photos) AS photos,
+        (SELECT coalesce(sum(octet_length(content)),0) FROM inquiry_photos) AS photo_bytes`]));
   } finally {
     try { if (created) await checkedExit(databaseCommand(['dropdb',database])); }
     finally {

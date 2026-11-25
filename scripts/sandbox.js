@@ -7,7 +7,10 @@ if (!valid(appPort) || !valid(mailPort) || appPort===mailPort) {
   throw new Error('Pass two unused ports above 3101 for the sandbox app and mailbox.');
 }
 const project='marajut-sandbox-'+randomBytes(5).toString('hex');
-const options={stdio:'inherit',env:{...process.env,APP_PORT:appPort,MAIL_PORT:mailPort,MESSAGING_MODE:'simulated'}};
+const options={
+  stdio:'inherit',
+  env:{...process.env,APP_PORT:appPort,MAIL_PORT:mailPort,PAYMENT_MODE:'demo',MESSAGING_MODE:'simulated'}
+};
 console.log('Sandbox project '+project);
 await checkedExit(startCompose(project,['build','web'],options));
 await checkedExit(startCompose(project,['up','-d','--wait','--no-build'],options));

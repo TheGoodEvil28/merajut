@@ -31,17 +31,26 @@ The seed creates two published businesses, three services and five synthetic acc
 
 Use separate browser profiles for the customer and admin. Customers start in **Cari Penjahit** and manage contact details in **Profil saya**. Admins open **Pengelolaan platform**, add partners and services, publish listings, and open incoming requests from **Papan pesanan**. Search the admin order queue by its reference, customer, tailor, or service. Customers can request a fitting and select pickup or delivery when submitting the request. They can confirm a revised fitting time on the order page. Admins can record delivery after checkout and close the order after handover. A new partner needs only a private WhatsApp number. Existing tailor logins can view their assigned work. The original cash workflow remains available for requests created before migration 006.
 
+In **Papan pesanan**, **Perlu tindak lanjut** prioritizes unresolved complaints, fittings that need action, and work past the agreed finish date in WIB. The count and results reflect the current search. Open a row to see the order or the relevant fitting or complaint section.
+
 Set `ADMIN_WHATSAPP` to the admin's international-format number to offer WhatsApp partner registration from the storefront. Without it, the storefront accepts a registration for admin review. For an order, **Bagikan ke grup WhatsApp** opens the chat chooser, and **WhatsApp pribadi mitra** opens the saved partner number. The admin sends the message in WhatsApp and records the reply on the order.
 
 ### Website checkout
 
 The local stack uses `PAYMENT_MODE=demo`. Once work is ready, the customer starts a simulated payment and the admin records the test outcome. For a Midtrans BNI virtual account, use `PAYMENT_MODE=sandbox` or `live`, set the corresponding server-side `MIDTRANS_SERVER_KEY`, and configure the merchant notification URL to the public HTTPS origin followed by `/webhooks/midtrans`. The customer generates a bill on the website, transfers the quoted amount to the displayed virtual account, and checks the result on the order page. A signed callback triggers a server-side status check. Customers and admins can also refresh the gateway status from the order. Production use requires an activated merchant payment channel. [Midtrans bank transfer integration](https://docs.midtrans.com/docs/coreapi-core-api-bank-transfer-integration) · [Notification verification](https://docs.midtrans.com/docs/https-notification-webhooks)
 
+**Pembayaran** shows the accepted total and checkout errors on the same screen. Check a pending bill from the order, or reload it if the virtual account number is still missing. Create a replacement from the same order once its previous bill fails or expires. Sandbox bills display instructions for a test transfer.
+
 `PLATFORM_FEE_BPS` sets the commission in basis points. The default is 500 (5%). The accepted order locks the rate. A settled payment credits the platform commission and records the balance due to the partner, rounded in whole rupiah. The merchant handles partner disbursements. Test commission appears separately in the service performance table. [Test run guidebook](docs/TEST-RUN-GUIDEBOOK.md)
 
 Use catalog search and categories to find a service. Admins can set category, estimated duration and intake guidance. Customers can specify quantity and fit notes, then add up to three private reference photos once the request is created. Admins record the tailor’s quote by line item, and the server calculates the total accepted by the customer. Photos are normalized to JPEG and stored in PostgreSQL. Real-data retention and backup approval remain pilot requirements.
 
-For a disposable demo database, add optional synthetic rows for the two tailor accounts with `docker-compose run --rm seed npm run db:seed -- --workday`. The workday examples use the ordinary workflows and preserve existing rows.
+### Rehearse in a fresh demo
+
+1. Set the local `POSTGRES_PASSWORD` and `DEMO_PASSWORD` as above. Run `node scripts/sandbox.js 3166 3167` with two unused ports. The script prints a project name, the app URL, and the mailbox URL. It seeds synthetic accounts and workday orders with simulated messaging and payments.
+2. Open `/health/ready` on the printed app URL and expect HTTP 200. Run `docker compose -p <project> ps web worker` using the printed project name. Expect the web and worker services to be running. The admin's **Operasional** page shows the worker's last heartbeat.
+3. Use the demo accounts above and the same `DEMO_PASSWORD`. The customer opens **Pesanan Saya**, the admin opens **Pengelolaan platform**, and the existing tailor opens **Ruang usaha**. Use separate browser profiles to keep the sessions independent.
+4. To refresh the demo passwords, rerun `docker compose -p <project> run --rm seed npm run db:seed -- --workday`. Use the app URL and password for that project. The seed preserves the existing workday orders.
 
 ## Demo inbound intake and handoff
 

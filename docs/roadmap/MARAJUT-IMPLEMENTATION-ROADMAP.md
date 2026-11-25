@@ -1,5 +1,9 @@
 # Marajut implementation roadmap
 
+## Next update · 26 November 2026 WIB
+
+RFC-0002 is implemented and verified locally. The update covers repeatable demo sign-in, an admin follow-up queue, checkout recovery, and an isolated rehearsal with an encrypted restore. A private HTTPS preview is the next release check once a host is selected. [RFC-0002 Marajut pilot readiness](../rfc/RFC-0002-MARAJUT-PILOT-READINESS.md)
+
 ## Product transition · 19 November 2026 WIB
 
 | Work | Status | User outcome |
