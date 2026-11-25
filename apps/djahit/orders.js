@@ -13,10 +13,15 @@ const transitions = {
 
 export async function transitionOrder(pool, actor, id, input, mode) {
   return transaction(pool, async db => {
-    const business = await activeBusiness(db, actor, true);
-    const order = found(await one(db, `SELECT o.id, o.status, o.revision, o.inquiry_id, i.customer_id
+    const business = actor.manager ? null : await activeBusiness(db, actor, true);
+    const order = found(await one(db, `SELECT o.id, o.status, o.revision, o.inquiry_id, i.customer_id, i.dispatch_state
       FROM orders o JOIN inquiries i ON i.id = o.inquiry_id
-      WHERE o.id = $1 AND o.business_id = $2 FOR UPDATE OF o`, [id, business.id]));
+      WHERE o.id = $1 AND ($2::uuid IS NULL OR o.business_id = $2) FOR UPDATE OF o`, [id, business?.id ?? null]));
+    if (order.dispatch_state && !actor.manager) conflict('Pesanan ini ditangani oleh admin.');
+    if (order.dispatch_state && input.action === 'complete' &&
+        !await one(db, "SELECT id FROM order_payments WHERE order_id=$1 AND state='PAID'", [id])) {
+      conflict('Verifikasi pembayaran sebelum serah terima.');
+    }
     const transition = transitions[input.action];
     if (order.status !== transition.from || order.revision !== input.revision) {
       conflict('This order changed or the requested transition is unavailable.');

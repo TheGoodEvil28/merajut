@@ -1,29 +1,38 @@
 <%- include('header') %>
-<% const latest = quotes[0]; const isProvider = user.role === 'provider'; %>
+<% const latest = quotes[0]; const isCustomer=user.role==='customer'; const canManage = user.manager || (user.role === 'provider' && !inquiry.dispatch_state);
+const staffBase=user.manager?'/api/v1/management':'/api/v1/provider'; %>
 <% const state = order?.status ?? inquiry.status;
-const nextStep = order ? {
-  CONFIRMED: isProvider ? 'Mulai pengerjaan saat pesanan siap dikerjakan.' : 'Penjahit akan memperbarui status saat mulai bekerja.',
-  IN_PROGRESS: isProvider ? 'Tandai siap diambil setelah pengerjaan selesai.' : 'Penjahit sedang mengerjakan pesanan Anda.',
-  READY: isProvider ? 'Selesaikan pesanan setelah serah terima.' : 'Atur pengambilan sesuai kesepakatan dengan penjahit.',
+const dispatchHint = !order && inquiry.dispatch_state && ['NEW','UNDER_REVIEW'].includes(state) ? ({
+  OPEN: canManage ? 'Hubungi mitra melalui WhatsApp dan catat jawabannya.' : 'Admin sedang mencarikan konfirmasi dari mitra pilihan Anda.',
+  CONTACTED: 'Admin sedang menunggu jawaban mitra melalui WhatsApp.',
+  UNAVAILABLE: 'Mitra berhalangan. Pilih layanan pengganti pada bagian Koordinasi mitra.',
+  AVAILABLE: latest?.status==='REJECTED' ? 'Penawaran ditolak. Pilih mitra lain atau tunggu penawaran baru.' : null
+})[inquiry.dispatch_state] : null;
+const label = step => step==='READY' && order?.handover==='delivery'?'Siap dikirim':statusLabel(step);
+const nextStep = dispatchHint || (order ? {
+  CONFIRMED: canManage ? 'Mulai pengerjaan saat pesanan siap dikerjakan.' : 'Admin akan memperbarui status saat pengerjaan dimulai.',
+  IN_PROGRESS: canManage ? 'Tandai siap diambil setelah pengerjaan selesai.' : 'Penjahit sedang mengerjakan pesanan Anda.',
+  READY: canManage ? (inquiry.dispatch_state && order.payment?.state!=='PAID' ? 'Tunggu pembayaran pelanggan dan periksa statusnya sebelum serah terima.' : 'Selesaikan pesanan setelah serah terima.') : (inquiry.dispatch_state ? 'Periksa pembayaran dan serah terima di bawah.' : 'Atur pengambilan sesuai kesepakatan dengan penjahit.'),
   COMPLETED: 'Pengerjaan dan serah terima telah selesai.',
   CANCELLED: 'Pesanan ini telah dibatalkan.'
 }[state] : state === 'EXPIRED' || (latest?.status === 'EXPIRED' && state === 'QUOTED')
-  ? (isProvider ? 'Buat revisi jika Anda masih bisa menerima pekerjaan ini.' : 'Tunggu penawaran baru dari penjahit.')
+  ? (canManage ? 'Buat revisi jika Anda masih bisa menerima pekerjaan ini.' : 'Tunggu penawaran baru dari penjahit.')
   : ({
-    NEW: isProvider ? 'Tinjau detail. Minta klarifikasi jika informasi belum cukup.' : 'Tunggu penjahit meninjau permintaan Anda.',
-    UNDER_REVIEW: isProvider ? 'Lengkapi rincian pengerjaan dan kirim penawaran.' : 'Penjahit sedang meninjau permintaan.',
-    NEEDS_DETAILS: isProvider ? 'Pelanggan perlu mengirim detail tambahan.' : 'Periksa catatan penjahit dan kirim detail tambahan.',
-    QUOTED: isProvider ? 'Pelanggan perlu memutuskan penawaran terbaru.' : 'Periksa harga, tanggal selesai, dan masa berlaku sebelum menyetujui.',
+    NEW: canManage ? 'Tinjau detail. Minta klarifikasi jika informasi belum cukup.' : 'Admin akan menghubungi mitra untuk memeriksa ketersediaan.',
+    UNDER_REVIEW: canManage ? 'Lengkapi rincian pengerjaan dan kirim penawaran.' : 'Penjahit sedang meninjau permintaan.',
+    NEEDS_DETAILS: canManage ? 'Pelanggan perlu mengirim detail tambahan.' : 'Periksa catatan penjahit dan kirim detail tambahan.',
+    QUOTED: canManage ? 'Pelanggan perlu memutuskan penawaran terbaru.' : 'Periksa harga, tanggal selesai, dan masa berlaku sebelum menyetujui.',
     DECLINED: 'Penjahit telah menutup permintaan ini.', CANCELLED: 'Permintaan ini telah dibatalkan.'
-  })[state]; %>
+  })[state]); %>
 <section class="section">
-  <a class="back" href="/workspace"><%= isProvider ? 'Ringkasan Usaha' : 'Pesanan Saya' %></a>
+  <a class="back" href="<%= user.manager?'/pengelola':'/workspace' %>"><%= user.manager ? 'Papan pesanan' : user.role==='provider' ? 'Ringkasan Usaha' : 'Pesanan Saya' %></a>
   <div class="page-heading">
     <div><p class="location"><%= inquiry.business %></p><h1><%= inquiry.service %></h1></div>
-    <span class="status" data-state="<%= state %>"><%= statusLabel(latest?.status === 'EXPIRED' && !order && state === 'QUOTED' ? 'EXPIRED' : state) %></span>
+    <span class="status" data-state="<%= state %>"><%= label(latest?.status === 'EXPIRED' && !order && state === 'QUOTED' ? 'EXPIRED' : state) %></span>
   </div>
-  <% if (nextStep) { %><p class="notice"><strong>Langkah berikutnya</strong> · <%= nextStep %>
-    <% if (!isProvider && !order && latest?.status === 'SENT' && state === 'QUOTED') { %>
+  <% if (user.role==='provider' && inquiry.dispatch_state) { %><p class="notice">Admin menangani pesanan ini. Berikan kabar pengerjaan melalui WhatsApp.</p><% } %>
+  <% if (nextStep && !(user.role==='provider' && inquiry.dispatch_state)) { %><p class="notice"><strong>Langkah berikutnya</strong> · <%= nextStep %>
+    <% if (isCustomer && !order && latest?.status === 'SENT' && state === 'QUOTED') { %>
       <a href="#penawaran">Tinjau penawaran v<%= latest.version %></a>
     <% } %></p><% } %>
   <% const progress = ['CONFIRMED', 'IN_PROGRESS', 'READY', 'COMPLETED'];
@@ -33,7 +42,7 @@ const nextStep = order ? {
         <li class="<%= progress.indexOf(step) <= progress.indexOf(order.status) ? 'reached' : '' %>"
           <% if (step === order.status) { %>aria-current="step"<% } %>>
           <span class="step-mark"><% if (progress.indexOf(step) <= progress.indexOf(order.status)) { %><%- include('icon', {name:'check'}) %><% } %></span>
-          <%= statusLabel(step) %></li>
+          <%= label(step) %></li>
       <% } %>
     </ol>
   <% } %>
@@ -54,18 +63,19 @@ const nextStep = order ? {
           <p class="muted">Penawaran v<%= order.quote_version %> disetujui</p>
           <dl class="terms"><div><dt>Harga disepakati</dt><dd><%= money(order.amount) %></dd></div><div><dt>Perkiraan selesai</dt><dd><%= localDate(order.eta) %></dd></div></dl>
           <%- include('quote-breakdown', { items: order.line_items }) %>
+          <%- include('logistics',{proposal:order}) %>
           <p class="preserve"><%= order.terms %></p>
-          <% const next = { CONFIRMED: ['start', 'Mulai pengerjaan'], IN_PROGRESS: ['ready', 'Tandai siap diambil'], READY: ['complete', 'Selesaikan pesanan'] }[order.status]; %>
-          <% if (isProvider && next) { %>
-            <form method="post" action="/api/v1/provider/orders/<%= order.id %>/transitions">
+          <% const next = { CONFIRMED: ['start', 'Mulai pengerjaan'], IN_PROGRESS: ['ready', order.handover==='delivery'?'Tandai siap dikirim':'Tandai siap diambil'], READY: ['complete', 'Selesaikan pesanan'] }[order.status]; %>
+          <% if (canManage && next && !(inquiry.dispatch_state && order.status==='READY' && order.payment?.state!=='PAID')) { %>
+            <form method="post" action="<%= staffBase %>/orders/<%= order.id %>/transitions">
               <input type="hidden" name="_csrf" value="<%= csrf %>">
               <input type="hidden" name="revision" value="<%= order.revision %>">
               <button name="action" value="<%= next[0] %>"><%= next[1] %></button>
             </form>
           <% } %>
-          <% if (isProvider && order.status === 'CONFIRMED') { %>
+          <% if (canManage && order.status === 'CONFIRMED') { %>
             <details class="action-details"><summary>Batalkan pesanan yang diterima</summary>
-              <form method="post" action="/api/v1/provider/orders/<%= order.id %>/transitions" class="stack">
+              <form method="post" action="<%= staffBase %>/orders/<%= order.id %>/transitions" class="stack">
                 <input type="hidden" name="_csrf" value="<%= csrf %>">
                 <input type="hidden" name="revision" value="<%= order.revision %>">
                 <label>Alasan pembatalan<textarea name="detail" maxlength="500" required></textarea></label>
@@ -74,16 +84,17 @@ const nextStep = order ? {
             </details>
           <% } %>
         </section>
-        <%- include('order-management', { isProvider }) %>
+        <% if (inquiry.dispatch_state) { %><%- include('order-payment') %><% } else { %><%- include('order-management', { legacyProvider:user.role==='provider' }) %><% } %>
       <% } %>
       <% if (latest && !order) { %>
         <section class="card" id="penawaran" tabindex="-1">
           <div class="page-heading compact"><h2>Penawaran v<%= latest.version %></h2><span class="status"><%= statusLabel(latest.status) %></span></div>
           <dl class="terms"><div><dt>Harga</dt><dd><%= money(latest.amount) %></dd></div><div><dt>Perkiraan selesai</dt><dd><%= localDate(latest.eta) %></dd></div></dl>
           <%- include('quote-breakdown', { items: latest.line_items }) %>
+          <%- include('logistics',{proposal:latest}) %>
           <p class="preserve"><%= latest.terms %></p>
           <p class="muted">Berlaku sampai <%= dateTime(latest.expires_at) %></p>
-          <% if (!isProvider && latest.status === 'SENT' && inquiry.status === 'QUOTED') { %>
+          <% if (isCustomer && latest.status === 'SENT' && inquiry.status === 'QUOTED') { %>
             <form method="post" action="/api/v1/quotes/<%= latest.id %>/decisions" class="actions">
               <input type="hidden" name="_csrf" value="<%= csrf %>">
               <input type="hidden" name="version" value="<%= latest.version %>">
@@ -110,12 +121,12 @@ const nextStep = order ? {
           <% } %></ul>
         </details>
       <% } %>
-      <%- include('inquiry-photos', { isProvider }) %>
-      <% if (isProvider && ['NEW', 'UNDER_REVIEW', 'QUOTED','EXPIRED'].includes(inquiry.status)) { %>
+      <%- include('inquiry-photos') %>
+      <% if (canManage && (!inquiry.dispatch_state || inquiry.dispatch_state==='AVAILABLE') && ['NEW', 'UNDER_REVIEW', 'QUOTED','EXPIRED'].includes(inquiry.status)) { %>
         <section class="card">
           <h2><%= latest ? 'Buat revisi penawaran' : 'Buat penawaran' %></h2>
           <% if (quoteError) { %><p class="notice error-message" role="alert"><%= quoteError %></p><% } %>
-          <form class="stack" data-quote-editor action="/api/v1/provider/inquiries/<%= inquiry.id %>/quotes" method="post">
+          <form class="stack" data-quote-editor action="<%= staffBase %>/inquiries/<%= inquiry.id %>/quotes" method="post">
             <input type="hidden" name="_csrf" value="<%= csrf %>">
             <input type="hidden" name="revision" value="<%= inquiry.revision %>">
             <% const rows = quoteDraft?.items?.length ? quoteDraft.items.slice(0, 8) : latest?.line_items ?? [{
@@ -134,21 +145,26 @@ const nextStep = order ? {
               <label>Perkiraan selesai<input type="date" name="eta" value="<%= quoteDraft?.eta ?? latest?.eta ?? '' %>" required></label>
               <label>Masa berlaku (jam)<input type="number" name="validHours" value="<%= quoteDraft?.validHours ?? 48 %>" min="1" max="168" required></label>
             </div>
+            <% if (inquiry.dispatch_state) { %>
+              <label>Serah terima<select name="handover" required><option value="pickup">Ambil di tempat penjahit</option><option value="delivery" <%= (quoteDraft?.handover ?? latest?.handover)==='delivery'?'selected':'' %>>Kirim ke pelanggan</option></select></label>
+              <label>Jadwal fitting (WIB, opsional)<input type="datetime-local" name="fittingAt" value="<%= quoteDraft?.fittingAt ?? (latest?.fitting_at ? new Date(+new Date(latest.fitting_at)+7*3600000).toISOString().slice(0,16) : '') %>"></label>
+              <label>Lokasi fitting<textarea name="fittingPlace" maxlength="200"><%= quoteDraft?.fittingPlace ?? latest?.fitting_place ?? '' %></textarea></label>
+            <% } %>
             <label>Rincian pengerjaan dan pengambilan<textarea name="terms" minlength="5" maxlength="1000" rows="3" required><%= quoteDraft?.terms ?? latest?.terms ?? '' %></textarea></label>
             <button>Kirim penawaran</button>
           </form>
         </section>
       <% } %>
       <% const active = ['NEW', 'NEEDS_DETAILS', 'UNDER_REVIEW', 'QUOTED','EXPIRED'].includes(inquiry.status); %>
-      <% if (active) { %>
-        <details class="card" <%= inquiry.status === 'NEEDS_DETAILS' && !isProvider ? 'open' : '' %>>
+      <% if (active && (isCustomer || canManage)) { %>
+        <details class="card" <%= inquiry.status === 'NEEDS_DETAILS' && !canManage ? 'open' : '' %>>
           <summary>Klarifikasi atau tutup permintaan</summary>
           <form class="stack" action="/api/v1/inquiries/<%= inquiry.id %>/actions" method="post">
             <input type="hidden" name="_csrf" value="<%= csrf %>">
             <input type="hidden" name="revision" value="<%= inquiry.revision %>">
             <label>Catatan untuk pelanggan dan penjahit<textarea name="detail" rows="3" maxlength="500"></textarea></label>
             <div class="actions">
-              <% if (isProvider) { %>
+              <% if (canManage) { %>
                 <% if (['NEW','EXPIRED'].includes(inquiry.status)) { %><button name="action" value="review" class="secondary">Mulai tinjau</button><% } %>
                 <% if (['NEW', 'UNDER_REVIEW'].includes(inquiry.status)) { %><button name="action" value="clarify" class="secondary">Minta klarifikasi</button><% } %>
                 <button name="action" value="decline" class="secondary">Tolak permintaan</button>
@@ -162,6 +178,7 @@ const nextStep = order ? {
       <% } %>
     </div>
     <div class="stack">
+    <% if (inquiry.dispatch_state) { %><%- include('dispatch-panel') %><% } %>
     <% if (conversation) { %>
       <section class="card timeline">
         <h2>Percakapan terkait</h2>
@@ -170,7 +187,7 @@ const nextStep = order ? {
           <li><strong><%= message.direction === 'INBOUND' ? 'Pelanggan' : 'Balasan penjahit' %></strong>
             <time><%= dateTime(message.created_at) %></time><p class="preserve"><%= message.body %></p></li>
         <% } %></ol><% } %>
-        <% if (intakeEnabled && (!isProvider || ['AWAITING_HUMAN', 'HUMAN'].includes(conversation.state))) { %>
+        <% if (intakeEnabled && (!canManage || ['AWAITING_HUMAN', 'HUMAN'].includes(conversation.state))) { %>
           <a href="/workspace/intake/<%= conversation.id %>">Buka percakapan</a>
         <% } %>
       </section>

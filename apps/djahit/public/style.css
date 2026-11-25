@@ -373,3 +373,8 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
   .quote-line > :first-child { grid-column: 1/-1; }
   .order-action { width: 100%; justify-content: space-between; }
 }
+.desk-table { max-width: 100%; overflow-x: auto; }
+.desk-table table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+.desk-table caption { text-align: left; padding-bottom: .75rem; }
+.desk-table th, .desk-table td { padding: .7rem; text-align: left; border-bottom: 1px solid #e7dfe3; }
+.desk-table thead { background: #f6eff3; }

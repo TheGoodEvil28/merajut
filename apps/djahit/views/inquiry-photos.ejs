@@ -1,8 +1,8 @@
-<% const mayEdit = !isProvider && ['NEW', 'NEEDS_DETAILS', 'UNDER_REVIEW'].includes(inquiry.status); %>
+<% const mayEdit = user.role==='customer' && ['NEW', 'NEEDS_DETAILS', 'UNDER_REVIEW'].includes(inquiry.status); %>
 <% if (photos.length || mayEdit) { %>
   <section class="card" id="request-photos">
     <h2>Foto referensi</h2>
-    <p class="muted">Foto hanya dapat dilihat oleh pelanggan dan penjahit yang menangani permintaan.</p>
+    <p class="muted">Foto hanya dapat dilihat oleh pelanggan, admin, dan mitra yang menangani permintaan.</p>
     <% if (photos.length) { %>
       <div class="reference-photos">
         <% for (const [index, photo] of photos.entries()) { const address = '/api/v1/inquiries/' + inquiry.id + '/photos/' + photo.id; %>

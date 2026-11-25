@@ -13,7 +13,7 @@
             <li><a href="/#cara-kerja">Cara memesan</a></li>
             <% if (user?.role === 'provider') { %><li><a href="/workspace">Ruang usaha</a></li>
             <% } else if (user?.role === 'customer') { %><li><a href="/workspace">Pesanan Saya</a></li>
-            <% } else if (!user) { %><li><a href="/login?ruang=usaha">Untuk penjahit</a></li><% } %>
+            <% } else if (!user) { %><li><a href="/pengelola">Ruang admin</a></li><% } %>
           </ul>
         </nav>
         <div>

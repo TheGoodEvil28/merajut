@@ -13,8 +13,9 @@ if (!['localhost', '127.0.0.1', '[::1]'].includes(base.hostname) || !password) {
 const browser = await chromium.launch(process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
 const customer = await browser.newPage({ viewport: { width: 360, height: 844 }, baseURL: base.origin });
 const tailor = await browser.newPage({ viewport: { width: 1366, height: 900 }, baseURL: base.origin });
+const admin = await browser.newPage({viewport:{width:1366,height:900},baseURL:base.origin});
 const pageErrors = [];
-for (const page of [customer, tailor]) page.on('pageerror', error => pageErrors.push(error.message));
+for (const page of [customer, tailor, admin]) page.on('pageerror', error => pageErrors.push(error.message));
 
 async function signIn(page, email, destination = '**/workspace') {
   if (new URL(page.url()).pathname !== '/login') await page.goto('/login');
@@ -135,28 +136,33 @@ try {
   assert.equal(tailor.url(), requestUrl);
   await tailor.getByText('Panjang akhir yang diinginkan 90 cm.', { exact: false }).waitFor();
   await tailor.getByRole('img', { name: 'Foto referensi 1' }).waitFor();
-  await tailor.getByText('Klarifikasi atau tutup permintaan', { exact: true }).click();
-  await tailor.getByLabel('Catatan untuk pelanggan dan penjahit').fill('Berapa panjang akhir yang diinginkan?');
-  await tailor.getByRole('button', { name: 'Minta klarifikasi' }).click();
+  assert.equal(await tailor.getByRole('button',{name:'Kirim penawaran'}).count(),0);
+  await signIn(admin,seedEmails.operator,'**/pengelola');
+  await admin.locator('a[href="'+requestPath+'"]').click();
+  await admin.getByLabel('Catat hasil WhatsApp').selectOption('AVAILABLE');
+  await admin.getByRole('button',{name:'Simpan pembaruan'}).click();
+  await admin.getByText('Klarifikasi atau tutup permintaan', { exact: true }).click();
+  await admin.getByLabel('Catatan untuk pelanggan dan penjahit').fill('Berapa panjang akhir yang diinginkan?');
+  await admin.getByRole('button', { name: 'Minta klarifikasi' }).click();
   await customer.reload();
   await customer.getByText('Berapa panjang akhir yang diinginkan?', { exact: true }).waitFor();
   await customer.getByLabel('Catatan untuk pelanggan dan penjahit').fill('Panjang akhir 90 cm.');
   await customer.getByRole('button', { name: 'Kirim detail' }).click();
-  await tailor.reload();
-  await tailor.getByLabel(/Harga satuan/).first().fill('15000');
-  await tailor.getByRole('button', { name: 'Tambah rincian' }).click();
-  await tailor.getByLabel(/Rincian baris 2/).fill('Benang');
-  await tailor.getByLabel(/Jumlah baris 2/).fill('1');
-  await tailor.getByLabel(/Harga satuan/).last().fill('2500');
-  await tailor.waitForFunction(() => document.querySelector('output')?.textContent.includes('32.500'));
+  await admin.reload();
+  await admin.getByLabel(/Harga satuan/).first().fill('15000');
+  await admin.getByRole('button', { name: 'Tambah rincian' }).click();
+  await admin.getByLabel(/Rincian baris 2/).fill('Benang');
+  await admin.getByLabel(/Jumlah baris 2/).fill('1');
+  await admin.getByLabel(/Harga satuan/).last().fill('2500');
+  await admin.waitForFunction(() => document.querySelector('output')?.textContent.includes('32.500'));
   if (screenshotDir) {
-    await tailor.locator('[data-quote-editor]').scrollIntoViewIfNeeded();
-    await tailor.screenshot({ path: screenshotDir + '/quote-editor.png' });
+    await admin.locator('[data-quote-editor]').scrollIntoViewIfNeeded();
+    await admin.screenshot({ path: screenshotDir + '/quote-editor.png' });
   }
-  await tailor.getByLabel('Perkiraan selesai').fill(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
-  await tailor.getByLabel('Rincian pengerjaan dan pengambilan').fill('Pendekkan celana. Ambil langsung di tempat jahit.');
-  await tailor.getByRole('button', { name: 'Kirim penawaran' }).click();
-  await tailor.getByRole('heading', { name: 'Penawaran v1' }).waitFor();
+  await admin.getByLabel('Perkiraan selesai').fill(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
+  await admin.getByLabel('Rincian pengerjaan dan pengambilan').fill('Pendekkan celana. Ambil langsung di tempat jahit.');
+  await admin.getByRole('button', { name: 'Kirim penawaran' }).click();
+  await admin.getByRole('heading', { name: 'Penawaran v1' }).waitFor();
 
   await customer.goto('/workspace');
   const attention = customer.locator('.order-group').filter({ has: customer.getByRole('heading', { name: /Perlu tindakan Anda/ }) });
@@ -166,19 +172,23 @@ try {
   await customer.getByText('Benang', { exact: true }).waitFor();
   await customer.getByRole('button', { name: 'Setujui penawaran v1' }).click();
   await customer.getByRole('heading', { name: 'Detail pesanan' }).waitFor();
-  await tailor.reload();
-  await tailor.getByRole('button', { name: 'Mulai pengerjaan' }).click();
-  await tailor.getByRole('button', { name: 'Tandai siap diambil' }).click();
+  await admin.reload();
+  await admin.getByRole('button', { name: 'Mulai pengerjaan' }).click();
+  await admin.getByRole('button', { name: 'Tandai siap diambil' }).click();
   await customer.goto('/workspace');
-  await attention.locator('a[href="' + requestPath + '"]').getByText('Lihat pengambilan').click();
+  await attention.locator('a[href="' + requestPath + '"]').getByText('Pembayaran dan serah terima').click();
   assert.equal(await customer.locator('.order-progress [aria-current="step"]').innerText(), 'Siap diambil');
-  await tailor.getByRole('button', { name: 'Selesaikan pesanan' }).click();
-  await tailor.getByText('Selesai', { exact: true }).first().waitFor();
+  await customer.getByRole('button',{name:'Mulai pembayaran simulasi'}).click();
+  await admin.reload();
+  await admin.getByRole('button',{name:'Verifikasi simulasi lunas'}).click();
+  await admin.getByRole('button', { name: 'Selesaikan pesanan' }).click();
+  await admin.getByText('Selesai', { exact: true }).first().waitFor();
 
   await customer.reload();
   assert.equal(await customer.locator('.order-progress [aria-current="step"]').innerText(), 'Selesai');
   if (screenshotDir) {
     await customer.screenshot({ path: screenshotDir + '/customer-mobile.png', fullPage: true });
+    await tailor.reload();
     await tailor.screenshot({ path: screenshotDir + '/tailor-desktop.png', fullPage: true });
   }
 

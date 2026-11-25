@@ -1,0 +1,48 @@
+<% const open = !order && ['NEW','UNDER_REVIEW','NEEDS_DETAILS','QUOTED','EXPIRED'].includes(inquiry.status);
+const canChoose = open && (user.manager || (user.role==='customer' && (inquiry.dispatch_state==='UNAVAILABLE' || quotes[0]?.status==='REJECTED')));
+const ref = inquiry.id.slice(0,8).toUpperCase(); %>
+<section class="card stack">
+  <h2>Koordinasi mitra</h2>
+  <dl class="terms"><div><dt>Mitra pilihan</dt><dd><%= inquiry.business %></dd></div>
+    <div><dt>Kesediaan</dt><dd><%= statusLabel(inquiry.dispatch_state) %></dd></div>
+    <div><dt>Estimasi awal<% if (inquiry.quantity) { %> · <%= inquiry.quantity %> pakaian<% } %></dt>
+      <dd><%= inquiry.estimate ? money(inquiry.estimate) : 'Menunggu perkiraan mitra' %></dd></div></dl>
+  <% if (inquiry.previous_inquiry_id && user.role!=='provider') { %><a href="/requests/<%= inquiry.previous_inquiry_id %>">Riwayat mitra sebelumnya</a><% } %>
+  <% if (inquiry.replacement_id && user.role!=='provider') { %><a href="/requests/<%= inquiry.replacement_id %>">Lanjut ke permintaan mitra pengganti</a><% } %>
+  <% if (user.manager) {
+    const groupText='Pekerjaan '+ref+' · '+inquiry.service+' · '+(inquiry.quantity || 1)+' pakaian. Mitra yang tersedia, silakan balas admin secara pribadi.';
+    const personal = order ? [
+      'Pesanan '+ref+' · '+inquiry.service+' · '+(order.status==='READY' && order.handover==='delivery'?'Siap dikirim':statusLabel(order.status)),
+      'Harga disepakati '+money(order.amount)+', estimasi selesai '+localDate(order.eta)+'.',
+      order.fitting_at ? 'Fitting '+dateTime(order.fitting_at)+' di '+order.fitting_place+'.' : '',
+      order.handover==='delivery'?'Kirim ke pelanggan.':'Ambil di tempat penjahit.',
+      'Mohon kabari admin mengenai pengerjaan dan serah terima.'
+    ].filter(Boolean).join('\n') : [
+      'Halo '+inquiry.business+', apakah bersedia menangani '+inquiry.service+' untuk permintaan '+ref+'?',
+      'Jumlah '+(inquiry.quantity || 1)+' pakaian. '+inquiry.description,
+      inquiry.desired_date ? 'Target pelanggan '+localDate(inquiry.desired_date)+'.' : '',
+      inquiry.fit_notes ? 'Catatan ukuran: '+inquiry.fit_notes : '',
+      'Mohon konfirmasi harga final, tanggal selesai, serta jadwal fitting jika diperlukan.'
+    ].filter(Boolean).join('\n'); %>
+    <div><strong><%= contacts.display_name %></strong><% if (contacts.phone) { %> · <%= contacts.phone %><% } %>
+      <% if (contacts.address) { %><p class="preserve"><%= contacts.address %></p><% } %></div>
+    <% if (open || (order && !['CANCELLED','COMPLETED'].includes(order.status))) { %>
+      <div class="actions"><% if (contacts.whatsapp) { %><a class="button secondary" target="_blank" rel="noreferrer" href="https://wa.me/<%= contacts.whatsapp %>?text=<%= encodeURIComponent(personal) %>">WhatsApp pribadi mitra</a>
+        <% } else { %><a href="/pengelola/mitra/<%= inquiry.business_id %>">Lengkapi WhatsApp mitra</a><% } %>
+        <% if (open) { %><a target="_blank" rel="noreferrer" href="https://wa.me/?text=<%= encodeURIComponent(groupText) %>">Bagikan ke grup WhatsApp</a><% } %></div>
+    <% } %>
+    <% if (open) { %><form class="stack" method="post" action="/api/v1/management/inquiries/<%= inquiry.id %>/dispatch">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+      <label>Catat hasil WhatsApp<select name="state" required><option value="">Pilih pembaruan</option><option value="GROUP">Lowongan sudah dibagikan ke grup</option>
+        <option value="CONTACTED">Mitra sudah dihubungi</option><option value="AVAILABLE">Mitra bersedia</option><option value="UNAVAILABLE">Mitra berhalangan</option></select></label>
+      <button>Simpan pembaruan</button>
+    </form><% } %>
+  <% } %>
+  <% if (canChoose) { %><details><summary>Pilih mitra lain</summary>
+    <% if (alternatives.length) { %><form class="stack" method="post" action="/api/v1/<%= user.manager?'management/':'' %>inquiries/<%= inquiry.id %>/reassign">
+      <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+      <label>Layanan pengganti<select name="serviceId" required><option value="">Pilih layanan</option><% for (const s of alternatives) { %><option value="<%= s.id %>"><%= s.business %> · <%= s.name %></option><% } %></select></label>
+      <p class="muted">Detail dan foto diteruskan ke mitra pilihan. Penawaran lama ditutup dan mitra baru memberikan penawaran tersendiri.</p>
+      <button>Alihkan permintaan</button>
+    </form><% } else { %><p>Belum ada mitra lain dengan layanan aktif.</p><% } %></details><% } %>
+</section>

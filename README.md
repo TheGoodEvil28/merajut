@@ -1,6 +1,6 @@
 # Marajut
 
-**Dari Web ke Chat, Setiap Jahitan Terhubung.** Customers find local tailoring services, agree on quotations and follow their orders on the web. Tailors manage their catalog, conversations and work queues in the same application. WhatsApp conversations in the local release run inside a labeled simulator. The new experience uses the existing Djahit Express application, PostgreSQL database and notification worker. [Marajut transition assessment](docs/product/MARAJUT-PHASE-1.md)
+**Dari Web ke Chat, Setiap Jahitan Terhubung.** Customers find local tailoring services, agree on quotations and follow their orders on the web. Admins manage partner listings, coordinate jobs with tailors through WhatsApp, and publish negotiated quotes, appointments and order updates. Customers pay from the order page once the work is ready. A separate local simulator supports rehearsing inbound chat. The new experience uses the existing Djahit Express application, PostgreSQL database and notification worker. [Marajut transition assessment](docs/product/MARAJUT-PHASE-1.md)
 
 ## Start locally
 
@@ -24,11 +24,19 @@ The seed creates two published businesses, three services and five synthetic acc
 | Customer | `customer2@djahit.test` | Separate customer for access checks |
 | Tailor | `tailor@djahit.test` | Jahit Rina |
 | Tailor | `tailor2@djahit.test` | Ruang Jahit Dewi |
-| Platform operator | `operator@djahit.test` | Unassigned handoff queue |
+| Platform operator | `operator@djahit.test` | Admin desk, partner directory, order dispatch, payments and performance |
 
-Use two browser profiles. Start at **Cari Penjahit**, open a public profile and request a quote. As the matching tailor, open **Ringkasan** to triage requests, check open quotes and see work ordered by date. **Profil Usaha** updates public business details. **Layanan Saya** controls the offering and starting price shown to customers. Follow the [test run guidebook](docs/TEST-RUN-GUIDEBOOK.md) to walk both roles through the localized order and simulated WhatsApp flows.
+Use separate browser profiles for the customer and admin. Customers start in **Cari Penjahit** and manage contact details in **Profil saya**. Admins open **Pengelolaan platform**, add partners and services, publish listings, and open incoming requests from **Papan pesanan**. A new partner needs only a private WhatsApp number. Existing tailor logins can view their assigned work. The original cash workflow remains available for requests created before migration 006.
 
-Use catalog search and categories to find a service. Tailors can set category, estimated duration and intake guidance. Customers can specify quantity and fit notes, then add up to three private reference photos once the request is created. Tailors quote by line item, and the server calculates the total accepted by the customer. Photos are normalized to JPEG and stored in PostgreSQL. Real-data retention and backup approval remain pilot requirements.
+Set `ADMIN_WHATSAPP` to the admin's international-format number to offer WhatsApp partner registration from the storefront. Without it, the storefront accepts a registration for admin review. For an order, **Bagikan ke grup WhatsApp** opens the chat chooser, and **WhatsApp pribadi mitra** opens the saved partner number. The admin sends the message in WhatsApp and records the reply on the order.
+
+### Website checkout
+
+The local stack uses `PAYMENT_MODE=demo`. Once work is ready, the customer starts a simulated payment and the admin records the test outcome. For a Midtrans BNI virtual account, use `PAYMENT_MODE=sandbox` or `live`, set the corresponding server-side `MIDTRANS_SERVER_KEY`, and configure the merchant notification URL to the public HTTPS origin followed by `/webhooks/midtrans`. The customer generates a bill on the website, transfers the quoted amount to the displayed virtual account, and checks the result on the order page. A signed callback triggers a server-side status check. Customers and admins can also refresh the gateway status from the order. Production use requires an activated merchant payment channel. [Midtrans bank transfer integration](https://docs.midtrans.com/docs/coreapi-core-api-bank-transfer-integration) · [Notification verification](https://docs.midtrans.com/docs/https-notification-webhooks)
+
+`PLATFORM_FEE_BPS` sets the commission in basis points. The default is 500 (5%). The accepted order locks the rate. A settled payment credits the platform commission and records the balance due to the partner, rounded in whole rupiah. The merchant handles partner disbursements. Test commission appears separately in the service performance table. [Test run guidebook](docs/TEST-RUN-GUIDEBOOK.md)
+
+Use catalog search and categories to find a service. Admins can set category, estimated duration and intake guidance. Customers can specify quantity and fit notes, then add up to three private reference photos once the request is created. Admins record the tailor’s quote by line item, and the server calculates the total accepted by the customer. Photos are normalized to JPEG and stored in PostgreSQL. Real-data retention and backup approval remain pilot requirements.
 
 For a disposable demo database, add optional synthetic rows for the two tailor accounts with `docker-compose run --rm seed npm run db:seed -- --workday`. The workday examples use the ordinary workflows and preserve existing rows.
 
@@ -38,7 +46,7 @@ For a disposable demo database, add optional synthetic rows for the two tailor a
 2. If the sender is unlinked, choose **Tautkan pengirim**, send the proof and refresh. Select **Konfirmasi tautan** in the session that generated the code.
 3. Choose **Minta bantuan penjahit**. As `tailor2@djahit.test`, open **Ringkasan → Percakapan WhatsApp**. Choose the conversation and select **Tangani percakapan**.
 4. Send **Kirim balasan simulasi** and refresh the customer conversation to see it. Choose **Buat permintaan layanan** or link a matching existing request. The operator can handle unassigned conversations.
-5. Use the linked request to send a quote. The customer accepts the displayed version in their signed-in workspace. Resolve the conversation or return it to automated intake from the tailor view.
+5. As the admin, open the linked request, record that the partner is available and send a quote. The customer accepts the displayed version in their signed-in workspace. Resolve the conversation or return it to automated intake from the tailor view.
 
 The local adapter accepts normalized text, service selection, details, handoff and binding-proof events. The browser uses an authenticated fixture sender assigned to the demo customer. Programmatic fixtures can optionally set a separate `SIMULATION_WEBHOOK_SECRET` of at least 32 characters. In a local or test environment, post exact JSON bytes to `/simulated/webhooks/whatsapp` with `X-Simulation-Signature` containing a hexadecimal HMAC-SHA256 of those bytes. For example, the envelope can be `{"eventId":"fixture-1","sender":"fixture:customer","kind":"text","text":"I need help with a hem."}`. A matching retry returns the original receipt. Reuse of an event ID with changed data returns a conflict. This endpoint is registered only when the environment, mode and secret permit fixture traffic.
 
@@ -66,7 +74,7 @@ Health endpoints are `/health/live` and `/health/ready`. Readiness depends on th
 
 Customers can enter as guests from **Minta penawaran**, verify an email, optionally stage one private photo and send the verified request to the tailor. **Masuk** also provides standalone signup and password recovery. During local testing, get messages from the loopback MailCatcher inbox at [127.0.0.1:3101](http://127.0.0.1:3101/). Use a separate `MAIL_PORT` for each Compose project. The worker uses the fixture mailbox in local and test environments. A hosted environment requires its own approved SMTP service and HTTPS origin.
 
-The seeded platform operator has a **Pengelolaan** workspace for invitations, publication and access revocation, exceptional cancellation and simulation delivery review. Existing local seeds can receive this demo capability with `docker-compose run --rm seed npm run db:seed -- --operator-access`. A tailor can record cash received at pickup independently of work completion. Staff decisions and cash corrections have an audit trail.
+The seeded platform operator has a **Pengelolaan** workspace for invitations, publication and access revocation, exceptional cancellation and simulation delivery review. Existing local seeds can receive this demo capability with `docker-compose run --rm seed npm run db:seed -- --operator-access`. For requests created before migration 006, a tailor can still record cash received at pickup. Staff decisions and cash corrections have an audit trail.
 
 Migration `005_pilot_workflows.sql` adds verification challenges, scoped staff permissions, order reviews, cash records, and structured simulated intake. The worker persists quote expiry and removes expired credentials and unclaimed verification drafts. Use the following commands in a disposable stack for maintenance rehearsal. The backup passphrase belongs in a separate secret store.
 
@@ -95,13 +103,13 @@ npm run test:inbound-browser
 npm run test:pilot-browser
 ```
 
-The JavaScript build check runs syntax validation. There is no frontend bundler or separate type checker in this slice. The HTTP integration suite uses a random PostgreSQL test schema in the local Compose database and drops only the schema it created. It checks role and tenancy boundaries, request replays, quote races and expiry, order progress/history, and duplicated, failed or retried notifications. The Playwright smoke runs against the seeded local web service and worker and creates a synthetic rehearsal order. Set `BROWSER_CHANNEL=chrome` to use installed Chrome or leave it unset for Playwright Chromium. Set `BROWSER_SCREENSHOTS` to a local output directory to capture the two completed-order views. Windows PowerShell installations that block `npm.ps1` can use `npm.cmd`.
+The JavaScript build check runs syntax validation. There is no frontend bundler or separate type checker in this slice. The HTTP integration suite uses a random PostgreSQL test schema in the local Compose database and drops only the schema it created. It checks role and tenancy boundaries, request replays, quote races and expiry, order progress/history, and duplicated, failed or retried notifications. The Playwright smoke runs against the seeded local web service and worker and creates a synthetic rehearsal order. Set `BROWSER_CHANNEL=chrome` to use installed Chrome or leave it unset for Playwright Chromium. Set `BROWSER_SCREENSHOTS` to a local output directory to capture the completed-order views. Windows PowerShell installations that block `npm.ps1` can use `npm.cmd`.
 
 ## Messaging and release scope
 
 `MESSAGING_MODE=simulated` queues quote and collection notices. The worker uses leased jobs, bounded retry and a durable per-intent simulation receipt. It checks the customer's simulation preference before recording a message. `MESSAGING_MODE=disabled` stops new intents. The adapter boundary allows a future vendor transport to declare replay behavior. Live mode is rejected and no Meta or BSP requests are sent.
 
-Local pilots support pre-verified fixtures, verified guest accounts, password recovery, private photo uploads and operator-managed tailor invitations and publication. Live WhatsApp requires an approved Business account and number, external HTTPS callback configuration, verified sender binding with real contacts, consent and template approval, receipt reconciliation and real delivery tests. Competition publication and submission remain on hold.
+Local pilots support pre-verified fixtures, verified guest accounts, password recovery, private photo uploads and operator-managed tailor invitations and publication. Automated WhatsApp API delivery requires an approved Business account and number, external HTTPS callback configuration, verified sender binding with real contacts, consent and template approval, receipt reconciliation and real delivery tests. Competition publication and submission remain on hold.
 
 ## Local Git baseline
 

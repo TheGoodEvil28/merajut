@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createHmac, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import pg from 'pg';
 import sharp from 'sharp';
@@ -11,6 +11,8 @@ import { enqueue, messagingMode, processNext, simulator } from '../apps/djahit/o
 import { normalizeSimulation } from '../apps/djahit/inbound-adapter.js';
 import { processInbound } from '../apps/djahit/inbound.js';
 import { processAccountMail } from '../apps/djahit/mail.js';
+import { midtrans } from '../apps/djahit/payments.js';
+import { createServer } from 'node:http';
 import { expireQuotes } from '../apps/djahit/quotes.js';
 import { retentionSweep } from '../apps/djahit/maintenance.js';
 
@@ -43,29 +45,36 @@ test('Live messaging cannot be selected', () => {
   assert.throws(() => messagingMode('live'), /unavailable/);
 });
 
-test('Express and PostgreSQL workflow', async t => {
+async function isolatedDatabase(t) {
   assert.equal(process.env.DJAHIT_ENV, 'test', 'Run in the isolated test environment documented in README.');
   const schema = 'test_' + randomBytes(12).toString('hex');
   const administration = new pg.Pool();
   await administration.query(`CREATE SCHEMA "${schema}"`);
   const pool = new pg.Pool({ options: '-c search_path=' + schema });
-  let server;
   t.after(async () => {
-    if (server) await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     await pool.end();
     await administration.query(`DROP SCHEMA "${schema}" CASCADE`);
     await administration.end();
   });
 
-  // Reserve an ephemeral port, then install the app with the same canonical Origin.
-  const { createServer } = await import('node:http');
-  server = createServer();
+  return {pool,schema};
+}
+
+async function serve(t,pool,options) {
+  const server = createServer();
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const base = 'http://127.0.0.1:' + server.address().port;
+  server.on('request',createApp(pool,{origin:base,mode:'simulated',...options}));
+  t.after(() => new Promise(resolve=>server.close(resolve)));
+  return base;
+}
+
+test('Express and PostgreSQL workflow', async t => {
+  const {pool,schema}=await isolatedDatabase(t);
   const fixtureSecret = randomBytes(24).toString('hex');
   process.env.SIMULATION_WEBHOOK_SECRET = fixtureSecret;
-  server.on('request', createApp(pool, { origin: base, mode: 'simulated' }));
+  const base=await serve(t,pool);
   const client = browserClient(base);
   const customer = browserClient(base);
   const foreignCustomer = browserClient(base);
@@ -77,6 +86,9 @@ test('Express and PostgreSQL workflow', async t => {
     await client.request('/health/ready', { status: 503 });
     await migrate(pool);
     await migrate(pool);
+    // Exercise the compatibility paths for inquiries already in flight at migration time.
+    // The managed workflow suite uses the production OPEN default in a separate schema.
+    await pool.query('ALTER TABLE inquiries ALTER COLUMN dispatch_state DROP DEFAULT');
     await seed(pool, password);
     await seed(pool, password);
     await client.request('/health/ready');
@@ -99,7 +111,7 @@ test('Express and PostgreSQL workflow', async t => {
   await t.test('Marajut offers a local chat destination only when intake is enabled', async () => {
     const home = await client.request('/', { raw: true });
     assert.match(home, /Marajut/);
-    assert.match(home, /Coba chat WhatsApp \(simulasi\)/);
+    assert.match(home, /Buka simulasi WhatsApp/);
     const chatLogin = await client.request('/login?next=%2Fworkspace%2Fintake', { raw:true });
     assert.match(chatLogin, /name="next" value="\/workspace\/intake"/);
     const external = await client.request('/login?next=https%3A%2F%2Fexample.invalid', { raw:true });
@@ -646,4 +658,171 @@ test('Express and PostgreSQL workflow', async t => {
     await foreignCustomer.request('/api/v1/intake/threads/'+thread.id,{status:404});
     assert.equal((await customer.request('/api/v1/messages')).enabled,false);
   });
+});
+
+test('admin dispatch, reassignment, fitting and verified website payment', async t => {
+  const {pool}=await isolatedDatabase(t);
+  await migrate(pool);
+  const password=randomBytes(14).toString('hex');
+  await seed(pool,password);
+  const payments={mode:'sandbox',key:'synthetic-server-key',feeBps:750};
+  const charges=new Map();
+  let loseResponse=true;
+  const gateway=midtrans(payments,async(url,options)=>{
+    assert.equal(options.headers.Authorization,'Basic '+Buffer.from(payments.key+':').toString('base64'));
+    if (options.method==='POST') {
+      const body=JSON.parse(options.body);
+      assert.equal(body.bank_transfer.bank,'bni');
+      const {order_id,gross_amount}=body.transaction_details;
+      if (charges.has(order_id)) return Response.json({status_code:'406'});
+      const result={order_id,gross_amount: gross_amount+'.00',currency:'IDR',payment_type:'bank_transfer',
+        va_numbers:[{bank:'bni',va_number:'8800000000001'}],transaction_status:'pending',status_code:'201'};
+      charges.set(order_id,result);
+      if (loseResponse) { loseResponse=false; throw Error('Simulated lost response'); }
+      return Response.json(result);
+    }
+    assert.match(url,/api\.sandbox\.midtrans\.com\/v2\/[\da-f-]+\/status$/);
+    return Response.json(charges.get(url.split('/').at(-2)));
+  });
+  const base=await serve(t,pool,{payments,gateway});
+  const guest=browserClient(base);
+  await guest.request('/api/v1/session');
+  const [customer,other,admin,tailor]=await Promise.all(
+    [seedEmails.customer,seedEmails.otherCustomer,seedEmails.operator,seedEmails.provider].map(async email=>{
+      const client=browserClient(base);
+      await client.request('/api/v1/session');
+      await client.request('/api/v1/session',{body:{email,password}});
+      return client;
+    }));
+  const read=(client,id)=>client.request('/api/v1/inquiries/'+id);
+  const post=(client,path,body,status=200)=>client.request(path,{body,status});
+  const page=(client,path)=>client.request(path,{raw:true});
+  const service=(await guest.request('/api/v1/services')).find(row=>row.slug==='jahit-rina');
+  const profile={name:'Mitra tanpa akun',area:'Semarang',description:'Jahit dan fitting dengan janji temu.',
+    specialty:'Jahit jas',whatsapp:'081234567890'};
+  const prefix='/api/v1/management';
+  await post(guest,'/mitra/daftar',profile,202);
+  await post(guest,'/mitra/daftar',profile,202);
+  const manual=await post(admin,prefix+'/partners',{...profile,name:'Mitra tambahan',whatsapp:'081234567892'},201);
+  assert.match(await page(admin,'/pengelola/mitra/'+manual.id),/Mitra tambahan/);
+  const pending=(await admin.request(prefix)).shops.filter(b=>b.whatsapp==='6281234567890');
+  assert.equal(pending.length,1);
+  const shop=pending[0];
+  await post(admin,prefix+'/partners/'+shop.id,{...profile,revision:shop.moderation_revision});
+  assert.match(await page(admin,'/pengelola/mitra/baru'),/Simpan mitra/);
+  assert.match(await page(admin,'/pengelola/mitra/'+shop.id),/WhatsApp pribadi mitra/);
+  const offer={name:'Setelan khusus',description:'Permak dan fitting jas.',active:true,price:35000};
+  const replacementService=await post(admin,prefix+'/partners/'+shop.id+'/services',offer,201);
+  await post(customer,prefix+'/partners/'+shop.id+'/services',offer,403);
+  await post(admin,prefix+'/shops/'+shop.id,{action:'publish',password,revision:shop.moderation_revision+1,reason:'Profil sudah ditinjau.'});
+  const publicPage=await page(guest,'/penjahit/'+shop.slug);
+  assert.match(publicPage,/Jahit jas/);
+  assert.doesNotMatch(publicPage,/6281234567890/);
+  assert.equal((await pool.query('SELECT * FROM provider_memberships WHERE business_id=$1',[shop.id])).rowCount,0);
+  await post(customer,'/akun/profil',{name:'Ayu QA',address:'Alamat sintetis',phone:'081234567891'});
+  assert.match(await page(customer,'/akun/profil'),/Alamat sintetis/);
+  const original=await post(customer,'/api/v1/inquiries',{key:randomUUID(),serviceId:service.id,quantity:2,description:'Pesanan jas sintetis.'},201);
+  const cloth=await sharp({create:{width:10,height:10,channels:3,background:'#778899'}}).png().toBuffer();
+  await customer.request('/api/v1/inquiries/'+original.id+'/photos',{
+    body:cloth,headers:{'content-type':'image/png'},status:201
+  });
+  const detail=await read(customer,original.id);
+  assert.equal(detail.inquiry.dispatch_state,'OPEN');
+  assert.equal(Number(detail.inquiry.estimate),service.price_hint*2);
+  const action=(id,kind)=>prefix+'/inquiries/'+id+'/'+kind;
+  const quote={amount:81000,revision:1,eta:'2099-02-10',terms:'Antar setelah fitting.',validHours:48,handover:'delivery',
+    fittingAt:'2099-02-08T11:00',fittingPlace:'Studio uji'};
+  await post(admin,action(original.id,'quotes'),quote,409);
+  await post(tailor,'/api/v1/provider/inquiries/'+original.id+'/quotes',quote,409);
+  await post(admin,action(original.id,'dispatch'),{revision:1,state:'GROUP'});
+  await post(admin,action(original.id,'dispatch'),{revision:2,state:'CONTACTED'});
+  await post(admin,action(original.id,'dispatch'),{revision:3,state:'AVAILABLE'});
+  const first=await post(admin,action(original.id,'quotes'),{...quote,revision:4},201);
+  const decision=(q,value)=>post(customer,'/api/v1/quotes/'+q.id+'/decisions',{version:q.version,decision:value});
+  await decision(first,'REJECTED');
+  const switchPath='/api/v1/inquiries/'+original.id+'/reassign';
+  const choice={revision:6,serviceId:replacementService.id};
+  await post(other,switchPath,choice,404);
+  const replacement=await post(customer,switchPath,choice,201);
+  await post(customer,switchPath,choice,409);
+  const id=replacement.id;
+  const old=await read(customer,original.id);
+  assert.equal(old.inquiry.replacement_id,id);
+  assert.equal(old.quotes[0].status,'REJECTED');
+  const replacementDetail=await read(customer,id);
+  assert.equal(replacementDetail.inquiry.previous_inquiry_id,original.id);
+  assert.equal(replacementDetail.photos.length,1);
+  assert.notEqual(replacementDetail.photos[0].id,detail.photos[0].id);
+  await tailor.request('/api/v1/inquiries/'+id,{status:404});
+  const adminPage=await page(admin,'/requests/'+id);
+  assert.match(adminPage,/https:\/\/wa.me\/6281234567890\?text=/);
+  assert.match(adminPage,/Alamat sintetis/);
+  const groupDraft=decodeURIComponent(adminPage.match(/href="https:\/\/wa\.me\/\?text=([^"]+)"/)[1]);
+  assert.match(groupDraft,/Setelan khusus/);
+  assert.doesNotMatch(groupDraft,/Alamat sintetis|Pesanan jas sintetis|081234567891/);
+  assert.doesNotMatch(await page(customer,'/requests/'+id),/wa.me\/6281234567890/);
+  await post(admin,action(id,'dispatch'),{revision:1,state:'AVAILABLE'});
+  await post(admin,action(id,'quotes'),{...quote,revision:2,fittingPlace:''},422);
+  const finalQuote=await post(admin,action(id,'quotes'),{...quote,revision:2},201);
+  const {orderId}=await decision(finalQuote,'ACCEPTED');
+  const accepted=(await read(customer,id)).order;
+  assert.equal(accepted.handover,'delivery');
+  assert.equal(new Date(accepted.fitting_at).toISOString(),'2099-02-08T04:00:00.000Z');
+  assert.match(await page(customer,'/requests/'+id),/Studio uji/);
+  const checkout='/api/v1/orders/'+orderId+'/checkout';
+  const change=(action,revision,status=200)=>post(admin,prefix+'/orders/'+orderId+'/transitions',{action,revision},status);
+  await post(customer,checkout,{},409);
+  await change('start',1);
+  await change('ready',2);
+  await change('complete',3,409);
+  await post(other,checkout,{},404);
+  await post(customer,checkout,{amount:1},503);
+  await Promise.all([post(customer,checkout,{}),post(customer,checkout,{})]);
+  assert.equal(charges.size,1);
+  const attempt=(await read(customer,id)).order.payment;
+  assert.equal(attempt.amount,81000);
+  assert.equal(attempt.fee,6075);
+  assert.equal(attempt.va_number,'8800000000001');
+  const check='/api/v1/payments/'+attempt.id+'/check';
+  await post(other,check,{},404);
+  assert.ok((await admin.request(prefix+'?filter=payment')).queue.some(row=>row.id===id));
+  const pendingCheck=await post(admin,check,{action:'confirm'});
+  assert.equal(pendingCheck.state,'PENDING');
+  charges.get(attempt.id).transaction_status='expire';
+  charges.get(attempt.id).status_code='407';
+  assert.equal((await post(admin,check,{})).state,'FAILED');
+  await post(customer,checkout,{});
+  const invoice=(await read(customer,id)).order.payment;
+  assert.notEqual(invoice.id,attempt.id);
+  const settled=charges.get(invoice.id);
+  settled.status_code='200';
+  settled.transaction_status='settlement';
+  const callback=async body=>fetch(base+'/webhooks/midtrans',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+  assert.equal((await callback({...settled,signature_key:'0'.repeat(128)})).status,403);
+  const signature=createHash('sha512').update(invoice.id+'200'+'81000.00'+payments.key).digest('hex');
+  settled.gross_amount='1.00';
+  await post(admin,'/api/v1/payments/'+invoice.id+'/check',{},503);
+  settled.gross_amount='81000.00';
+  for (let n=0;n<2;n++) assert.equal((await callback({...settled,signature_key:signature})).status,200);
+  await change('complete',3);
+  await post(customer,'/api/v1/orders/'+orderId+'/complaint',{note:'Periksa jahitan lengan.'});
+  assert.ok((await admin.request(prefix+'?filter=complaints')).queue.some(row=>row.id===id));
+  await post(admin,'/api/v1/orders/'+orderId+'/complaint',{note:'Jadwal perbaikan disepakati.'});
+  const completed=await read(customer,id);
+  assert.equal(completed.events.filter(e=>e.kind==='PAYMENT_PAID').length,1);
+  assert.equal(completed.order.payment.state,'PAID');
+  assert.equal(completed.order.resolution,'Jadwal perbaikan disepakati.');
+  const performance=(await admin.request(prefix)).performance.find(s=>s.service_id===replacementService.id);
+  assert.equal(performance.completed,1);
+  assert.ok((await admin.request(prefix+'?filter=history')).queue.some(row=>row.id===id));
+  assert.equal(Number(performance.test_revenue),6075);
+  assert.equal(Number(performance.revenue),0);
+  assert.match(await page(guest,'/penjahit/'+shop.slug),/1 pesanan selesai/);
+  const another=await post(customer,'/api/v1/inquiries',{key:randomUUID(),serviceId:service.id,description:'Permintaan kedua sintetis.'},201);
+  await post(admin,action(another.id,'dispatch'),{revision:1,state:'UNAVAILABLE'});
+  await post(admin,action(another.id,'reassign'),{serviceId:replacementService.id,revision:2},201);
+  assert.match(await page(customer,'/requests/'+another.id),/mitra pengganti/);
+  const ownPerformance=(await tailor.request('/api/v1/provider/workspace')).performance;
+  assert.ok(ownPerformance.some(row=>row.service_id===service.id));
+  assert.ok(ownPerformance.every(row=>row.service_id!==replacementService.id));
 });

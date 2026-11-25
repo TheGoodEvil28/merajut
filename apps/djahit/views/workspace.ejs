@@ -2,11 +2,11 @@
 <% const groups = {action:[], ongoing:[], history:[]};
 for (const item of items) {
   const state = item.order_status ?? (item.status === 'QUOTED' && item.quote_expired ? 'EXPIRED' : item.status);
-  const group = ['QUOTED', 'NEEDS_DETAILS', 'READY'].includes(state) ? 'action'
+  const group = (state==='READY' ? !['PENDING','PAID'].includes(item.payment_state) : ['QUOTED','NEEDS_DETAILS'].includes(state)) ? 'action'
     : ['COMPLETED', 'CANCELLED', 'DECLINED'].includes(state) ? 'history' : 'ongoing';
   groups[group].push({item, state});
 }
-const actions = { QUOTED:'Tinjau penawaran', NEEDS_DETAILS:'Lengkapi detail', READY:'Lihat pengambilan' }; %>
+const actions = { QUOTED:'Tinjau penawaran', NEEDS_DETAILS:'Lengkapi detail', READY:'Pembayaran dan serah terima' }; %>
 <section class="section orders-home">
   <header class="page-heading profile-banner">
     <div><p class="location"><%= user.display_name %></p><h1>Pesanan Saya</h1><p>Tinjau penawaran penjahit dan ikuti pengerjaan pakaian Anda.</p></div>
@@ -20,13 +20,14 @@ const actions = { QUOTED:'Tinjau penawaran', NEEDS_DETAILS:'Lengkapi detail', RE
       <ul class="record-list"><% for (const {item, state} of groups[key]) { %>
         <li><a href="/requests/<%= item.id %>"><span class="order-record"><strong><%= item.service %></strong>
           <small><%= item.business %> · <%= dateTime(item.created_at) %></small></span>
-          <span class="order-action"><span class="status" data-state="<%= state %>"><%= statusLabel(state) %></span>
+          <span class="order-action"><span class="status" data-state="<%= state %>"><%= state==='READY' && item.handover==='delivery'?'Siap dikirim':statusLabel(state) %></span>
+          <% if (item.payment_state && state==='READY') { %><small><%= statusLabel(item.payment_state) %></small><% } else if (['NEW','UNDER_REVIEW'].includes(state) && item.dispatch_state) { %><small><%= statusLabel(item.dispatch_state) %></small><% } %>
           <span class="record-cta"><%= actions[state] ?? 'Lihat detail' %> <%- include('icon', {name:'arrow'}) %></span></span></a></li>
       <% } %></ul>
     </section>
   <% } %>
   <% if (mode === 'simulated' || intakeEnabled) { %>
-    <aside class="card demo-tools"><h2>Percakapan dan kabar pesanan</h2><p>Pesan WhatsApp di sini adalah simulasi. Pesan dan pemberitahuan hanya muncul di Marajut.</p><div class="actions">
+    <aside class="card demo-tools"><h2>Simulasi percakapan pelanggan</h2><p>Latih percakapan dan lihat contoh notifikasi pesanan di Marajut.</p><div class="actions">
       <% if (intakeEnabled) { %><a href="/workspace/intake">Simulasi WhatsApp</a><% } %>
       <% if (mode === 'simulated') { %><a href="/workspace/messages">Notifikasi simulasi</a><% } %>
     </div></aside>

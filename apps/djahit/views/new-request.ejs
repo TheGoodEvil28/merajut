@@ -2,7 +2,7 @@
 <section class="narrow section">
   <a class="back" href="<%= user ? '/workspace' : '/#services' %>"><%= user ? 'Pesanan Saya' : 'Cari Penjahit' %></a>
   <h1>Minta penawaran</h1>
-  <p>Jelaskan kebutuhan Anda. Penjahit akan meninjau detail dan mengirim harga serta perkiraan selesai sebelum Anda memutuskan.</p>
+  <p>Jelaskan kebutuhan Anda. Harga awal adalah estimasi per pakaian. Admin menghubungi mitra melalui WhatsApp, lalu mengirim harga final dan jadwal untuk Anda setujui.</p>
   <% if (!services.length) { %><p class="notice">Belum ada layanan yang menerima permintaan saat ini.</p><% } else { %>
     <% if (formError) { %><p class="notice error-message" role="alert"><%= formError %></p><% } %>
     <% if (!user) { %><p class="notice">Isi draf lalu verifikasi email untuk mengirimkannya. Sudah memiliki akun?
@@ -15,7 +15,7 @@
         <option value="">Pilih layanan</option>
         <% for (const service of services) { %>
           <option value="<%= service.id %>" data-hint="<%= service.intake_hint ?? '' %>"
-            <%= service.id === fields.serviceId ? 'selected' : '' %>><%= service.business %> · <%= service.name %></option>
+            <%= service.id === fields.serviceId ? 'selected' : '' %>><%= service.business %> · <%= service.name %> · <%= service.price_hint ? money(service.price_hint) + ' / pakaian' : 'Sesuai penawaran' %></option>
         <% } %>
       </select></label>
       <label>Apa yang perlu dikerjakan?

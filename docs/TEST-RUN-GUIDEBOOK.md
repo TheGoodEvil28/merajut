@@ -2,6 +2,31 @@
 
 Update this guide with every change. Record the affected roles, prerequisites, steps, expected results, verification method, and any unverified behavior.
 
+## Admin-managed tailoring orders · 25 November 2026 WIB
+
+Use this scenario for new orders. The older tailor-operated quotation and cash scenarios below cover requests already in progress when migration 006 was applied.
+
+**Roles and setup.** Use a guest, a customer, the platform manager and a legacy tailor in separate browser sessions. Use a disposable PostgreSQL database with migrations through `006_managed_orders.sql`, a worker, synthetic seed data and `PAYMENT_MODE=demo`. With the local Docker prerequisites below, `node scripts/sandbox.js 3156 3157` creates a separate app and mailbox on those ports. Use available ports if those are occupied. Use `customer@djahit.test`, `operator@djahit.test` and `tailor@djahit.test` with that stack's `DEMO_PASSWORD`. Use synthetic contact data and inspect WhatsApp drafts locally during rehearsal.
+
+| Step | Action | Expected result |
+| --- | --- | --- |
+| 1. Partner registration | As a guest, open `/mitra/daftar` and submit a synthetic business, service area, specialty and WhatsApp number. As admin, open **Mitra penjahit → Kelola profil dan layanan**. Alternatively, use **Tambah mitra** to enter a partner directly. | The admin can review a private draft without creating a tailor login. Repeating the same public registration leaves one draft. |
+| 2. Marketplace | Complete the partner profile, add an active service and estimate, then publish with the manager password. Open the public listing. | Customers see the service, specialty, starting price and completed-order count. The private coordination number stays on the admin side. Hiding the listing removes it from discovery. |
+| 3. Customer intake | Update **Profil saya**, choose a service with a Rp25,000 estimate, request two garments and add a reference photo. | The request shows an initial Rp50,000 estimate. The admin sees the request in **Papan pesanan → Koordinasi mitra**. Checkout opens later. |
+| 4. Dispatch | Open the request as admin. Inspect **Bagikan ke grup WhatsApp** and the private WhatsApp link. Record a group post, then **Mitra sudah dihubungi**. Record **Mitra bersedia** after agreement. On a second request, record **Mitra berhalangan**. | The group draft contains a work reference and service. The private draft includes the brief. The admin records what happened in WhatsApp. Each update appears in the timeline. An unavailable partner can be replaced. |
+| 5. Quote and change of tailor | Enter price lines, a completion date, optional fitting time and place in WIB, and pickup or delivery. Decline as the customer and select a service at another shop. Open both linked requests. | The original keeps its rejected quote. The replacement receives the brief and photos and starts a new availability check. The first tailor cannot open the replacement. |
+| 6. Accept and track | Record the replacement tailor's availability, publish a new quote and accept it as the customer. Start work as admin and then mark it ready. | The accepted price, ETA, fitting details and handover choice appear on the order. The customer can track progress in **Pesanan Saya**. A legacy tailor can view their assigned managed order and service performance. Admin handles its workflow updates. |
+| 7. Payment | Start a demo payment from the ready order. As admin use **Pembayaran** to open the order. Try a failed payment, retry as the customer, then verify it and complete handover. | Handover completion requires verified payment. With the default 5% commission, Rp80,000 yields Rp4,000 for the platform and Rp76,000 for the partner. Repeated verification counts the payment once. Demo commission appears under **Komisi uji**. |
+| 8. History and complaint | Open the completed request from customer history. Submit a complaint. As admin, open **Keluhan terbuka**, record the resolution and inspect **Kinerja layanan**. | Both roles see the outcome and the service's completed count increases. The public profile exposes only the aggregate completion count. |
+
+**Regression commands.** Run `npm run check` and `npm test` with `DJAHIT_ENV=test` and the disposable PostgreSQL connection variables set. For browser tests set `APP_ORIGIN`, `MAIL_ORIGIN` and `DEMO_PASSWORD` for the same disposable app, worker and mailbox. Use `BROWSER_CHANNEL=chrome` for installed Chrome. Run `npm run test:browser`, `npm run test:inbound-browser` and `npm run test:pilot-browser`.
+
+**Checks run.** The Express/PostgreSQL suite passed all 21 tests with separate legacy and managed schemas. The managed test registered and published an accountless partner, updated a customer profile, rejected and reassigned a quote, accepted a delivery with a fitting, and verified commission and complaint resolution. Gateway fixtures exercised a lost charge response, simultaneous retries, expiry and replacement, signature and amount validation, duplicate settlement and role restrictions. The three Chrome smoke scripts ran against a disposable web server, worker, database and mailbox. They covered mobile customer checkout, the existing tailor dashboard and read-only managed order, admin quote revision, guest verification, simulated payment, customer history, inbound chat conversion and the pilot accessibility assertions. JavaScript syntax and Compose configuration were checked.
+
+**External checks outstanding.** WhatsApp draft destinations and message contents were verified. Sending a message to a real group or partner and receiving their reply require a WhatsApp session. Midtrans was exercised with fixture responses. A merchant sandbox transfer and externally delivered notification still need merchant credentials and a reachable callback URL. Real fund collection, partner disbursement and physical fitting or delivery were outside the rehearsal.
+
+Before publishing to GitHub, the JavaScript syntax check, Compose configuration validation, and all 21 automated tests passed again against the disposable QA database. The three Chrome workflow results above are from implementation verification.
+
 ## Before testing
 
 - Open [Marajut](http://127.0.0.1:3100/) and check [readiness](http://127.0.0.1:3100/health/ready). The hosted legacy reference has a separate deployment. Existing fixture logins and the Compose project still use the Djahit technical names.
@@ -15,7 +40,7 @@ Update this guide with every change. Record the affected roles, prerequisites, s
 | `tailor@djahit.test` | Jahit Rina tailor |
 | `customer2@djahit.test` | Customer for simulated WhatsApp |
 | `tailor2@djahit.test` | Ruang Jahit Dewi tailor |
-| `operator@djahit.test` | Platform triage for unassigned handoffs |
+| `operator@djahit.test` | Platform manager for dispatch, payments, catalog and triage |
 
 ## Dev mode: native app with auto-restart (Postgres and MailCatcher in Docker)
 

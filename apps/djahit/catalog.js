@@ -6,7 +6,7 @@ export async function publicCatalog(pool, { search = '', category = '', preferre
     s.id, s.name, s.description, s.price_hint, s.category, s.lead_days, s.intake_hint
     FROM businesses b JOIN services s ON s.business_id = b.id
     WHERE b.published AND s.active AND ($1 = '' OR strpos(lower(
-      concat_ws(' ', s.name, s.description, b.name, b.area)), lower($1)) > 0)
+      concat_ws(' ', s.name, s.description, b.name, b.area, b.specialty)), lower($1)) > 0)
       AND ($2 = '' OR s.category = $2)
     ORDER BY (s.id = $3) DESC NULLS LAST, b.slug, s.name, s.id LIMIT 100`, [search, category, preferred])).rows;
 }
@@ -23,7 +23,8 @@ export async function activeBusiness(db, actor, lock = false) {
 }
 
 export async function publicProvider(pool, slug) {
-  const profile = found(await one(pool, `SELECT slug, name, area, description,
+  const profile = found(await one(pool, `SELECT slug, name, area, description, specialty,
+    (SELECT count(*)::int FROM orders o WHERE o.business_id=b.id AND o.status='COMPLETED') AS completed_orders,
     COALESCE((SELECT jsonb_agg(jsonb_build_object('id', s.id, 'name', s.name,
       'description', s.description, 'price_hint', s.price_hint, 'category', s.category,
       'lead_days', s.lead_days, 'intake_hint', s.intake_hint) ORDER BY s.name, s.id)
@@ -49,9 +50,11 @@ export async function workspaceServices(pool, actor) {
   return { business, services };
 }
 
-export async function saveService(pool, actor, serviceId, input) {
+export async function saveService(pool, actor, serviceId, input, managedBusinessId = null) {
   return transaction(pool, async db => {
-    const business = await activeBusiness(db, actor, true);
+    const business = actor.manager && managedBusinessId
+      ? found(await one(db,'SELECT id FROM businesses WHERE id=$1 FOR UPDATE',[managedBusinessId]))
+      : await activeBusiness(db, actor, true);
     const fields = [business.id, input.name, input.description, input.price, input.active];
     if (!serviceId) {
       return one(db, `INSERT INTO services (business_id, name, description, price_hint, active, category, lead_days, intake_hint)

@@ -42,15 +42,15 @@
   <h2 id="how-title">Cara memesan di Marajut</h2>
   <ol class="sewing-steps">
     <li><span class="step-arrow" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span><%- include('icon', {name:'search'}) %><h3>Temukan layanan</h3><p>Bandingkan harga awal, baca profil usaha, lalu pilih layanan yang sesuai.</p><a href="#services">Jelajahi layanan <span aria-hidden="true">↑</span></a></li>
-    <li><span class="step-arrow" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span><%- include('icon', {name:'chat'}) %><h3>Ceritakan kebutuhan</h3><p>Kirim detail dan foto lewat formulir. <% if (intakeEnabled) { %>Anda juga bisa mencoba percakapan WhatsApp di sini. Pesan simulasi hanya tampil di Marajut.<% } else { %>Penjahit dapat meminta keterangan tambahan lewat halaman permintaan.<% } %></p>
+    <li><span class="step-arrow" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span><%- include('icon', {name:'chat'}) %><h3>Ceritakan kebutuhan</h3><p>Kirim detail dan foto lewat formulir. Admin menghubungi mitra melalui WhatsApp untuk memastikan kesediaan, harga final, dan jadwal fitting.</p>
       <% if (intakeEnabled) { %><a href="/workspace/intake">Buka simulasi WhatsApp <span aria-hidden="true">→</span></a><% } %></li>
-    <li><%- include('icon', {name:'bag'}) %><h3>Sepakati dan pantau</h3><p>Periksa harga dan tanggal selesai. Setujui penawaran di akun Anda, lalu ikuti pesanan hingga siap diambil.</p>
+    <li><%- include('icon', {name:'bag'}) %><h3>Sepakati dan pantau</h3><p>Periksa harga dan tanggal selesai. Setujui penawaran atau minta mitra lain. Setelah jahitan siap, bayar melalui halaman pesanan untuk pengambilan atau pengiriman.</p>
       <% if (!user || user.role === 'customer') { %><a href="/workspace">Lihat pesanan saya <span aria-hidden="true">→</span></a><% } %></li>
   </ol>
 </section>
 <% if (!user || user.role === 'provider') { %>
-<section class="shop-entry"><div><h2>Punya usaha jahit?</h2><p>Tampilkan layanan Anda, jawab permintaan pelanggan, dan atur pekerjaan dari satu ruang usaha.</p></div>
-  <a class="button" href="<%= user ? '/workspace' : '/login?ruang=usaha' %>">Buka ruang usaha <%- include('icon', {name:'arrow'}) %></a>
+<section class="shop-entry"><div><h2>Punya usaha jahit?</h2><p>Bergabung sebagai mitra. Admin mengelola profil dan layanan Anda, lalu menghubungi Anda melalui WhatsApp saat ada pekerjaan.</p></div>
+  <% if (partnerContact) { %><a class="button" href="https://wa.me/<%= partnerContact %>?text=Saya%20ingin%20bergabung%20sebagai%20mitra%20Marajut">Hubungi admin</a><% } else { %><a class="button" href="/mitra/daftar">Daftar sebagai mitra</a><% } %>
 </section>
 <% } %>
 <%- include('footer') %>

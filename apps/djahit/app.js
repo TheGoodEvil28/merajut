@@ -21,6 +21,9 @@ import { accountRouter } from './account-routes.js';
 import { operationsRouter } from './operations-routes.js';
 import { catalogFilters, serviceCategories } from './service-categories.js';
 import { addPhoto, photoLimit, readPhoto, removePhoto } from './photos.js';
+import { paymentSettings, midtrans, paymentNotification, startPayment, checkPayment } from './payments.js';
+import { dispatchContacts, orderComplaint, reassign } from './dispatch.js';
+import { z } from 'zod';
 import * as input from './validation.js';
 
 function cookie(req, name) {
@@ -64,7 +67,7 @@ function requestDestination(value, intakeEnabled) {
   return candidate && input.id.safeParse(candidate[1]).success ? value : null;
 }
 
-export function createApp(pool, { origin = 'http://localhost:3100', mode = messagingMode() } = {}) {
+export function createApp(pool, { origin = 'http://localhost:3100', mode = messagingMode(), payments = paymentSettings(), gateway = midtrans(payments) } = {}) {
   const app = express();
   messagingMode(mode);
   const expectedOrigin = new URL(origin).origin;
@@ -83,6 +86,12 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
   const customer = requireUser('customer');
   const provider = requireUser('provider');
   const authenticated = requireUser();
+  const manager = (req,res,next) => {
+    if (!req.actor?.manager) throw new AppError(req.actor ? 403 : 401,'FORBIDDEN','Akses admin diperlukan.');
+    next();
+  };
+  const workReader = (req,res,next) => req.actor?.manager ? next() : participant(req,res,next);
+  const workWriter = (req,res,next) => req.path.startsWith('/api/v1/management/') ? manager(req,res,next) : provider(req,res,next);
   const participant = requireUser('customer', 'provider');
 
   app.disable('x-powered-by');
@@ -100,6 +109,8 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
   app.locals.eventLabel = eventLabel;
   app.locals.serviceCategories = serviceCategories;
   app.locals.mode = mode;
+  app.locals.paymentMode = payments.mode;
+  app.locals.partnerContact = input.phone.safeParse(process.env.ADMIN_WHATSAPP).data;
   app.locals.intakeEnabled = mode === 'simulated' && simulatedInbound();
   app.use('/assets/vendor/lenis', express.static(fileURLToPath(new URL('../../node_modules/lenis/dist/', import.meta.url)), {
     index: false, dotfiles: 'ignore', lerp: 0.06
@@ -130,6 +141,10 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
   }
 
   app.use(express.json({ limit: '16kb' }));
+  app.post('/webhooks/midtrans', async (req,res) => {
+    await paymentNotification(pool,req.body,payments,gateway);
+    res.json({received:true});
+  });
   app.use(express.urlencoded({ limit: '16kb', extended: false, parameterLimit: 35 }));
   app.use(async (req, res, next) => {
     res.set('Cache-Control', 'no-store');
@@ -165,6 +180,19 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
     res.render('public-provider', { title: detail.profile.name, ...detail });
   });
   app.get('/api/v1/services', async (req, res) => res.json(await publicCatalog(pool, catalogFilters(req.query))));
+  app.get('/mitra/daftar',(req,res)=>res.render('partner-interest',{title:'Bergabung sebagai mitra',sent:req.query.sent==='1'}));
+  app.post('/mitra/daftar',rateLimit({windowMs:60*60_000,limit:10}),async(req,res)=>{
+    const data=input.parse(z.object({name:z.string().trim().min(3).max(80),area:z.string().trim().min(3).max(100),
+      specialty:z.string().trim().min(2).max(160),whatsapp:input.phone}),req.body);
+    await transaction(pool,async db=>{
+      await db.query('SELECT pg_advisory_xact_lock(hashtextextended($1,63))',[data.whatsapp]);
+      if (!await one(db,'SELECT id FROM businesses WHERE whatsapp=$1',[data.whatsapp])) {
+        await db.query(`INSERT INTO businesses(name,slug,area,description,specialty,whatsapp)
+          VALUES($1,$2,$3,$4,$4,$5)`,[data.name,'mitra-'+randomUUID(),data.area,data.specialty,data.whatsapp]);
+      }
+    });
+    finish(req,res,{received:true},'/mitra/daftar?sent=1',202);
+  });
   app.get('/login', (req, res) => {
     const nextPath = requestDestination(req.query.next, app.locals.intakeEnabled);
     if (req.actor) return res.redirect((req.actor.role === 'customer' && nextPath) || '/workspace');
@@ -211,6 +239,17 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
   });
   app.get('/api/v1/provider/workspace', provider, async (req, res) =>
     res.json(await providerWorkspace(pool, req.actor, { ...req.query, includeHandoffs: app.locals.intakeEnabled })));
+  app.get('/akun/profil', customer, async (req,res) => {
+    const profile = await one(pool,'SELECT display_name,email,phone,address FROM users WHERE id=$1',[req.actor.id]);
+    res.render('customer-profile',{title:'Profil saya',profile,saved:req.query.saved==='1'});
+  });
+  app.post('/akun/profil', customer, async (req,res) => {
+    const data = input.parse(z.object({name:z.string().trim().min(2).max(80),
+      phone:z.union([input.phone,z.literal('')]),address:z.string().trim().max(400)}),req.body);
+    await pool.query('UPDATE users SET display_name=$2,phone=$3,address=$4 WHERE id=$1',
+      [req.actor.id,data.name,data.phone || null,data.address || null]);
+    finish(req,res,{saved:true},'/akun/profil?saved=1');
+  });
   app.get('/workspace/profile', provider, async (req, res) => {
     const business = await activeBusiness(pool, req.actor);
     res.render('provider-profile', { title: 'Profil Usaha', business, saved: req.query.saved === '1' });
@@ -252,7 +291,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
       const photo = await addPhoto(pool, req.actor, id, req.body);
       res.status(201).json(photo);
     });
-  app.get('/api/v1/inquiries/:id/photos/:photoId', participant, async (req, res) => {
+  app.get('/api/v1/inquiries/:id/photos/:photoId', workReader, async (req, res) => {
     const photo = await readPhoto(pool, req.actor, input.parse(input.id, req.params.id),
       input.parse(input.id, req.params.photoId));
     res.type('jpeg').send(photo.content);
@@ -262,18 +301,26 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
     const photo = await removePhoto(pool, req.actor, id, input.parse(input.id, req.params.photoId));
     finish(req, res, photo, '/requests/' + id + '#request-photos');
   });
-  app.get('/requests/:id', participant, async (req, res) => {
-    const detail = await inquiryDetail(pool, req.actor, input.parse(input.id, req.params.id));
+  async function requestPage(actor,id) {
+    const detail=await inquiryDetail(pool,actor,id);
+    const contacts=actor.manager ? await dispatchContacts(pool,id) : null;
+    const alternatives=(actor.manager || (actor.role==='customer' && (detail.quotes[0]?.status==='REJECTED' || detail.inquiry.dispatch_state==='UNAVAILABLE'))) && detail.inquiry.dispatch_state && !detail.order
+      ? (await pool.query(`SELECT s.id,s.name,b.name AS business FROM services s JOIN businesses b ON b.id=s.business_id
+          WHERE s.active AND b.published AND b.id<>$1 ORDER BY b.name,s.name,s.id`,[detail.inquiry.business_id])).rows : [];
+    return {...detail,contacts,alternatives};
+  }
+  app.get('/requests/:id', workReader, async (req, res) => {
+    const detail = await requestPage(req.actor, input.parse(input.id, req.params.id));
     res.render('request-detail', { title: detail.inquiry.service, ...detail, quoteDraft: null, quoteError: null });
   });
-  app.get('/api/v1/inquiries/:id', participant, async (req, res) =>
+  app.get('/api/v1/inquiries/:id', workReader, async (req, res) =>
     res.json(await inquiryDetail(pool, req.actor, input.parse(input.id, req.params.id))));
-  app.post('/api/v1/inquiries/:id/actions', participant, async (req, res) => {
+  app.post('/api/v1/inquiries/:id/actions', workReader, async (req, res) => {
     const updated = await actOnInquiry(pool, req.actor, input.parse(input.id, req.params.id),
       input.parse(input.inquiryAction, req.body));
     finish(req, res, updated, '/requests/' + updated.id);
   });
-  app.post('/api/v1/provider/inquiries/:id/quotes', provider, async (req, res) => {
+  app.post(['/api/v1/provider/inquiries/:id/quotes','/api/v1/management/inquiries/:id/quotes'], workWriter, async (req, res) => {
     const id = input.parse(input.id, req.params.id);
     let quoteDraft;
     try {
@@ -282,7 +329,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
       finish(req, res, quote, '/requests/' + quote.inquiryId, 201);
     } catch (error) {
       if (!wantsJson(req) && error.status === 422) {
-        const detail = await inquiryDetail(pool, req.actor, id);
+        const detail = await requestPage(req.actor, id);
         return res.status(422).render('request-detail', {
           title: detail.inquiry.service, ...detail, quoteDraft, quoteError: displayError(error)
         });
@@ -292,15 +339,35 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
   });
   app.post('/api/v1/quotes/:id/decisions', customer, async (req, res) => {
     const result = await decideQuote(pool, req.actor, input.parse(input.id, req.params.id),
-      input.parse(input.decision, req.body));
+      input.parse(input.decision, req.body), payments.feeBps);
     finish(req, res, result, '/requests/' + result.inquiryId);
   });
-  app.post('/api/v1/provider/orders/:id/transitions', provider, async (req, res) => {
+  app.post(['/api/v1/provider/orders/:id/transitions','/api/v1/management/orders/:id/transitions'], workWriter, async (req, res) => {
     const result = await transitionOrder(pool, req.actor, input.parse(input.id, req.params.id),
       input.parse(input.transition, req.body), mode);
     finish(req, res, result, '/requests/' + result.inquiryId);
   });
 
+  app.post('/api/v1/inquiries/:id/reassign',customer,async(req,res) => {
+    const result=await reassign(pool,req.actor,input.parse(input.id,req.params.id),
+      input.parse(z.object({serviceId:input.id,revision:z.coerce.number().int().positive()}),req.body));
+    finish(req,res,result,'/requests/'+result.id,201);
+  });
+  app.post('/api/v1/orders/:id/checkout',customer, async(req,res) => {
+    const result=await startPayment(pool,req.actor,input.parse(input.id,req.params.id),payments,gateway);
+    finish(req,res,result,'/requests/'+result.inquiryId+'#pembayaran');
+  });
+  app.post('/api/v1/payments/:id/check',workReader,async(req,res) => {
+    if (!req.actor.manager && req.actor.role!=='customer') throw new AppError(403,'FORBIDDEN','Akses ditolak.');
+    const result=await checkPayment(pool,req.actor,input.parse(input.id,req.params.id),payments,gateway,req.body.action);
+    finish(req,res,result,'/requests/'+result.inquiryId+'#pembayaran');
+  });
+  app.post('/api/v1/orders/:id/complaint',workReader,async(req,res) => {
+    if (!req.actor.manager && req.actor.role!=='customer') throw new AppError(403,'FORBIDDEN','Akses ditolak.');
+    const {note}=input.parse(z.object({note:z.string().trim().min(5).max(500)}),req.body);
+    const result=await orderComplaint(pool,req.actor,input.parse(input.id,req.params.id),note);
+    finish(req,res,result,'/requests/'+result.id+'#keluhan');
+  });
   app.get('/workspace/services', provider, async (req, res) => {
     res.render('services', { title: 'Layanan Saya', ...await workspaceServices(pool, req.actor) });
   });
@@ -342,7 +409,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
         problem = new AppError(500, 'INTERNAL_ERROR', 'Something went wrong. Try again later.');
       }
     }
-    if (wantsJson(req) || req.path.startsWith('/simulated/webhooks/') || req.path.endsWith('/photos')
+    if (wantsJson(req) || req.path==='/webhooks/midtrans' || req.path.startsWith('/simulated/webhooks/') || req.path.endsWith('/photos')
       || (req.method === 'GET' && req.path.startsWith('/api/'))) {
       return res.status(problem.status).json({ error: { code: problem.code, message: problem.message } });
     }
@@ -359,7 +426,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
 }
 
 function displayError(problem) {
-  if (['INVALID_PROOF','ACCOUNT_MISMATCH','NAME_REQUIRED','SIGNED_IN','REAUTH_REQUIRED','WORK_UNAVAILABLE'].includes(problem.code)) return problem.message;
+  if (['INVALID_PROOF','ACCOUNT_MISMATCH','NAME_REQUIRED','SIGNED_IN','REAUTH_REQUIRED','WORK_UNAVAILABLE','PAYMENT_UNAVAILABLE'].includes(problem.code)) return problem.message;
   if (problem.code === 'INVALID_QUOTE_TOTAL') return 'Jumlahkan rincian hingga total Rp1–Rp100.000.000.';
   if (problem.code === 'INVALID_ETA') return 'Pilih perkiraan selesai mulai hari ini.';
   const messages = {

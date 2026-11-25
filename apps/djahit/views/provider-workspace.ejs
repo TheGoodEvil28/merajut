@@ -64,5 +64,10 @@
       <% } %>
     </details>
   </div>
+  <% if (view==='overview' && performance.length) { %><details class="card"><summary>Kinerja layanan saya</summary>
+    <ul class="record-list"><% for (const row of performance) { %><li><strong><%= row.service %></strong>
+      <p><%= row.requests %> permintaan · <%= row.accepted %> diterima · <%= row.completed %> selesai</p>
+      <p>Bagian mitra dari pembayaran terverifikasi · <%= money(row.partner_net) %></p></li><% } %></ul>
+  </details><% } %>
 </section>
 <%- include('footer') %>

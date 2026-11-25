@@ -13,6 +13,13 @@ export async function issueQuote(pool, actor, id, input, mode) {
   }
   return transaction(pool, async db => {
     const inquiry = await lockInquiry(db, actor, id);
+    if (inquiry.dispatch_state && (inquiry.dispatch_state !== 'AVAILABLE' || !input.handover)) {
+      throw new AppError(409, 'WORK_UNAVAILABLE', 'Konfirmasi kesediaan mitra dan pilih cara serah terima.');
+    }
+    if (Boolean(input.fittingAt) !== Boolean(input.fittingPlace) ||
+        (input.fittingAt && (input.fittingAt.slice(0,10) > input.eta || !(new Date(input.fittingAt + '+07:00') > new Date())))) {
+      throw new AppError(422, 'WORK_UNAVAILABLE', 'Pilih waktu fitting mendatang paling lambat pada tanggal selesai dan isi tempatnya.');
+    }
     if (!['NEW', 'UNDER_REVIEW', 'QUOTED','EXPIRED'].includes(inquiry.status) || inquiry.revision !== input.revision) {
       conflict('Refresh the request before issuing a quote.');
     }
@@ -20,12 +27,12 @@ export async function issueQuote(pool, actor, id, input, mode) {
     if (input.eta < today) throw new AppError(422, 'INVALID_ETA', 'Choose an estimated completion date from today onward.');
     await db.query(`UPDATE quotes SET status = CASE WHEN expires_at <= clock_timestamp() THEN 'EXPIRED'
       ELSE 'SUPERSEDED' END WHERE inquiry_id = $1 AND status = 'SENT'`, [id]);
-    const quote = await one(db, `INSERT INTO quotes (business_id, inquiry_id, version, amount, eta, terms, expires_at, issued_by, line_items)
+    const quote = await one(db, `INSERT INTO quotes (business_id, inquiry_id, version, amount, eta, terms, expires_at, issued_by, line_items, handover, fitting_at, fitting_place)
       SELECT $1, $2, COALESCE(MAX(version), 0) + 1, $3, $4, $5,
-        clock_timestamp() + $6 * interval '1 hour', $7, $8
+        LEAST(clock_timestamp() + $6 * interval '1 hour', $10::timestamptz), $7, $8, $9, $10, $11
       FROM quotes WHERE inquiry_id = $2 RETURNING id, version, amount`,
     [inquiry.business_id, id, amount, input.eta, input.terms, input.validHours, actor.id,
-      input.items ? JSON.stringify(input.items) : null]);
+      input.items ? JSON.stringify(input.items) : null, input.handover ?? null, input.fittingAt ? input.fittingAt + '+07:00' : null, input.fittingPlace || null]);
     await db.query("UPDATE inquiries SET status = 'QUOTED', revision = revision + 1 WHERE id = $1", [id]);
     const issued = await event(db, id, actor, 'QUOTE_ISSUED', inquiry.status, 'QUOTED', `Quote v${quote.version}`);
     await enqueue(db, issued.id, inquiry.customer_id, 'QUOTE_READY', mode);
@@ -33,7 +40,7 @@ export async function issueQuote(pool, actor, id, input, mode) {
   });
 }
 
-export async function decideQuote(pool, actor, quoteId, input) {
+export async function decideQuote(pool, actor, quoteId, input, feeBps = 500) {
   return transaction(pool, async db => {
     const candidate = found(await one(db, `SELECT q.inquiry_id FROM quotes q JOIN inquiries i ON i.id = q.inquiry_id
       WHERE q.id = $1 AND i.customer_id = $2`, [quoteId, actor.id]));
@@ -56,8 +63,8 @@ export async function decideQuote(pool, actor, quoteId, input) {
     await db.query('UPDATE inquiries SET status = $2, revision = revision + 1 WHERE id = $1', [inquiry.id, status]);
     await event(db, inquiry.id, actor, `QUOTE_${input.decision}`, 'QUOTED', status, `Quote v${quote.version}`);
     if (!accepted) return { inquiryId: inquiry.id, orderId: null, replay: false };
-    const order = await one(db, `INSERT INTO orders (inquiry_id, business_id, quote_id, amount, currency, eta, terms)
-      SELECT inquiry_id, business_id, id, amount, currency, eta, terms FROM quotes WHERE id = $1 RETURNING id`, [quoteId]);
+    const order = await one(db, `INSERT INTO orders (inquiry_id, business_id, quote_id, amount, currency, eta, terms, fee_bps)
+      SELECT inquiry_id, business_id, id, amount, currency, eta, terms, $2 FROM quotes WHERE id = $1 RETURNING id`, [quoteId, inquiry.dispatch_state ? feeBps : null]);
     await event(db, inquiry.id, actor, 'ORDER_CONFIRMED', null, 'CONFIRMED', null, order.id);
     return { inquiryId: inquiry.id, orderId: order.id, replay: false };
   });

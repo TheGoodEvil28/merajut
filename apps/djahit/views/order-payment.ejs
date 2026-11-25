@@ -1,0 +1,29 @@
+<% const payment=order.payment; const canPay=user.role==='customer' && order.status==='READY';
+const modeLabel={demo:'Simulasi lokal',sandbox:'Sandbox Midtrans',live:'Transfer virtual account BNI',disabled:'Pembayaran belum diaktifkan'};
+const modeUsed=payment?.mode ?? paymentMode; %>
+<section class="card stack" id="pembayaran"><h2>Pembayaran website</h2>
+  <p><strong><%= money(order.amount) %></strong> · <%= modeLabel[modeUsed] %></p>
+  <% if (payment) { %><p class="notice" role="status"><%= statusLabel(payment.state) %><% if (modeUsed!=='live') { %> · transaksi uji<% } %></p><% } %>
+  <% if (payment?.state==='PENDING' && payment.va_number) { %><div><strong>Virtual account BNI</strong><p><%= payment.va_number %></p>
+    <p>Transfer tepat <%= money(order.amount) %> ke nomor ini, lalu periksa status pembayaran.</p></div><% } %>
+  <% if (['CONFIRMED','IN_PROGRESS'].includes(order.status)) { %><p>Pembayaran dibuka setelah admin mengonfirmasi jahitan siap diserahkan.</p><% } %>
+  <% if (canPay && modeUsed!=='disabled' && (!payment || payment.state==='FAILED' || (payment.state==='PENDING' && !payment.va_number && modeUsed!=='demo'))) { %>
+    <form method="post" action="/api/v1/orders/<%= order.id %>/checkout"><input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button><%= modeUsed==='demo'?'Mulai pembayaran simulasi':'Buat tagihan virtual account' %></button></form>
+  <% } %>
+  <% if (payment?.state==='PENDING' && (user.manager || (canPay && modeUsed!=='demo'))) { %>
+    <form method="post" class="actions" action="/api/v1/payments/<%= payment.id %>/check"><input type="hidden" name="_csrf" value="<%= csrf %>">
+      <% if (modeUsed==='demo') { %><button name="action" value="confirm">Verifikasi simulasi lunas</button><button class="secondary" name="action" value="reject">Tandai simulasi gagal</button>
+      <% } else { %><button>Periksa pembayaran di Midtrans</button><% } %>
+    </form><% } %>
+  <% if (user.manager || user.role==='provider') { const fee=payment?.fee ?? Math.round(order.amount*order.fee_bps/10000); %>
+    <dl class="terms"><div><dt>Komisi platform (<%= order.fee_bps/100 %>%)</dt><dd><%= money(fee) %></dd></div>
+      <div><dt>Bagian mitra</dt><dd><%= money(order.amount-fee) %></dd></div></dl><% } %>
+</section>
+<% if (['READY','COMPLETED'].includes(order.status)) { %><details class="card" id="keluhan" <%= order.complaint?'open':'' %>><summary>Keluhan pesanan</summary>
+  <% if (order.complaint) { %><p class="preserve"><%= order.complaint %></p><p><strong><%= order.resolution?'Tanggapan admin':'Menunggu tanggapan admin' %></strong></p><p class="preserve"><%= order.resolution %></p><% } %>
+  <% if ((user.role==='customer' && !order.complaint) || (user.manager && order.complaint && !order.resolution)) { %>
+    <form class="stack" method="post" action="/api/v1/orders/<%= order.id %>/complaint"><input type="hidden" name="_csrf" value="<%= csrf %>">
+      <label><%= user.manager?'Tanggapan admin':'Ceritakan kendala pesanan' %><textarea name="note" minlength="5" maxlength="500" required></textarea></label>
+      <button><%= user.manager?'Selesaikan keluhan':'Kirim keluhan' %></button></form><% } %>
+</details><% } %>

@@ -23,9 +23,10 @@ const links = user?.role === 'provider' ? [
 ] : [
   ['/#services', 'Cari Penjahit', 'search', here === '/' || here.startsWith('/penjahit/')],
   ...(user ? [
+    ['/akun/profil', 'Profil saya', 'shop', here === '/akun/profil'],
     ['/workspace', 'Pesanan Saya', 'bag', here === '/workspace' || here.startsWith('/requests/')],
     ...(intakeEnabled ? [['/workspace/intake', 'Chat simulasi', 'chat', here.startsWith('/workspace/intake')]] : [])
-  ] : [['/#cara-kerja', 'Cara kerja', 'quote', false], ['/login?ruang=usaha', 'Untuk penjahit', 'shop', false]])
+  ] : [['/#cara-kerja', 'Cara kerja', 'quote', false], ['/pengelola', 'Admin', 'shop', false]])
 ]; %>
 <body class="<%= studio ? 'studio-shell' : 'market-shell' %>">
   <a class="skip" href="#main">Lewati ke konten</a>

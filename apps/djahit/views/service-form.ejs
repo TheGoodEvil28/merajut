@@ -1,4 +1,4 @@
-<form class="stack" method="post" action="/api/v1/provider/services<%= service ? '/' + service.id : '' %>">
+<form class="stack" method="post" action="<%= typeof serviceBase === 'undefined' ? '/api/v1/provider/services' : serviceBase %><%= service ? '/' + service.id : '' %>">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
   <label>Nama layanan<input name="name" value="<%= service?.name ?? '' %>" minlength="3" maxlength="80" required></label>
   <label>Deskripsi<textarea name="description" minlength="5" maxlength="300" rows="3" required><%= service?.description ?? '' %></textarea></label>

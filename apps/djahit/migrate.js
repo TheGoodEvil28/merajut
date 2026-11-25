@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { createPool, one, transaction } from './db.js';
 
 const migrations = new URL('../../db/migrations/', import.meta.url);
-export const schemaVersion = '005_pilot_workflows.sql';
+export const schemaVersion = '006_managed_orders.sql';
 
 export async function migrate(pool) {
   const files = (await readdir(migrations)).filter(name => /^\d+_.+\.sql$/.test(name)).sort();

@@ -46,6 +46,7 @@ export async function readPhoto(pool, actor, inquiryId, photoId) {
   return found(await one(pool, `SELECT p.content FROM inquiry_photos p
     JOIN inquiries i ON i.id = p.inquiry_id
     WHERE i.id = $1 AND p.id = $2 AND (
+      ($3 = 'operator' AND EXISTS (SELECT 1 FROM platform_managers WHERE user_id=$4)) OR
       ($3 = 'customer' AND i.customer_id = $4) OR
       ($3 = 'provider' AND EXISTS (SELECT 1 FROM provider_memberships m
         WHERE m.active AND m.business_id = i.business_id AND m.user_id = $4))

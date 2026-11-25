@@ -72,7 +72,7 @@ export function moderateShop(pool,actor,id,input) {
     if (b.moderation_revision!==input.revision) unavailable();
     const member=await one(db,'SELECT user_id FROM provider_memberships WHERE business_id=$1 AND active FOR UPDATE',[id]);
     if (input.action==='publish') {
-      if (!member || b.published || !await one(db,'SELECT 1 FROM services WHERE business_id=$1 AND active',[id])) unavailable();
+      if ((!member && !b.whatsapp) || b.published || !await one(db,'SELECT 1 FROM services WHERE business_id=$1 AND active',[id])) unavailable();
     } else if (input.action==='hide' && !b.published) unavailable();
     else if (input.action==='revoke') {
       if (!member) unavailable();
@@ -89,7 +89,7 @@ export async function requestCancellation(pool,actor,id,input) {
   return transaction(pool,async db => {
     const b=await activeBusiness(db,actor,true);
     const order=found(await one(db,'SELECT * FROM orders WHERE id=$1 AND business_id=$2 FOR UPDATE',[id,b.id]));
-    if (!['IN_PROGRESS','READY'].includes(order.status) || input.revision!==order.revision) unavailable();
+    if (order.fee_bps != null || !['IN_PROGRESS','READY'].includes(order.status) || input.revision!==order.revision) unavailable();
     const review=await one(db,`INSERT INTO order_reviews(order_id,order_revision,requested_by,reason) VALUES($1,$2,$3,$4)
       ON CONFLICT DO NOTHING RETURNING id`,[id,order.revision,actor.id,input.reason]);
     if (!review) unavailable();
@@ -123,7 +123,7 @@ export function recordCash(pool,actor,id,input) {
   return transaction(pool,async db => {
     const b=await activeBusiness(db,actor,true);
     const order=found(await one(db,'SELECT * FROM orders WHERE id=$1 AND business_id=$2 FOR UPDATE',[id,b.id]));
-    if (!['READY','COMPLETED'].includes(order.status) || order.cash_revision!==input.revision) unavailable();
+    if (order.fee_bps != null || !['READY','COMPLETED'].includes(order.status) || order.cash_revision!==input.revision) unavailable();
     const current=await one(db,'SELECT id FROM cash_receipts WHERE order_id=$1 AND voided_at IS NULL',[id]);
     if (input.action==='record') {
       if (current) unavailable();

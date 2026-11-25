@@ -23,8 +23,8 @@ export async function persistInquiry(db, actor, input, customerId = actor.id) {
   const args = [customerId, input.key, fingerprint, input.serviceId, input.description, input.desiredDate ?? null,
     quantity, fitNotes];
   const created = await one(db, `INSERT INTO inquiries
-    (customer_id, request_key, request_digest, business_id, service_id, description, desired_date, quantity, fit_notes)
-    SELECT $1, $2, $3, s.business_id, s.id, $5, $6, $7, $8
+    (customer_id, request_key, request_digest, business_id, service_id, description, desired_date, quantity, fit_notes, estimate)
+    SELECT $1, $2, $3, s.business_id, s.id, $5, $6, $7, $8, NULLIF(s.price_hint,0)::bigint * COALESCE($7::integer,1)
     FROM services s JOIN businesses b ON b.id = s.business_id
     WHERE s.id = $4 AND s.active AND b.published
     ON CONFLICT (customer_id, request_key) DO NOTHING RETURNING id`, args);
@@ -39,10 +39,12 @@ export async function persistInquiry(db, actor, input, customerId = actor.id) {
 }
 
 export async function lockInquiry(db, actor, id) {
+  if (actor.manager) return found(await one(db, 'SELECT * FROM inquiries WHERE id=$1 FOR UPDATE', [id]));
   if (actor.role === 'provider') {
     const business = await activeBusiness(db, actor, true);
-    return found(await one(db, 'SELECT * FROM inquiries WHERE id = $1 AND business_id = $2 FOR UPDATE',
-      [id, business.id]));
+    const inquiry = found(await one(db, 'SELECT * FROM inquiries WHERE id = $1 AND business_id = $2 FOR UPDATE', [id, business.id]));
+    if (inquiry.dispatch_state) conflict('Permintaan ini ditangani oleh admin.');
+    return inquiry;
   }
   return found(await one(db, 'SELECT * FROM inquiries WHERE id = $1 AND customer_id = $2 FOR UPDATE', [id, actor.id]));
 }
@@ -51,24 +53,25 @@ export async function listInquiries(pool, actor) {
   const scope = actor.role === 'provider'
     ? 'EXISTS (SELECT 1 FROM provider_memberships m WHERE m.user_id = $1 AND m.business_id = i.business_id AND m.active)'
     : 'i.customer_id = $1';
-  return (await pool.query(`SELECT i.id, i.status, i.created_at, s.name AS service, b.name AS business,
-    o.status AS order_status, EXISTS (SELECT 1 FROM quotes q WHERE q.inquiry_id = i.id
+  return (await pool.query(`SELECT i.id, i.status, i.dispatch_state, i.created_at, s.name AS service, b.name AS business,
+    o.status AS order_status, accepted.handover, (SELECT state FROM order_payments WHERE order_id=o.id ORDER BY created_at DESC LIMIT 1) AS payment_state, EXISTS (SELECT 1 FROM quotes q WHERE q.inquiry_id = i.id
       AND q.status = 'SENT' AND q.expires_at <= now()) AS quote_expired
     FROM inquiries i JOIN services s ON s.id = i.service_id JOIN businesses b ON b.id = i.business_id
-    LEFT JOIN orders o ON o.inquiry_id = i.id WHERE ${scope}
+    LEFT JOIN orders o ON o.inquiry_id = i.id LEFT JOIN quotes accepted ON accepted.id=o.quote_id WHERE ${scope}
     ORDER BY i.created_at DESC, i.id LIMIT 100`, [actor.id])).rows;
 }
 
 export async function inquiryDetail(pool, actor, id) {
-  const scope = actor.role === 'provider'
+  const scope = actor.manager ? 'EXISTS (SELECT 1 FROM platform_managers WHERE user_id=$2)' : actor.role === 'provider'
     ? 'EXISTS (SELECT 1 FROM provider_memberships m WHERE m.user_id = $2 AND m.business_id = i.business_id AND m.active)'
     : 'i.customer_id = $2';
   const inquiry = found(await one(pool, `SELECT i.id, i.status, i.revision, i.description, i.quantity, i.fit_notes,
-    i.desired_date::text, i.created_at, s.name AS service, b.name AS business
+    i.desired_date::text, i.created_at, i.dispatch_state, i.business_id, i.estimate, i.previous_inquiry_id,
+    (SELECT id FROM inquiries replacement WHERE replacement.previous_inquiry_id=i.id) AS replacement_id, s.name AS service, b.name AS business
     FROM inquiries i JOIN services s ON s.id = i.service_id JOIN businesses b ON b.id = i.business_id
     WHERE i.id = $1 AND ${scope}`, [id, actor.id]));
   const [quotes, order, events, conversation, photos] = await Promise.all([
-    pool.query(`SELECT id, version, amount, currency, eta::text, terms, expires_at, line_items,
+    pool.query(`SELECT id, version, amount, currency, eta::text, terms, expires_at, line_items, fitting_at, fitting_place, handover,
       CASE WHEN status = 'SENT' AND expires_at <= clock_timestamp() THEN 'EXPIRED' ELSE status END AS status
       FROM quotes WHERE inquiry_id = $1 ORDER BY version DESC`, [id]),
     one(pool, `SELECT o.id, o.status, o.revision, o.amount, o.currency, o.eta::text, o.terms, o.cash_revision,
@@ -76,6 +79,9 @@ export async function inquiryDetail(pool, actor, id) {
       (SELECT jsonb_agg(jsonb_build_object('id',r.id,'amount',r.amount,'at',r.recorded_at,'actor',u.display_name,
         'voidAt',r.voided_at,'reason',r.void_reason) ORDER BY r.recorded_at DESC)
         FROM cash_receipts r JOIN users u ON u.id=r.recorded_by WHERE r.order_id=o.id) AS cash_receipts,
+      o.fee_bps, o.complaint, o.resolution, q.fitting_at, q.fitting_place, q.handover,
+      (SELECT jsonb_build_object('id',p.id,'amount',p.amount,'fee',p.fee,'mode',p.mode,'state',p.state,'va_number',p.va_number)
+        FROM order_payments p WHERE p.order_id=o.id ORDER BY p.created_at DESC LIMIT 1) AS payment,
       q.version AS quote_version, q.line_items
       FROM orders o JOIN quotes q ON q.id = o.quote_id WHERE o.inquiry_id = $1`, [id]),
     pool.query(`SELECT e.kind, e.old_status, e.new_status, e.detail, e.created_at, COALESCE(u.display_name,'Sistem Marajut') AS actor
@@ -108,7 +114,7 @@ export async function actOnInquiry(pool, actor, id, input) {
   return transaction(pool, async db => {
     const inquiry = await lockInquiry(db, actor, id);
     const action = inquiryActions[input.action];
-    if (action.role !== actor.role || !action.from.includes(inquiry.status) || inquiry.revision !== input.revision) {
+    if (action.role !== (actor.manager ? 'provider' : actor.role) || !action.from.includes(inquiry.status) || inquiry.revision !== input.revision) {
       conflict('This request changed or the requested action is unavailable.');
     }
     if (['DECLINED', 'CANCELLED'].includes(action.to) || input.action==='question') {

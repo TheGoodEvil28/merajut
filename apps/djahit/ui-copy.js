@@ -1,5 +1,6 @@
 const states = {
-  NEW: 'Permintaan baru', NEEDS_DETAILS: 'Butuh klarifikasi', UNDER_REVIEW: 'Dalam peninjauan',
+  OPEN:'Menunggu koordinasi admin', CONTACTED:'Menunggu jawaban mitra', AVAILABLE:'Mitra bersedia', UNAVAILABLE:'Mitra berhalangan',
+  PENDING:'Menunggu pembayaran', PAID:'Lunas', NEW: 'Permintaan baru', NEEDS_DETAILS: 'Butuh klarifikasi', UNDER_REVIEW: 'Dalam peninjauan',
   QUOTED: 'Menunggu persetujuan', ACCEPTED: 'Disetujui', DECLINED: 'Ditolak', CANCELLED: 'Dibatalkan',
   REJECTED: 'Ditolak', SUPERSEDED: 'Digantikan', EXPIRED: 'Kedaluwarsa', WITHDRAWN: 'Ditarik',
   SENT: 'Menunggu persetujuan', CONFIRMED: 'Diterima', IN_PROGRESS: 'Sedang dikerjakan',
@@ -12,6 +13,10 @@ const states = {
 const events = {
   INQUIRY_CREATED: 'Permintaan dikirim', INQUIRY_UPDATED: 'Permintaan diperbarui', QUOTE_ISSUED: 'Penawaran dikirim',
   QUOTE_ACCEPTED: 'Penawaran disetujui', QUOTE_REJECTED: 'Penawaran ditolak', ORDER_CONFIRMED: 'Pesanan diterima',
+  DISPATCH_CONTACTED:'Admin menghubungi mitra', DISPATCH_AVAILABLE:'Mitra bersedia mengerjakan', DISPATCH_UNAVAILABLE:'Mitra berhalangan',
+  GROUP_POSTED:'Admin membagikan pekerjaan ke grup', REASSIGNED:'Dialihkan ke mitra lain', PARTNER_SAVED:'Profil mitra disimpan',
+  PAYMENT_STARTED:'Pembayaran dimulai', PAYMENT_PAID:'Pembayaran terverifikasi', PAYMENT_FAILED:'Pembayaran gagal',
+  COMPLAINT_OPEN:'Keluhan diajukan', COMPLAINT_RESOLVED:'Keluhan ditanggapi',
   ORDER_UPDATED: 'Status pesanan diperbarui',
   QUOTE_EXPIRED:'Penawaran kedaluwarsa', CANCEL_REVIEW:'Pembatalan diajukan',
   CANCEL_APPROVED:'Pembatalan disetujui', CANCEL_DECLINED:'Pembatalan ditolak',

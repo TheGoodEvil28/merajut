@@ -62,9 +62,7 @@ try {
   await newConversation.click();
   const conversationUrl = customer.url();
 
-  await tailor.goto('/');
-  await tailor.getByRole('link', {name:'Untuk penjahit'}).click();
-  await tailor.getByRole('heading', {name:'Masuk ke ruang usaha'}).waitFor();
+  await tailor.goto('/login?ruang=usaha');
   await signIn(tailor, seedEmails.otherProvider, '**/workspace');
   await tailor.locator('[data-queue="handoffs"]').click();
   await tailor.locator('a[href="' + new URL(conversationUrl).pathname + '"]').click();
@@ -77,11 +75,17 @@ try {
   await tailor.getByRole('button', { name: 'Buat permintaan layanan' }).click();
   await tailor.getByRole('heading', { name: 'Detail permintaan' }).waitFor();
   await tailor.getByRole('heading', { name: 'Percakapan terkait' }).waitFor();
-  await tailor.getByLabel(/Harga satuan/).first().fill('24000');
-  await tailor.getByLabel('Perkiraan selesai').fill(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
-  await tailor.getByLabel('Rincian pengerjaan dan pengambilan').fill('Repair jacket seam, collect in person.');
-  await tailor.getByRole('button', { name: 'Kirim penawaran' }).click();
-  await tailor.getByRole('heading', { name: 'Penawaran v1' }).waitFor();
+  const admin = await browser.newPage({baseURL:origin.origin});
+  await admin.goto('/login');
+  await signIn(admin,seedEmails.operator,'**/pengelola');
+  await admin.goto(tailor.url());
+  await admin.getByLabel('Catat hasil WhatsApp').selectOption('AVAILABLE');
+  await admin.getByRole('button',{name:'Simpan pembaruan'}).click();
+  await admin.getByLabel(/Harga satuan/).first().fill('24000');
+  await admin.getByLabel('Perkiraan selesai').fill(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
+  await admin.getByLabel('Rincian pengerjaan dan pengambilan').fill('Repair jacket seam, collect in person.');
+  await admin.getByRole('button', { name: 'Kirim penawaran' }).click();
+  await admin.getByRole('heading', { name: 'Penawaran v1' }).waitFor();
 
   await customer.reload();
   await customer.getByRole('link', { name: 'Buka permintaan layanan' }).click();

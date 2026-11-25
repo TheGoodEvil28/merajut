@@ -61,6 +61,10 @@ services:
     restart: unless-stopped
     environment:
       <<: *app-env
+      PAYMENT_MODE: ${PAYMENT_MODE:-demo}
+      PLATFORM_FEE_BPS: ${PLATFORM_FEE_BPS:-500}
+      MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY:-}
+      ADMIN_WHATSAPP: ${ADMIN_WHATSAPP:-}
       SIMULATION_WEBHOOK_SECRET: ${SIMULATION_WEBHOOK_SECRET:-}
     ports:
       - "127.0.0.1:${APP_PORT:-3100}:3100"

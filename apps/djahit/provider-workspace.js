@@ -1,3 +1,4 @@
+import { servicePerformance } from './dispatch.js';
 import { activeBusiness } from './catalog.js';
 import { one, transaction } from './db.js';
 
@@ -62,6 +63,7 @@ export async function providerWorkspace(pool, actor, query = {}) {
         CASE WHEN queue = 'inbox' THEN activity_at END ASC, activity_at DESC, id)
         FROM selected), '[]'::jsonb) AS items`,
     [business.id, view, limit, view === 'overview' ? 0 : (page - 1) * limit, query.includeHandoffs === true]);
-    return { business, view, page, limit, queues: workQueues, ...result };
+    const performance = view==='overview' ? await servicePerformance(db,business.id) : [];
+    return { business, view, page, limit, queues: workQueues, performance, ...result };
   });
 }

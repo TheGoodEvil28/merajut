@@ -1,0 +1,2 @@
+<% if (proposal.handover) { %><dl class="terms"><div><dt>Serah terima</dt><dd><%= proposal.handover==='delivery'?'Kirim ke pelanggan':'Ambil di tempat penjahit' %></dd></div>
+<% if (proposal.fitting_at) { %><div><dt>Janji fitting</dt><dd><%= dateTime(proposal.fitting_at) %> · <%= proposal.fitting_place %></dd></div><% } %></dl><% } %>

@@ -7,6 +7,8 @@ const integer = (min, max) => z.union([z.number(), z.string().regex(/^\d+$/)])
   .transform(Number).pipe(z.number().int().min(min).max(max));
 const bool = z.union([z.boolean(), z.enum(['true', 'false'])]).transform(value => value === true || value === 'true');
 const date = z.iso.date().refine(value => value >= '2000-01-01', 'Choose a valid date.');
+export const phone = z.string().trim().regex(/^(?:\+?[1-9]\d{7,14}|0\d{8,12})$/)
+  .transform(value => value.replace(/^\+/, '').replace(/^0/, '62'));
 export const id = z.uuid();
 const revision = integer(1, 2147483647);
 const detail = text(0, 500).default('').transform(value => value || null);
@@ -38,6 +40,9 @@ export const inquiryAction = z.object({
 const lineItem = z.object({ name: text(2, 100), quantity: integer(1, 100), unitPrice: integer(0, 100000000) });
 export const quote = z.object({
   amount: integer(1, 100000000).optional(), items: z.array(lineItem).min(1).max(8).optional(),
+  handover: z.enum(['pickup','delivery']).optional(),
+  fittingAt: z.union([z.iso.datetime({local:true}), z.literal('')]).optional(),
+  fittingPlace: optionalText(200),
   eta: date, terms: text(5, 1000), validHours: integer(1, 168), revision
 }).refine(value => value.items || value.amount !== undefined, { message: 'Add at least one price item.' });
 
