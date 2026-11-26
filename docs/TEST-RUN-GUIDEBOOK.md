@@ -2,6 +2,22 @@
 
 Update this guide with every change. Record the affected roles, prerequisites, steps, expected results, verification method, and any unverified behavior.
 
+## RFC-0004 pilot reporting and OpenWA dispatch plan · 26 November 2026 WIB
+
+**Roles and setup.** Use separate admin, customer, and existing tailor sessions, plus a synthetic partner who replies through a fixture chat. Maintainers need Node 22, Docker Compose, Playwright Chromium, and a disposable database. After implementation, start a fresh sandbox with `DISPATCH_WHATSAPP_MODE=mock` and seed one opted-in group and partner, a partner without opt-in, and managed requests for both. Use the sandbox and browser commands from the pilot readiness check. [Sandbox setup](../README.md#rehearse-in-a-fresh-demo) · [Roadmap](roadmap/MARAJUT-IMPLEMENTATION-ROADMAP.md#next-update--26-november-2026-wib) · [RFC-0004](rfc/RFC-0004-MARAJUT-PILOT-REPORTING.md)
+
+| Check | Steps | Expected result |
+| --- | --- | --- |
+| Reporting | Create requests, first quotes and revised quotes, and verified payments on either side of midnight WIB. Open **Kinerja layanan**, select each period, and reload. | The range and first-quote median match the fixtures. Request and payment dates use their respective boundaries. Live and test commission remain distinct. |
+| Admin dispatch | Open **Koordinasi penjahit** as admin, inspect each preview, and confirm the group and direct actions. Submit one confirmation twice, then try a stale preview and the partner without opt-in. Revoke opt-in before the worker claims a seeded job. | One mock message per approved channel reaches the fixture gateway. Previews contain the allowed fields and the status shows **Simulasi WhatsApp**. Stale or unapproved work yields zero sends. |
+| Recovery and signed inbox | Return a safe pre-send failure and then an ambiguous timeout from the fixture gateway. Restart the worker with a leased job. Post a callback with a bad signature, duplicate and reordered valid receipts, and a reply with and without the order reference. | Only the safe failure retries with the same key. The admin can resolve the timeout in **Perlu diperiksa**. Each valid effect is applied once, receipt progress stays intact, and a reply without clear context goes to admin review. |
+| Customer and tailor regression | Run the three browser walks from [pilot readiness](#rfc-0002-pilot-readiness--26-november-2026-wib) with separate sessions. Repeat the customer quote accept/decline, fitting, demo checkout and history. Repeat existing tailor sign-in and business-scoped views, and try to open the admin dispatch route from both sessions. Switch off the mock and exercise the admin's manual flow. | Customer order status and checkout follow the existing workflow. The tailor sees their own shop data. The admin can use manual WhatsApp links and record availability, and both other roles are denied access to dispatch messages. |
+| Authorized gateway | After the pilot approvals, repeat one group and one direct send on the pinned OpenWA deployment and ask the approved partner to reply with the request reference. Restart the gateway and compare both chats with the admin timeline. | The group and direct destinations match, the session resumes, verified direct delivery and the reply appear on the correct request, and consent and outcomes are recorded. |
+
+**Checks run for the draft.** Reviewed the existing management routes, dispatch and reassignment rules, outbox schema and worker, quote and payment records, and private preview setup. Cross-checked OpenWA 0.32.1 send, key scope, signature, webhook and deployment contracts against upstream documentation. Checked changed Markdown links, anchors, and whitespace.
+
+**Pending verification.** All RFC-0004 runtime and browser checks in the table are implementation acceptance tests. Gateway restart, actual delivery, and replies require the authorized pilot setup.
+
 ## RFC-0002 pilot readiness · 26 November 2026 WIB
 
 Use separate customer, admin, and existing tailor sessions. The maintainer needs Node 22, Docker Compose, Playwright Chromium, two unused loopback ports, and synthetic `POSTGRES_PASSWORD` and `DEMO_PASSWORD` values. Start from an isolated checkout containing the RFC implementation. [RFC-0002](rfc/RFC-0002-MARAJUT-PILOT-READINESS.md) · [Sandbox setup](../README.md#rehearse-in-a-fresh-demo)

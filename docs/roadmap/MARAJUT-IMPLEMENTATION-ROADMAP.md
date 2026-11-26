@@ -2,6 +2,10 @@
 
 ## Next update · 26 November 2026 WIB
 
+RFC-0004 proposes date filters, first-quote response times, and period-based payments on **Kinerja layanan**. It also specifies how admins approve group and partner messages, track OpenWA dispatches, and review replies. Build and verify reporting and mock dispatch on synthetic data. Verify the private gateway after the pilot approvals. [RFC-0004 Marajut pilot reporting and OpenWA dispatch](../rfc/RFC-0004-MARAJUT-PILOT-REPORTING.md)
+
+## Pilot readiness update · 26 November 2026 WIB
+
 RFC-0002 is implemented and verified locally. The update covers repeatable demo sign-in, an admin follow-up queue, checkout recovery, and an isolated rehearsal with an encrypted restore. A private HTTPS preview is the next release check once a host is selected. [RFC-0002 Marajut pilot readiness](../rfc/RFC-0002-MARAJUT-PILOT-READINESS.md)
 
 ## Product transition · 19 November 2026 WIB
