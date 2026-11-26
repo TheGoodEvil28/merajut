@@ -1,0 +1,24 @@
+{
+	# The loopback mailbox uses an IP address and its clients may omit SNI.
+	default_sni {$PREVIEW_MAIL_HOST}
+	skip_install_trust
+}
+
+{$PREVIEW_ORIGIN} {
+	basic_auth bcrypt "Marajut preview" {
+		import /run/secrets/preview_testers
+		import /run/secrets/preview_qa
+	}
+	reverse_proxy web:3100 {
+		header_up -Authorization
+	}
+}
+
+{$PREVIEW_MAIL_ORIGIN} {
+	basic_auth bcrypt "Marajut test mailbox" {
+		import /run/secrets/preview_qa
+	}
+	reverse_proxy mail:1080 {
+		header_up -Authorization
+	}
+}

@@ -5,11 +5,14 @@ import { mkdir } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import sharp from 'sharp';
 import { chromium } from 'playwright';
+import { previewBrowserOptions, previewMailboxHeaders } from './preview-auth.js';
 
 const app = new URL(process.env.APP_ORIGIN ?? 'http://127.0.0.1:3100');
 const mail = new URL(process.env.MAIL_ORIGIN ?? 'http://127.0.0.1:3101');
 const password = process.env.DEMO_PASSWORD;
 if (!password || ![app,mail].every(url => ['localhost','127.0.0.1'].includes(url.hostname))) throw new Error('Use a local synthetic app and mailbox.');
+const pageOptions = { baseURL: app.origin, ...previewBrowserOptions(app) };
+const mailHeaders = previewMailboxHeaders(mail);
 const axePath=createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 const browser=await chromium.launch(process.env.BROWSER_CHANNEL ? {channel:process.env.BROWSER_CHANNEL} : {});
 const screenshots=process.env.BROWSER_SCREENSHOTS;
@@ -17,10 +20,10 @@ const metric=[];
 const tag=randomBytes(4).toString('hex');
 const guestEmail='guest-'+tag+'@marajut.test';
 const providerEmail='tailor-'+tag+'@marajut.test';
-const guest=await browser.newPage({baseURL:app.origin,viewport:{width:360,height:844}});
-const staff=await browser.newPage({baseURL:app.origin,viewport:{width:1366,height:900}});
-const provider=await browser.newPage({baseURL:app.origin,viewport:{width:1024,height:900}});
-const reset=await browser.newPage({baseURL:app.origin,viewport:{width:360,height:844}});
+const guest=await browser.newPage({...pageOptions,viewport:{width:360,height:844}});
+const staff=await browser.newPage({...pageOptions,viewport:{width:1366,height:900}});
+const provider=await browser.newPage({...pageOptions,viewport:{width:1024,height:900}});
+const reset=await browser.newPage({...pageOptions,viewport:{width:360,height:844}});
 const axeReports=[];
 const capture=async(page,name) => {
   if (screenshots) {
@@ -42,22 +45,35 @@ async function signIn(page,email,value=password) {
   await page.getByRole('main').getByRole('button',{name:'Masuk'}).click();
   await page.waitForURL(/\/(?:workspace|pengelola)$/);
 }
+async function mailbox(path) {
+  const response = await fetch(new URL(path, mail), { headers: mailHeaders, redirect: 'error' });
+  assert.ok(response.ok, 'Test mailbox returned HTTP ' + response.status);
+  return response;
+}
 async function openProof(page,email,subject) {
   const deadline=Date.now()+20000;
-  let code;
-  while (Date.now()<deadline && !code) {
-    const messages=await (await fetch(mail.origin+'/messages')).json();
+  let proofLink;
+  while (Date.now()<deadline && !proofLink) {
+    const messages=await (await mailbox('/messages')).json();
     const match=messages.findLast(message => (!subject || message.subject===subject)
       && message.recipients.some(value=>value.replace(/[<>]/g,'')===email));
     if (match) {
-      const body=await (await fetch(mail.origin+'/messages/'+match.id+'.plain')).text();
-      code=/\/akun\/tautan#([a-f0-9]{64})/.exec(body)?.[1];
+      const body=await (await mailbox('/messages/'+match.id+'.plain')).text();
+      proofLink=/https?:\/\/[^\s]+\/akun\/tautan#[a-f0-9]{64}/.exec(body)?.[0];
     }
-    if (!code) await delay(300);
+    if (!proofLink) await delay(300);
   }
-  assert.ok(code,'Expected a verification message in the fixture SMTP inbox.');
-  await page.goto('/akun/tautan');
-  await page.getByLabel('Kode dari email').fill(code);
+  assert.ok(proofLink,'Expected a verification message in the fixture SMTP inbox.');
+  const link = new URL(proofLink);
+  const code = link.hash.slice(1);
+  if (app.protocol === 'https:') {
+    assert.equal(link.origin, app.origin, 'Account email must use the canonical preview origin.');
+    await page.goto(link.href);
+    assert.equal(await page.getByLabel('Kode dari email').inputValue(), code);
+  } else {
+    await page.goto('/akun/tautan');
+    await page.getByLabel('Kode dari email').fill(code);
+  }
   await page.getByRole('button',{name:'Periksa tautan'}).click();
   await page.getByRole('heading',{name:'Konfirmasi akun'}).waitFor();
 }
@@ -168,7 +184,7 @@ try {
   await guest.waitForURL('**/login');
   await signIn(reset,guestEmail,password+'-baru');
 
-  const signup=await browser.newPage({baseURL:app.origin,viewport:{width:360,height:844}});
+  const signup=await browser.newPage({...pageOptions,viewport:{width:360,height:844}});
   const signupEmail='signup-'+tag+'@marajut.test';
   await signup.goto('/akun/daftar');
   await signup.getByLabel('Email').fill(signupEmail);

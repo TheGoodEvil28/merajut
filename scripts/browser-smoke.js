@@ -4,16 +4,18 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 import { seedEmails } from '../apps/marajut/seed.js';
+import { previewBrowserOptions } from './preview-auth.js';
 
 const base = new URL(process.env.APP_ORIGIN ?? 'http://localhost:' + (process.env.APP_PORT ?? '3100'));
 const password = process.env.DEMO_PASSWORD;
 if (!['localhost', '127.0.0.1', '[::1]'].includes(base.hostname) || !password) {
   throw new Error('Use a local app and a configured synthetic DEMO_PASSWORD.');
 }
+const pageOptions = { baseURL: base.origin, ...previewBrowserOptions(base) };
 const browser = await chromium.launch(process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
-const customer = await browser.newPage({ viewport: { width: 360, height: 844 }, baseURL: base.origin });
-const tailor = await browser.newPage({ viewport: { width: 1366, height: 900 }, baseURL: base.origin });
-const admin = await browser.newPage({viewport:{width:1366,height:900},baseURL:base.origin});
+const customer = await browser.newPage({ ...pageOptions, viewport: { width: 360, height: 844 } });
+const tailor = await browser.newPage({ ...pageOptions, viewport: { width: 1366, height: 900 } });
+const admin = await browser.newPage({ ...pageOptions, viewport: { width: 1366, height: 900 } });
 const pageErrors = [];
 for (const page of [customer, tailor, admin]) page.on('pageerror', error => pageErrors.push(error.message));
 
@@ -28,6 +30,11 @@ async function signIn(page, email, destination = '**/workspace') {
   ]);
   assert.equal(response.status(), 303, 'Browser sign-in form response: ' + await page.locator('main').innerText());
   await page.waitForURL(destination);
+  if (base.protocol === 'https:') {
+    const cookies = await page.context().cookies(base.origin);
+    const session = cookies.find(cookie => cookie.name === 'marajut_session');
+    assert.ok(session?.secure && session.httpOnly, 'HTTPS sign-in must set a secure session cookie.');
+  }
 }
 
 try {

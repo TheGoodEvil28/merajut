@@ -52,6 +52,37 @@ Use catalog search and categories to find a service. Admins can set category, es
 3. Use the demo accounts above and the same `DEMO_PASSWORD`. The customer opens **Pesanan Saya**, the admin opens **Pengelolaan platform**, and the existing tailor opens **Ruang usaha**. Use separate browser profiles to keep the sessions independent.
 4. To refresh the demo passwords, rerun `docker compose -p <project> run --rm seed npm run db:seed -- --workday`. Use the app URL and password for that project. The seed preserves the existing workday orders.
 
+### Run a private HTTPS preview
+
+Use Docker with Compose v2 and a dedicated synthetic database. On first setup, copy `.env.preview.example` to `.env.preview` and set fresh `POSTGRES_PASSWORD` and `DEMO_PASSWORD` values. Use a `PREVIEW_IMAGE` tag for the revision under test. The example binds to loopback. The web and worker use the same HTTPS origin. [Preview Compose override](compose.preview.yaml)
+
+For a Linux VM, point two DNS names to the VM's public address and allow inbound TCP 80 and 443 in the VM and cloud firewalls. Give Caddy those ports and set the following values in `.env.preview`, substituting your DNS names. The bind address shown is for IPv4. Caddy obtains HTTPS certificates for the two public hostnames. [Caddy automatic HTTPS](https://caddyserver.com/docs/automatic-https)
+
+```dotenv
+PREVIEW_APP_HOST=preview.example.com
+PREVIEW_MAIL_HOST=preview-mail.example.com
+PREVIEW_BIND_ADDRESS=0.0.0.0
+PREVIEW_HTTP_PORT=80
+PREVIEW_HTTPS_PORT=443
+```
+
+Create the two credential files named in `.env.preview`. For each invited person, run `docker run --rm -it caddy:2.11.9-alpine caddy hash-password` and add one `username hash` line. Use distinct usernames across the files. The tester file grants access to the app, and the QA file grants access to both the app and the test mailbox. Keep both files and `.env.preview` in private configuration. [Caddy Basic Authentication](https://caddyserver.com/docs/caddyfile/directives/basic_auth)
+
+On Bash, run the following from the repository root. On PowerShell, use `function preview { docker-compose --env-file .env.preview -f compose.yaml -f compose.preview.yaml @args }` and run the same five `preview` commands.
+
+```sh
+preview() { docker compose --env-file .env.preview -f compose.yaml -f compose.preview.yaml "$@"; }
+preview config --quiet
+preview build web
+preview up -d --wait --no-build
+preview run --rm seed npm run db:seed -- --workday
+preview ps
+```
+
+From another network, open the app URL in a fresh browser session. Confirm HTTP redirects to HTTPS, the certificate is trusted, and the tester login reaches Marajut. The mailbox has its own QA gate. Share the app URL and individual gate logins privately. Reserve the seeded `DEMO_PASSWORD` for QA that needs access to every demo role, including admin. For customer-only tests, use a synthetic signup and have QA relay its verification code from the test mailbox.
+
+In the loopback example, open the app at `https://localhost:3170` and the mailbox at `https://127.0.0.1:3170`. The test guide shows how to trust the loopback certificate for the smoke run. Preview payments and messaging use simulation. The proxy is the only service with published ports. [Preview verification and pilot steps](docs/TEST-RUN-GUIDEBOOK.md#rfc-0003-private-preview-and-pilot--26-november-2026-wib)
+
 ## Demo inbound intake and handoff
 
 1. Sign in as `customer2@marajut.test` and open **Pesanan Saya → Simulasi WhatsApp**. Send a message, choose **Ruang Jahit Dewi · Perbaikan jahitan lepas** (**Seam repair** on older seeds), and submit **Detail jahitan**.

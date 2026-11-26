@@ -18,6 +18,40 @@ Update this guide with every change. Record the affected roles, prerequisites, s
 
 **Pending verification.** All RFC-0004 runtime and browser checks in the table are implementation acceptance tests. Gateway restart, actual delivery, and replies require the authorized pilot setup.
 
+## RFC-0003 private preview and pilot · 26 November 2026 WIB
+
+Use Docker Compose with Linux containers, Node 22, Playwright Chromium, and an isolated synthetic database. Prepare separate tester and QA gate credentials and three Marajut demo sessions for the customer, admin, and existing tailor. The maintainer uses the `preview` command and project name from the README. [Preview setup](../README.md#run-a-private-https-preview) · [RFC-0003](rfc/RFC-0003-MARAJUT-PRIVATE-PREVIEW-AND-PILOT.md)
+
+| Check | Steps | Expected result |
+| --- | --- | --- |
+| Preview access | Run `preview config --quiet`, build, start, and seed a fresh preview. Open the HTTP app URL, then the HTTPS app and mailbox in fresh sessions. Try the tester login at both gates and the QA login at the mailbox. | HTTP redirects to HTTPS. A fresh session receives a login challenge. Testers can reach Marajut, and QA can reach its test mailbox. The proxy is the only published service. |
+| VM access for invited testers | Set both DNS names and allow TCP 80 and 443 on the VM. From another network, open the app over HTTP, follow the redirect, and sign in with a tester gate account. Open the mail hostname with the same login, then with the QA login. Complete a synthetic customer signup and have QA relay its verification code. | Both hostnames use trusted certificates. The app opens for a tester. The mailbox returns an authentication challenge for the tester and opens for QA. The customer can sign in with the verified signup. |
+| Sessions and client limits | Sign in to Marajut from two clients on different networks or addresses and compare their login rate-limit headers. Sign in as the second demo customer and open a known order owned by the first. | The HTTPS session cookie is Secure and HttpOnly. Each client has its own allowance. The order is available only to authorized roles. |
+| Order journeys | Run the three loopback smoke commands below. On a hosted preview, repeat the tasks manually from an invited session. | Customer, admin, and existing tailor sign-ins work. Delivery with fitting and payment retry, simulated chat handoff, and verified guest pickup complete. Account verification and recovery email links open at the canonical HTTPS origin. |
+| Restart recovery | Check readiness and the admin's **Operasional** heartbeat, run `preview restart web worker`, then check both again. | The authenticated readiness route returns 200 and the worker heartbeat advances after restart. Existing requests and order history remain readable. |
+| Encrypted restore | With `MARAJUT_BACKUP_PASSPHRASE` in the process environment, run `node --env-file=.env.preview scripts/db-backup.js save marajut-preview-qa <backup-file>`. Then run `node --env-file=.env.preview scripts/db-backup.js rehearse marajut-preview-qa <backup-file> <request-uuid>`. Use the project name for the running preview and the full UUID from a known completed order's request URL. | Counts match the preview. The order read model opens the restored request and reports its status and event types. The rehearsal database is removed afterward. |
+
+For the loopback smoke, run `preview cp proxy:/data/caddy/pki/authorities/local/root.crt .preview-secrets/preview-root.crt` and set `NODE_EXTRA_CA_CERTS` to that file's absolute path. Set `APP_ORIGIN=https://localhost:3170` and `MAIL_ORIGIN=https://127.0.0.1:3170` for the example ports. Supply the tester's `PREVIEW_APP_USER` and `PREVIEW_APP_PASSWORD`, and the QA mailbox's `PREVIEW_MAIL_USER` and `PREVIEW_MAIL_PASSWORD` from the private configuration. The smoke scripts accept loopback origins.
+
+```sh
+node --env-file=.env.preview scripts/browser-smoke.js
+node --env-file=.env.preview scripts/inbound-browser-smoke.js
+node --env-file=.env.preview scripts/pilot-browser-smoke.js
+```
+
+**Checks run.** Built the preview from a disposable snapshot of `e6357e9` with the RFC-0003 changes applied. Rendered the VM configuration with two sample DNS names and verified Caddy-only bindings on ports 80 and 443, the private database network, and simulated payment and messaging. The Caddy configuration passed validation. Started a separate HTTPS preview on port 3193 with redirects on 3194. Verified the certificate, both access gates, and Secure and HttpOnly sign-in cookies. All 22 integration tests and all three customer, admin, and tailor browser walkthroughs passed. An earlier loopback rehearsal also verified cross-customer denial and independent login allowances for two clients.
+
+Restarted the HTTPS web service and worker. Readiness returned 200 and the heartbeat advanced. The encrypted restore matched 8 accounts, 10 requests, 7 orders, 28 order events, and 2 photos. The order read model opened a completed order and returned its quote, payment, and completion history.
+
+**Pending verification.** Check public DNS, certificate issuance for both VM hostnames, and invited access from another network after the VM is deployed. Participant observation, merchant sandbox, and official WhatsApp checks still need their respective access and approvals.
+
+### Pilot rehearsal
+
+1. Recruit consenting testers for the customer, admin, and tailoring partner tasks. Use synthetic orders and record the preview revision and device for each session.
+2. Have the customer request a quote and fitting. Have the admin prepare the WhatsApp group and private drafts, record the agreed reply, and issue the quote. The tailoring partner reviews the draft and replies with availability and timing. Use a second order to cover the other handover method.
+3. Record the role, screen, result, assistance needed, and time from request to issued quote. Use the order timeline for the two timestamps. Summarize the sample size and prioritize the issues that blocked a task.
+4. Before a real-data pilot, assign the support owner and record the agreed contact and photo retention and deletion process. Keep hosting, merchant sandbox, official messaging, and competition evidence with their respective approval records. [Authentication and retention](adr/ADR-0007-authentication-and-retention.md) · [Competition requirements](adr/ADR-0009-competition-eligibility.md)
+
 ## RFC-0002 pilot readiness · 26 November 2026 WIB
 
 Use separate customer, admin, and existing tailor sessions. The maintainer needs Node 22, Docker Compose, Playwright Chromium, two unused loopback ports, and synthetic `POSTGRES_PASSWORD` and `DEMO_PASSWORD` values. Start from an isolated checkout containing the RFC implementation. [RFC-0002](rfc/RFC-0002-MARAJUT-PILOT-READINESS.md) · [Sandbox setup](../README.md#rehearse-in-a-fresh-demo)

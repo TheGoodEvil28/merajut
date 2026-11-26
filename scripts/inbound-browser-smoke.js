@@ -2,15 +2,17 @@ import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
 import { seedEmails } from '../apps/marajut/seed.js';
+import { previewBrowserOptions } from './preview-auth.js';
 
 const origin = new URL(process.env.APP_ORIGIN ?? 'http://127.0.0.1:' + (process.env.APP_PORT ?? '3100'));
 const password = process.env.DEMO_PASSWORD;
 if (!['localhost', '127.0.0.1'].includes(origin.hostname) || !password) {
   throw new Error('Use a local app and the configured synthetic demo password.');
 }
+const pageOptions = { baseURL: origin.origin, ...previewBrowserOptions(origin) };
 const browser = await chromium.launch(process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
-const customer = await browser.newPage({ viewport: { width: 390, height: 844 }, baseURL: origin.origin });
-const tailor = await browser.newPage({ viewport: { width: 1366, height: 900 }, baseURL: origin.origin });
+const customer = await browser.newPage({ ...pageOptions, viewport: { width: 390, height: 844 } });
+const tailor = await browser.newPage({ ...pageOptions, viewport: { width: 1366, height: 900 } });
 
 async function signIn(page, email, destination) {
   await page.getByLabel('Email').fill(email);
@@ -75,7 +77,7 @@ try {
   await tailor.getByRole('button', { name: 'Buat permintaan layanan' }).click();
   await tailor.getByRole('heading', { name: 'Detail permintaan' }).waitFor();
   await tailor.getByRole('heading', { name: 'Percakapan terkait' }).waitFor();
-  const admin = await browser.newPage({baseURL:origin.origin});
+  const admin = await browser.newPage(pageOptions);
   await admin.goto('/login');
   await signIn(admin,seedEmails.operator,'**/pengelola');
   await admin.goto(tailor.url());

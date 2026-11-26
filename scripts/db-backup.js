@@ -12,7 +12,7 @@ const magic = Buffer.from('MRJUTBK1');
 const previousBackupHeader = Buffer.from('444a414854424b31', 'hex');
 const headerLength=magic.length+16+12;
 const tagLength=16;
-const [command,project,file]=process.argv.slice(2);
+const [command,project,file,requestId]=process.argv.slice(2);
 const passphrase=process.env.MARAJUT_BACKUP_PASSPHRASE;
 const composeProject = /^[a-z0-9][a-z0-9_-]*$/;
 const databaseEnvironment = 'export PGUSER="$POSTGRES_USER" PGDATABASE="$POSTGRES_DB"\nexec "$@"';
@@ -22,6 +22,38 @@ function databaseCommand(args, options = {stdio:'inherit'}) {
 }
 if (!['save','rehearse'].includes(command) || !composeProject.test(project??'') || !file || !passphrase || passphrase.length<24) {
   throw new Error('Use db-backup.js save|rehearse <compose-project> <file> with a backup passphrase of at least 24 characters.');
+}
+if (requestId !== undefined && (command !== 'rehearse' || !/^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(requestId))) {
+  throw new Error('Pass a full request UUID only when rehearsing a restore.');
+}
+
+async function verifyRestoredOrder(database, id) {
+  const readOrder = `
+    import { createPool, one } from './apps/marajut/db.js';
+    import { inquiryDetail } from './apps/marajut/inquiries.js';
+
+    const id = process.argv[1];
+    const pool = createPool();
+    try {
+      const owner = await one(pool, 'SELECT customer_id AS id FROM inquiries WHERE id=$1', [id]);
+      if (!owner) throw new Error('The requested order is missing from the restored database.');
+      const { order, events } = await inquiryDetail(pool, { ...owner, role: 'customer' }, id);
+      if (!order || !events.some(event => event.kind === 'ORDER_CONFIRMED')) {
+        throw new Error('The restored record is missing its accepted order or history.');
+      }
+      console.log(JSON.stringify({
+        request: id.slice(0, 8).toUpperCase(),
+        status: order.status,
+        history: events.map(event => event.kind)
+      }));
+    } finally {
+      await pool.end();
+    }
+  `;
+  await checkedExit(startCompose(project, [
+    'exec', '-T', '-e', 'PGDATABASE=' + database, 'web',
+    'node', '--input-type=module', '-e', readOrder, id
+  ], { stdio: 'inherit' }));
 }
 
 if (command==='save') {
@@ -89,6 +121,7 @@ if (command==='save') {
         (SELECT count(*) FROM domain_events WHERE order_id IS NOT NULL) AS order_events,
         (SELECT count(*) FROM inquiry_photos) AS photos,
         (SELECT coalesce(sum(octet_length(content)),0) FROM inquiry_photos) AS photo_bytes`]));
+    if (requestId) await verifyRestoredOrder(database, requestId);
   } finally {
     try { if (created) await checkedExit(databaseCommand(['dropdb',database])); }
     finally {
