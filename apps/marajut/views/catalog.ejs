@@ -2,6 +2,14 @@
 <link rel="stylesheet" href="/assets/vendor/lenis/lenis.css">
 <script src="/assets/vendor/lenis/lenis.min.js" defer></script>
 <script src="/assets/landing.js" defer></script>
+<%# Decorative sewing threads drifting behind the whole landing page; stretched to the page height. Per thread: stroke-opacity sets how strong it looks, data-depth how much it lags the scroll (parallax), data-phone="hide" drops it on phones. %>
+<svg class="thread-layer" viewBox="0 0 1000 2000" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <path data-depth=".23" stroke-opacity=".9" d="M-40 90 C 90 12, 150 92, 300 62 S 520 -90, 640 -20 S 820 88, 1020 "/>
+  <!-- <path data-depth=".3" stroke-opacity=".28" d="M330 320 C 430 350, 520 345, 600 318 S 760 270, 860 330 S 960 420, 1020 400"/> -->
+  <path data-depth=".08" stroke-opacity=".5" d="M-20 500 C 110 560, 230 520, 380 545 S 610 610, 730 575 S 900 470, 1020 515"/>
+  <path data-depth=".15" data-phone="hide" stroke-opacity=".35" d="M-20 1690 C 70 1630, 150 1650, 190 1705 S 260 1790, 340 1760"/>
+  <path data-depth=".05" data-phone="hide" stroke-opacity=".6" d="M1020 1665 C 940 1660, 890 1720, 930 1765 S 1000 1800, 980 1860 S 900 1930, 1020 1960"/>
+</svg>
 <section class="market-intro" aria-labelledby="market-title">
   <div class="market-intro-copy">
     <p class="market-location"><%- include('icon', {name:'pin'}) %> Layanan jahit lokal di Semarang</p>

@@ -104,7 +104,7 @@ main > .section:first-child { padding-top: clamp(1.25rem, 2.5vw, 2rem); } /* eve
 .market-intro-photo::after { content: ""; position: absolute; inset: .65rem; border: 1px dashed #fffb; border-radius: 6.5rem .7rem 4.5rem .7rem; pointer-events: none; }
 .intro-how { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; font-size: .89rem; font-weight: 650; }
 .market-intro { margin-bottom: clamp(1rem, 3vw, 2.5rem); }
-.catalog-section { padding-block: clamp(2.4rem,6vw,5rem); border-top: 1px solid var(--line); }
+.catalog-section { padding-block: clamp(2.4rem,6vw,5rem) }
 .catalog-section .section-caption { margin-bottom: clamp(1.75rem, 3.5vw, 2.75rem); }
 .how-section { border-top: 1px solid var(--line); padding: clamp(2.4rem,6vw,5rem) 0; margin-bottom: clamp(.5rem, 2vw, 1.5rem); }
 .sewing-steps { list-style: none; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin: 2rem 0 0; padding: 0; --step-gap: clamp(3.5rem, 7vw, 6rem); gap: var(--step-gap); }
@@ -831,3 +831,10 @@ button.danger-outline:hover { color: #fff; background: var(--clay); border-color
 .health-empty .icon { color: #2f7a52; }
 .health-popover .ops-entry { margin-top: .5rem; }
 @media (prefers-reduced-motion: reduce) { .health-popover { transition: none; } .health-status .status-dot { animation: none; } }
+
+/* Landing: hand-drawn threads behind everything. The body becomes its own stacking context so z-index:-1 sits above the page background but below every section, card and image. */
+.market-shell:has(.thread-layer) { position: relative; isolation: isolate; }
+.thread-layer { position: absolute; inset: 0; z-index: -1; width: 100%; height: 100%; pointer-events: none; fill: none; stroke: var(--apricot); stroke-width: 17.25; stroke-linecap: round; }
+.thread-layer path { vector-effect: non-scaling-stroke; will-change: transform; }
+@media (max-width: 640px) { .thread-layer [data-phone="hide"] { display: none; } } /* phones: the tall page stretches curves across body text, so keep only the threads that fall in gaps */
+.market-shell:has(.thread-layer):not(.nav-pinned) > .site-header { background: transparent; } /* resting navbar blends into the paper so the top thread runs behind it; the pinned bar keeps its surface colour */
