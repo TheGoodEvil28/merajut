@@ -41,6 +41,8 @@ const links = dashboard ? [] : user?.role === 'provider' ? [
     <div class="wrap nav">
       <a class="brand" href="<%= admin ? '/pengelola' : user?.role === 'provider' ? '/workspace' : '/' %>" aria-label="Beranda Marajut"><img src="/assets/marajut-mark.svg" alt="" width="36" height="36">Marajut</a>
       <% if (studio) { %><span class="rail-label"><%= admin?'Ruang admin':'Ruang usaha' %></span><% } %>
+      <% if (studio) { %><button type="button" class="nav-toggle" data-nav-toggle aria-controls="nav-drawer" aria-expanded="false" aria-label="Buka menu"><span></span><span></span><span></span></button>
+      <div class="nav-drawer" id="nav-drawer"><div class="drawer-head"><span>Menu</span><button type="button" class="nav-close" data-nav-close aria-label="Tutup menu"></button></div><% } %>
       <% if (links.length) { %><nav aria-label="Navigasi utama">
         <% for (const [url, label, icon, current] of links) { %>
           <a href="<%= url %>" <% if (current) { %>aria-current="page"<% } %>><%- include('icon', {name:icon}) %><span><%= label %></span></a>
@@ -56,6 +58,8 @@ const links = dashboard ? [] : user?.role === 'provider' ? [
         </form>
       <% } else { %><a class="button" href="/login">Masuk <%- include('icon', {name:'arrow'}) %></a><% } %>
       </div>
+      <% if (studio) { %></div><% } %>
     </div>
   </header>
+  <% if (studio) { %><div class="nav-scrim" data-nav-scrim></div><% } %>
   <main class="wrap" id="main" tabindex="-1">

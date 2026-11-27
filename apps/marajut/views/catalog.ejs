@@ -14,7 +14,7 @@
       <% if (filters.category) { %><input type="hidden" name="category" value="<%= filters.category %>"><% } %>
       <button>Cari</button>
     </form>
-    <% if (!intakeEnabled) { %><a class="intro-how" href="#cara-kerja">Bagaimana cara memesan? <span aria-hidden="true">↓</span></a><% } %>
+    <% if (!intakeEnabled) { %><a class="intro-how" href="#cara-kerja">Bagaimana cara memesan? <span class="dir dir-down" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span></a><% } %>
   </div>
   <div class="market-intro-photo"><img src="/assets/tailor-workshop.webp" width="1200" height="800" alt="Tangan penjahit mengarahkan kain melewati jarum mesin jahit" fetchpriority="high"></div>
 </section>
@@ -41,11 +41,11 @@
 <section class="how-section" id="cara-kerja" aria-labelledby="how-title">
   <h2 id="how-title">Cara memesan di Marajut</h2>
   <ol class="sewing-steps">
-    <li><span class="step-arrow" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span><%- include('icon', {name:'search'}) %><h3>Temukan layanan</h3><p>Bandingkan harga awal, baca profil usaha, lalu pilih layanan yang sesuai.</p><a href="#services">Jelajahi layanan <span aria-hidden="true">↑</span></a></li>
+    <li><span class="step-arrow" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span><%- include('icon', {name:'search'}) %><h3>Temukan layanan</h3><p>Bandingkan harga awal, baca profil usaha, lalu pilih layanan yang sesuai.</p><a href="#services">Jelajahi layanan <span class="dir dir-up" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span></a></li>
     <li><span class="step-arrow" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span><%- include('icon', {name:'chat'}) %><h3>Ceritakan kebutuhan</h3><p>Kirim detail dan foto lewat formulir. Admin menghubungi mitra melalui WhatsApp untuk memastikan kesediaan, harga final, dan jadwal fitting.</p>
-      <% if (intakeEnabled) { %><a href="/workspace/intake">Buka simulasi WhatsApp <span aria-hidden="true">→</span></a><% } %></li>
+      <% if (intakeEnabled) { %><a href="/workspace/intake">Buka simulasi WhatsApp <span class="dir" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span></a><% } %></li>
     <li><%- include('icon', {name:'bag'}) %><h3>Sepakati dan pantau</h3><p>Periksa harga dan tanggal selesai. Setujui penawaran atau minta mitra lain. Setelah jahitan siap, bayar melalui halaman pesanan untuk pengambilan atau pengiriman.</p>
-      <% if (!user || user.role === 'customer') { %><a href="/workspace">Lihat pesanan saya <span aria-hidden="true">→</span></a><% } %></li>
+      <% if (!user || user.role === 'customer') { %><a href="/workspace">Lihat pesanan saya <span class="dir" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span></a><% } %></li>
   </ol>
 </section>
 <% if (!user || user.role === 'provider') { %>

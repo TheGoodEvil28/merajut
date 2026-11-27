@@ -19,6 +19,13 @@ const admin = await browser.newPage({ ...pageOptions, viewport: { width: 1366, h
 const pageErrors = [];
 for (const page of [customer, tailor, admin]) page.on('pageerror', error => pageErrors.push(error.message));
 
+// Below 960 px the dashboard links sit in the hamburger drawer; open it first when it is shown.
+async function dashboardNav(page) {
+  const toggle = page.getByRole('button', { name: 'Buka menu' });
+  if (await toggle.isVisible()) await toggle.click();
+  return page.getByRole('navigation', { name: 'Navigasi utama' });
+}
+
 async function signIn(page, email, destination = '**/workspace') {
   if (new URL(page.url()).pathname !== '/login') await page.goto('/login');
   await page.getByLabel('Email').fill(email);
@@ -130,14 +137,14 @@ try {
   await queueMenu.getByText('Antrean lain', { exact: true }).click();
   await queueMenu.locator('[data-queue="clarify"]').click();
   await tailor.getByRole('heading', { name: 'Butuh klarifikasi', exact: true }).waitFor();
-  await studioNav.getByRole('link', { name: 'Layanan Saya' }).click();
+  await (await dashboardNav(tailor)).getByRole('link', { name: 'Layanan Saya' }).click();
   await tailor.getByRole('heading', { name: 'Tambah layanan' }).waitFor();
   const setting = tailor.locator('.service-setting').filter({ hasText: /Permak panjang pakaian|Hem adjustment/ });
   await setting.getByText('Ubah layanan').click();
   await setting.getByLabel('Harga awal (IDR)').waitFor();
-  await studioNav.getByRole('link', { name: 'Profil Usaha' }).click();
+  await (await dashboardNav(tailor)).getByRole('link', { name: 'Profil Usaha' }).click();
   await tailor.getByLabel('Nama usaha').waitFor();
-  await studioNav.getByRole('link', { name: 'Ringkasan' }).click();
+  await (await dashboardNav(tailor)).getByRole('link', { name: 'Ringkasan' }).click();
   await tailor.setViewportSize({ width: 1366, height: 900 });
   await tailor.locator('[data-queue="inbox"]').click();
   assert.equal(await tailor.locator('[data-queue="inbox"]').getAttribute('aria-current'), 'true');
@@ -269,13 +276,13 @@ try {
     await customer.reload();
   }
   assert.ok(await simulated.isVisible(), 'The worker should record a simulated collection notice for this order.');
-  await admin.getByRole('navigation',{name:'Navigasi utama'}).getByRole('link',{name:'Kinerja',exact:true}).click();
+  await (await dashboardNav(admin)).getByRole('link',{name:'Kinerja',exact:true}).click();
   await admin.getByRole('heading',{name:'Kinerja layanan'}).waitFor();
   for (const width of [320,375,768]) {
     await admin.setViewportSize({width,height:844});
     assert.equal(await admin.evaluate(()=>document.documentElement.scrollWidth),width);
   }
-  await admin.getByRole('navigation',{name:'Navigasi utama'}).getByRole('link',{name:'Pesanan',exact:true}).click();
+  await (await dashboardNav(admin)).getByRole('link',{name:'Pesanan',exact:true}).click();
   await admin.getByRole('heading',{name:'Papan pesanan'}).waitFor();
   await admin.setViewportSize({width:375,height:844});
   assert.equal(await admin.evaluate(()=>document.documentElement.scrollWidth),375);

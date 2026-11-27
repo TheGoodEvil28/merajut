@@ -228,3 +228,28 @@ if (confirmDialog && typeof confirmDialog.showModal === 'function') {
     }
   });
 }
+
+// Dashboard drawer (studio pages below 960px): hamburger opens, close button / backdrop / Esc closes.
+const navToggle = document.querySelector('[data-nav-toggle]');
+if (navToggle) {
+  const drawer = document.getElementById(navToggle.getAttribute('aria-controls'));
+  const scrim = document.querySelector('[data-nav-scrim]');
+  const closeButton = drawer.querySelector('[data-nav-close]');
+  const isOpen = () => document.body.classList.contains('nav-open');
+  const setOpen = open => {
+    if (open === isOpen()) return;
+    document.body.classList.toggle('nav-open', open);
+    navToggle.setAttribute('aria-expanded', String(open));
+    if (open) { window.lenis?.stop(); closeButton.focus(); }
+    else { window.lenis?.start(); navToggle.focus({ preventScroll: true }); }
+  };
+  navToggle.addEventListener('click', () => setOpen(true));
+  closeButton.addEventListener('click', () => setOpen(false));
+  scrim.addEventListener('click', () => setOpen(false));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && isOpen() && !document.querySelector('dialog[open]')) setOpen(false);
+  });
+  window.matchMedia('(min-width: 960px)').addEventListener('change', event => {
+    if (event.matches && isOpen()) { document.body.classList.remove('nav-open'); navToggle.setAttribute('aria-expanded', 'false'); }
+  });
+}

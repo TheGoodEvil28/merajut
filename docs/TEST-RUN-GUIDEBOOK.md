@@ -481,3 +481,41 @@ The role affected is the guest (signed out) on storefront and login pages at 720
 Checks run in the in-app browser after signing out the synthetic tailor session: at 375 px the nav computes to `display: none`, the header is one 61 px row with **Masuk** on the same row as the wordmark, the hero bottom is at 810 px of 812 px, there is no horizontal overflow, and the screenshot was reviewed. At the pane's desktop width the nav is visible with both links. `npm.cmd run check` passed.
 
 Not verified: the customer header on phones (step 4), widths 721–959 px, and the login page header on phones.
+
+### Dashboard hamburger menu on phones and tablets · 27 November 2026 WIB
+
+Roles affected are tailor and admin operator (studio dashboards) below 960 px. The desktop sidebar is unchanged. Customer pages are unchanged and keep their tab row. Prerequisites: the dev-mode stack, demo seed and synthetic accounts such as `tailor@marajut.test`.
+
+1. Sign in as a tailor at 375 px. Expect a one-row top bar with the wordmark and a three-line menu button. The old tab row is gone.
+2. Tap the menu button. Expect a plum drawer sliding in from the right over a dimmed (45% black) page, with **Menu** and a ✕ button, **Ringkasan** (highlighted), **Layanan Saya**, **Profil Usaha**, **Chat simulasi**, then the account name and **Keluar** at the bottom. Focus moves to ✕, and the page behind does not scroll.
+3. Close it with ✕, by tapping the dimmed area, and with Esc. Each slides the drawer out, and focus returns to the menu button.
+4. Pick a link in the drawer: the page opens with the drawer closed. Pick **Keluar**: the logout confirmation opens over the drawer. Esc or **Batal** closes only the confirmation.
+5. At 768 px the same menu button and drawer apply. Widen past 960 px while the drawer is open: it closes and the fixed sidebar returns.
+6. Repeat as the admin operator on `/pengelola` (Pesanan, Mitra, Kinerja, Operasional in the drawer).
+7. With reduce motion turned on, the drawer and backdrop appear without sliding.
+
+Test script updates: `scripts/browser-smoke.js` has a `dashboardNav(page)` helper that opens the drawer when the menu button is visible. It is used for the tailor's 360 px nav clicks and the admin's Kinerja and Pesanan clicks (the latter runs at 768 px). In `scripts/inbound-browser-smoke.js` the guest opens `/#cara-kerja` directly, because header links are hidden for guests on phones since the earlier change today.
+
+Checks run in the in-app browser on the dev server, as the synthetic tailor:
+- At 1024 px the sidebar is still fixed at 216 px with 4 links, name and **Keluar**, with no menu button or backdrop.
+- At 375 px a screenshot showed the top bar. Opening the drawer set `aria-expanded`, moved focus to ✕, locked page scroll and showed a 304 px drawer over the backdrop (screenshot reviewed).
+- Backdrop, Esc and ✕ each closed it and returned focus.
+- **Keluar** in the drawer opened the confirmation, and Esc closed only the dialog.
+- No horizontal overflow at 375 px and 768 px.
+- Resizing to desktop with the drawer open closed it.
+- The signed-in storefront **Buka Dasbor** button is still right-aligned.
+- `npm.cmd run check` passed, including the edited smoke scripts.
+
+Not verified: the admin role, real touch input, the drawer slide itself (the pane does not run transitions; only the end states were checked), focus trapping inside the drawer (Tab can move to the page behind), screen readers, and the browser smoke suites (`npm.cmd run test:browser`, `test:inbound-browser`, `test:pilot-browser`). Those need a disposable Compose project and were not run against the primary demo.
+
+### Back links use an arrow icon · 27 November 2026 WIB
+
+Roles affected are guest, customer, tailor and admin operator. Every `.back` link (14 views, including Layanan Saya, Profil Usaha, request detail, messages, public shop page, partner and account pages) changed from the text character "←" to a drawn arrow icon. Prerequisites: the dev-mode stack and synthetic accounts. Hard refresh (Ctrl+F5) first.
+
+1. As a tailor open **Layanan Saya**. Expect the back link **Ringkasan Usaha** with a thin plum line arrow pointing left, in the same style as the other icons. Hovering nudges the arrow 3 px left (no movement with reduce motion turned on).
+2. Open a public shop page such as `/penjahit/jahit-rina` (back to **Cari Penjahit**), a request page as a customer, and `/pengelola/mitra/<id>` as an admin. The same icon appears on each.
+3. Screen readers now announce only the link text (for example "Ringkasan Usaha"), because the icon is empty generated content. Before, the "←" character was part of the name.
+
+Checks run in the in-app browser, as the synthetic tailor: on `/workspace/services` the `::before` has empty content, an 18 px masked icon in the link colour, and a zoomed screenshot shows the drawn arrow. There are no console or CSP errors. `/penjahit/jahit-rina` renders the back link as "Cari Penjahit". Searched `scripts/`, `tests/` and `docs/` for "←" and found none, so no test matched the old name. `npm.cmd run check` passed. Other unicode arrows (↑ ↓ → in the landing steps and the service editor toggle) are not back links and were left unchanged.
+
+Not verified: customer, admin and account pages visually, Safari and Firefox mask rendering, and Windows High Contrast mode, where masked icons can disappear.

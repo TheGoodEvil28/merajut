@@ -31,8 +31,7 @@ async function refreshUntil(page, locator) {
 }
 
 try {
-  await customer.goto('/');
-  await customer.getByRole('link', { name: 'Cara kerja', exact:true }).click();
+  await customer.goto('/#cara-kerja'); // header links are hidden for guests on phones
   await customer.getByRole('link', { name: 'Buka simulasi WhatsApp' }).click();
   await customer.getByText('Masuk untuk mencoba simulasi WhatsApp.', {exact:false}).waitFor();
   await signIn(customer, seedEmails.otherCustomer, '**/workspace/intake');
