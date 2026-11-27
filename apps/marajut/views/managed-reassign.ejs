@@ -8,7 +8,7 @@
   <% if (alternatives.length) { %>
     <form class="stack" method="post" action="<%= choosePath %>">
       <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
-      <label>Layanan pengganti<select name="serviceId" required>
+      <label><span class="field-label">Layanan pengganti<span class="req" aria-hidden="true"></span></span><select name="serviceId" required>
         <option value="">Pilih layanan</option>
         <% for (const [label,similar] of [['Kategori yang sama',true],['Layanan lainnya',false]]) {
           const matches = alternatives.filter(service=>service.same_category===similar);

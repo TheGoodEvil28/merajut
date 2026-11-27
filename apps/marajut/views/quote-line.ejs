@@ -1,6 +1,6 @@
 <div class="quote-line" data-quote-line>
-  <label>Rincian <span class="sr-only">baris <%= index %></span><input name="itemName" maxlength="100" value="<%= item.name ?? '' %>" <%= first ? 'required' : '' %>></label>
-  <label>Jumlah <span class="sr-only">baris <%= index %></span><input name="itemQuantity" type="number" min="1" max="100" inputmode="numeric" value="<%= item.quantity ?? '' %>" <%= first ? 'required' : '' %>></label>
-  <label>Harga satuan (IDR) <span class="sr-only">baris <%= index %></span><input name="itemPrice" type="number" min="0" max="100000000" inputmode="numeric" value="<%= item.unitPrice ?? '' %>" <%= first ? 'required' : '' %>></label>
+  <label><span class="field-label">Rincian <span class="sr-only">baris <%= index %></span><% if (first) { %><span class="req" aria-hidden="true"></span><% } %></span><input name="itemName" maxlength="100" value="<%= item.name ?? '' %>" <%= first ? 'required' : '' %>></label>
+  <label><span class="field-label">Jumlah <span class="sr-only">baris <%= index %></span><% if (first) { %><span class="req" aria-hidden="true"></span><% } %></span><input name="itemQuantity" type="number" min="1" max="100" inputmode="numeric" value="<%= item.quantity ?? '' %>" <%= first ? 'required' : '' %>></label>
+  <label><span class="field-label">Harga satuan (IDR) <span class="sr-only">baris <%= index %></span><% if (first) { %><span class="req" aria-hidden="true"></span><% } %></span><input name="itemPrice" type="number" min="0" max="100000000" inputmode="numeric" value="<%= item.unitPrice ?? '' %>" <%= first ? 'required' : '' %>></label>
   <% if (!first) { %><button type="button" class="quiet remove-line" data-remove-line hidden aria-label="Hapus rincian baris <%= index %>">Hapus</button><% } %>
 </div>

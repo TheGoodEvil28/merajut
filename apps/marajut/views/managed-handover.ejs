@@ -15,7 +15,7 @@
       <% if (order.handover==='delivery' && !order.shipped_at) { %>
         <div><strong>Alamat di profil pelanggan</strong>
           <p class="preserve"><%= contacts.address || 'Alamat belum diisi. Konfirmasi alamat dengan pelanggan.' %></p></div>
-        <label>Kurir, nomor resi, atau catatan pengantaran<textarea name="detail" maxlength="500" rows="2" required></textarea></label>
+        <label><span class="field-label">Kurir, nomor resi, atau catatan pengantaran<span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" rows="2" required></textarea></label>
         <button name="action" value="ship">Catat sudah dikirim</button>
       <% } else { %>
         <p class="form-help muted"><%= order.handover==='delivery' ? 'Selesaikan setelah pelanggan menerima kiriman.' : 'Selesaikan setelah pelanggan mengambil pakaian.' %></p>

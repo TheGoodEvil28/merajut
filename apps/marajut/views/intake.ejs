@@ -20,7 +20,7 @@
             <input type="hidden" name="_csrf" value="<%= csrf %>">
             <input type="hidden" name="eventId" value="<%= newKey() %>">
             <input type="hidden" name="kind" value="text">
-            <label>Pesan pelanggan<textarea name="text" rows="3" maxlength="1500" required></textarea></label>
+            <label><span class="field-label">Pesan pelanggan<span class="req" aria-hidden="true"></span></span><textarea name="text" rows="3" maxlength="1500" required></textarea></label>
             <button>Kirim pesan simulasi</button>
           </form>
         </section>
@@ -31,7 +31,7 @@
               <input type="hidden" name="_csrf" value="<%= csrf %>">
               <input type="hidden" name="eventId" value="<%= newKey() %>">
               <input type="hidden" name="kind" value="select_service">
-              <label>Penjahit dan layanan<select name="serviceId" required>
+              <label><span class="field-label">Penjahit dan layanan<span class="req" aria-hidden="true"></span></span><select name="serviceId" required>
                 <option value="">Pilih layanan</option>
                 <% for (const service of services) { %>
                   <option value="<%= service.id %>"><%= service.business %> · <%= service.name %></option>
@@ -43,8 +43,8 @@
               <input type="hidden" name="_csrf" value="<%= csrf %>">
               <input type="hidden" name="eventId" value="<%= newKey() %>">
               <input type="hidden" name="kind" value="details">
-              <label>Detail jahitan<textarea name="text" rows="3" minlength="10" maxlength="1500" required></textarea></label>
-              <div class="field-pair"><label>Jumlah pakaian<input name="quantity" type="number" min="1" max="50" value="1" required></label>
+              <label><span class="field-label">Detail jahitan<span class="req" aria-hidden="true"></span></span><textarea name="text" rows="3" minlength="10" maxlength="1500" required></textarea></label>
+              <div class="field-pair"><label><span class="field-label">Jumlah pakaian<span class="req" aria-hidden="true"></span></span><input name="quantity" type="number" min="1" max="50" value="1" required></label>
                 <label>Tanggal selesai yang diinginkan<input name="desiredDate" type="date"></label></div>
               <label>Catatan ukuran (opsional)<input name="fitNotes" maxlength="500"></label>
               <button class="secondary">Kirim detail</button>

@@ -1,7 +1,7 @@
 <form class="stack" method="post" action="<%= typeof serviceBase === 'undefined' ? '/api/v1/provider/services' : serviceBase %><%= service ? '/' + service.id : '' %>">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
-  <label>Nama layanan<input name="name" value="<%= service?.name ?? '' %>" minlength="3" maxlength="80" required></label>
-  <label>Deskripsi<textarea name="description" minlength="5" maxlength="300" rows="3" required><%= service?.description ?? '' %></textarea></label>
+  <label><span class="field-label">Nama layanan<span class="req" aria-hidden="true"></span></span><input name="name" value="<%= service?.name ?? '' %>" minlength="3" maxlength="80" required></label>
+  <label><span class="field-label">Deskripsi<span class="req" aria-hidden="true"></span></span><textarea name="description" minlength="5" maxlength="300" rows="3" required><%= service?.description ?? '' %></textarea></label>
   <div class="field-pair">
     <label>Kategori layanan<select name="category">
       <% for (const [key, label] of Object.entries(serviceCategories)) { %>
@@ -14,7 +14,7 @@
   <label>Panduan untuk pelanggan<textarea name="intakeHint" rows="2" maxlength="300"
     placeholder="Contoh: sebutkan panjang celana yang diinginkan."><%= service?.intake_hint ?? '' %></textarea></label>
   <p class="muted form-help">Panduan ini muncul saat pelanggan mengisi permintaan.</p>
-  <label>Harga awal (IDR)<input type="number" name="price" min="0" max="100000000" step="1" value="<%= service?.price_hint ?? 0 %>" required></label>
+  <label><span class="field-label">Harga awal (IDR)<span class="req" aria-hidden="true"></span></span><input type="number" name="price" min="0" max="100000000" step="1" value="<%= service?.price_hint ?? 0 %>" required></label>
   <p class="muted form-help">Harga awal tampil di katalog. Isi 0 jika pelanggan perlu meminta penawaran dahulu.</p>
   <label>Visibilitas<select name="active">
     <option value="true" <%= service?.active !== false ? 'selected' : '' %>>Ditampilkan</option>

@@ -23,7 +23,7 @@ const fitForm = fittingDraft?.action === 'propose' ? fittingDraft : {};
       <summary>Minta jadwal lain</summary>
       <form class="stack" method="post" action="<%= path %>">
         <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
-        <label>Waktu yang cocok untuk Anda<textarea name="note" minlength="5" maxlength="500" rows="2" required><%= fittingDraft?.note ?? '' %></textarea></label>
+        <label><span class="field-label">Waktu yang cocok untuk Anda<span class="req" aria-hidden="true"></span></span><textarea name="note" minlength="5" maxlength="500" rows="2" required><%= fittingDraft?.note ?? '' %></textarea></label>
         <button class="secondary" name="action" value="request">Minta jadwal baru</button>
       </form>
     </details>
@@ -40,8 +40,8 @@ const fitForm = fittingDraft?.action === 'propose' ? fittingDraft : {};
       <form class="stack" method="post" action="<%= path %>">
         <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
         <div class="field-pair">
-          <label>Waktu baru (WIB)<input name="fittingAt" type="datetime-local" required value="<%= fitForm.fittingAt ?? '' %>"></label>
-          <label>Lokasi fitting<input name="fittingPlace" minlength="3" maxlength="200" required value="<%= fitForm.fittingPlace ?? order.fitting_place %>"></label>
+          <label><span class="field-label">Waktu baru (WIB)<span class="req" aria-hidden="true"></span></span><input name="fittingAt" type="datetime-local" required value="<%= fitForm.fittingAt ?? '' %>"></label>
+          <label><span class="field-label">Lokasi fitting<span class="req" aria-hidden="true"></span></span><input name="fittingPlace" minlength="3" maxlength="200" required value="<%= fitForm.fittingPlace ?? order.fitting_place %>"></label>
         </div>
         <label>Pesan untuk pelanggan <span class="label-optional">(opsional)</span><textarea name="note" maxlength="500" rows="2"><%= fitForm.note ?? '' %></textarea></label>
         <p class="form-help muted">Pelanggan akan mengonfirmasi jadwal baru di halaman pesanan.</p>

@@ -78,7 +78,7 @@ const startLabel = modeUsed==='demo' ? (failed ? 'Ulangi pembayaran simulasi' : 
     <% if ((user.role==='customer' && !order.complaint) || (user.manager && order.complaint && !order.resolution)) { %>
       <form class="stack" method="post" action="/api/v1/orders/<%= order.id %>/complaint">
         <input type="hidden" name="_csrf" value="<%= csrf %>">
-        <label><%= user.manager?'Tanggapan untuk pelanggan':'Ceritakan kendala pesanan' %><textarea name="note" minlength="5" maxlength="500" required></textarea></label>
+        <label><span class="field-label"><%= user.manager?'Tanggapan untuk pelanggan':'Ceritakan kendala pesanan' %><span class="req" aria-hidden="true"></span></span><textarea name="note" minlength="5" maxlength="500" required></textarea></label>
         <button><%= user.manager?'Catat penyelesaian':'Kirim keluhan' %></button>
       </form>
     <% } %>

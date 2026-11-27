@@ -21,7 +21,7 @@
     <% if (mayEdit && photos.length < 3) { %>
       <form class="photo-upload stack" data-photo-upload data-url="/api/v1/inquiries/<%= inquiry.id %>/photos" hidden>
         <input type="hidden" name="_csrf" value="<%= csrf %>">
-        <label>Tambahkan foto <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required
+        <label><span class="field-label">Tambahkan foto<span class="req" aria-hidden="true"></span></span> <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required
           aria-describedby="photo-help"></label>
         <p class="form-help muted" id="photo-help">JPEG, PNG, atau WebP. Maksimal 3 MB per foto, sampai tiga foto.</p>
         <p class="error-message" data-photo-status role="status" hidden></p>

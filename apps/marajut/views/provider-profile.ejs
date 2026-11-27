@@ -8,11 +8,11 @@
   <div class="split">
     <form class="card stack" method="post" action="/api/v1/provider/profile">
       <input type="hidden" name="_csrf" value="<%= csrf %>">
-      <label>Nama usaha<input name="name" value="<%= business.name %>" minlength="3" maxlength="80" required></label>
-      <label>Area layanan<input name="area" value="<%= business.area %>" minlength="3" maxlength="100" required
+      <label><span class="field-label">Nama usaha<span class="req" aria-hidden="true"></span></span><input name="name" value="<%= business.name %>" minlength="3" maxlength="80" required></label>
+      <label><span class="field-label">Area layanan<span class="req" aria-hidden="true"></span></span><input name="area" value="<%= business.area %>" minlength="3" maxlength="100" required
         aria-describedby="area-help"></label>
       <p class="muted form-help" id="area-help">Isi nama wilayah yang Anda layani, misalnya Semarang Tengah.</p>
-      <label>Cerita usaha<textarea name="description" rows="6" minlength="10" maxlength="600" required
+      <label><span class="field-label">Cerita usaha<span class="req" aria-hidden="true"></span></span><textarea name="description" rows="6" minlength="10" maxlength="600" required
         aria-describedby="description-help"><%= business.description %></textarea></label>
       <p class="muted form-help" id="description-help">Jelaskan jenis jahitan dan cara pelanggan dapat menyiapkan permintaan.</p>
       <button>Simpan profil</button>

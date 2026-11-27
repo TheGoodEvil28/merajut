@@ -21,11 +21,11 @@ const handover = quoteDraft?.handover ?? latest?.handover ?? inquiry.requested_h
       <div class="price-total"><span>Total penawaran</span><output aria-live="polite" aria-label="Total penawaran"></output></div>
     </fieldset>
     <div class="field-pair">
-      <label>Perkiraan selesai<input type="date" name="eta" value="<%= quoteDraft?.eta ?? latest?.eta ?? '' %>" required></label>
-      <label>Masa berlaku (jam)<input type="number" name="validHours" value="<%= quoteDraft?.validHours ?? 48 %>" min="1" max="168" required></label>
+      <label><span class="field-label">Perkiraan selesai<span class="req" aria-hidden="true"></span></span><input type="date" name="eta" value="<%= quoteDraft?.eta ?? latest?.eta ?? '' %>" required></label>
+      <label><span class="field-label">Masa berlaku (jam)<span class="req" aria-hidden="true"></span></span><input type="number" name="validHours" value="<%= quoteDraft?.validHours ?? 48 %>" min="1" max="168" required></label>
     </div>
     <% if (inquiry.dispatch_state) { %>
-      <label>Cara serah terima<select name="handover" required>
+      <label><span class="field-label">Cara serah terima<span class="req" aria-hidden="true"></span></span><select name="handover" required>
         <option value="">Pilih cara serah terima</option>
         <% for (const [value,label] of Object.entries(handoverLabels)) { %>
           <option value="<%= value %>" <%= handover===value?'selected':'' %>><%= label %></option>
@@ -40,7 +40,7 @@ const handover = quoteDraft?.handover ?? latest?.handover ?? inquiry.requested_h
         </div>
       </details>
     <% } %>
-    <label>Rincian pengerjaan dan pengambilan<textarea name="terms" minlength="5" maxlength="1000" rows="3" required><%= quoteDraft?.terms ?? latest?.terms ?? '' %></textarea></label>
+    <label><span class="field-label">Rincian pengerjaan dan pengambilan<span class="req" aria-hidden="true"></span></span><textarea name="terms" minlength="5" maxlength="1000" rows="3" required><%= quoteDraft?.terms ?? latest?.terms ?? '' %></textarea></label>
     <button>Kirim penawaran</button>
   </form>
 </section>

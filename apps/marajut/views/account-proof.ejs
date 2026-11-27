@@ -3,7 +3,7 @@
 <% if (!proof) { %>
   <form class="card stack" method="post" action="/akun/periksa">
     <input type="hidden" name="_csrf" value="<%= csrf %>">
-    <label>Kode dari email<input data-email-proof name="code" required minlength="64" maxlength="64" autocomplete="off" spellcheck="false"></label>
+    <label><span class="field-label">Kode dari email<span class="req" aria-hidden="true"></span></span><input data-email-proof name="code" required minlength="64" maxlength="64" autocomplete="off" spellcheck="false"></label>
     <button>Periksa tautan</button>
   </form>
 <% } else { %>
@@ -12,8 +12,8 @@
   <% if (proof.draft) { %><section class="card"><h2><%= proof.service %></h2><p><%= proof.business %></p><p class="preserve"><%= proof.draft.description %></p></section><% } %>
   <form class="card stack" method="post" action="/akun/konfirmasi">
     <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="code" value="<%= code %>">
-    <% if (!proof.existing && !recovery) { %><label>Nama Anda<input name="name" autocomplete="name" maxlength="80" required></label><% } %>
-    <label><%= proof.existing && !recovery ? 'Kata sandi akun Anda' : 'Kata sandi baru (minimal 12 karakter)' %>
+    <% if (!proof.existing && !recovery) { %><label><span class="field-label">Nama Anda<span class="req" aria-hidden="true"></span></span><input name="name" autocomplete="name" maxlength="80" required></label><% } %>
+    <label><span class="field-label"><%= proof.existing && !recovery ? 'Kata sandi akun Anda' : 'Kata sandi baru (minimal 12 karakter)' %><span class="req" aria-hidden="true"></span></span>
       <input name="password" type="password" minlength="12" maxlength="128" autocomplete="<%= proof.existing && !recovery ? 'current-password' : 'new-password' %>" required></label>
     <button><%= recovery ? 'Simpan kata sandi baru' : proof.draft ? 'Konfirmasi dan kirim permintaan' : proof.purpose==='invite' ? 'Terima undangan' : 'Aktifkan akun' %></button>
   </form>

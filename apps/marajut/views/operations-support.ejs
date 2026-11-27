@@ -11,7 +11,7 @@
 <% for (const review of reviews) { %><article class="ops-entry"><h3><%= review.service %> · <%= review.business %></h3>
 <p><%= statusLabel(review.status) %> · <%= dateTime(review.requested_at) %></p><p class="preserve"><%= review.reason %></p>
 <form class="stack" method="post" action="/api/v1/management/reviews/<%= review.id %>">
-<label>Catatan keputusan<textarea name="reason" minlength="5" maxlength="500" required></textarea></label><%- include('reauth') %>
+<label><span class="field-label">Catatan keputusan<span class="req" aria-hidden="true"></span></span><textarea name="reason" minlength="5" maxlength="500" required></textarea></label><%- include('reauth') %>
 <div class="actions"><button name="action" value="approve">Setujui pembatalan</button><button class="secondary" name="action" value="decline">Tolak pembatalan</button></div>
 </form></article><% } %></section>
 
@@ -22,15 +22,15 @@
           <h3><%= shop.name %></h3>
           <% if (shop.invited_until) { %><p>Undangan berlaku sampai <%= dateTime(shop.invited_until) %>.</p><% } %>
           <input type="hidden" name="businessId" value="<%= shop.id %>"><input type="hidden" name="revision" value="<%= shop.moderation_revision %>">
-          <label>Email penjahit<input type="email" name="email" required maxlength="254"></label>
+          <label><span class="field-label">Email penjahit<span class="req" aria-hidden="true"></span></span><input type="email" name="email" required maxlength="254"></label>
           <%- include('reauth') %><button>Kirim ulang undangan</button>
         </form>
       <% } %></details><% } %>
   </div><div class="stack">
 <details class="card"><summary>Undang pengguna ruang usaha lama</summary><form class="stack" action="/api/v1/management/invites" method="post">
-<label>Nama usaha<input name="name" required minlength="3" maxlength="80"></label><label>Area layanan<input name="area" required minlength="3" maxlength="100"></label>
-<label>Cerita usaha<textarea name="description" required minlength="10" maxlength="600"></textarea></label>
-<label>Email penjahit<input name="email" type="email" required maxlength="254"></label>
+<label><span class="field-label">Nama usaha<span class="req" aria-hidden="true"></span></span><input name="name" required minlength="3" maxlength="80"></label><label><span class="field-label">Area layanan<span class="req" aria-hidden="true"></span></span><input name="area" required minlength="3" maxlength="100"></label>
+<label><span class="field-label">Cerita usaha<span class="req" aria-hidden="true"></span></span><textarea name="description" required minlength="10" maxlength="600"></textarea></label>
+<label><span class="field-label">Email penjahit<span class="req" aria-hidden="true"></span></span><input name="email" type="email" required maxlength="254"></label>
 <%- include('reauth') %><button>Kirim undangan</button></form></details>
 <section class="card"><h2>Kesehatan pengiriman</h2><dl class="terms">
 <div><dt>Worker terakhir aktif</dt><dd><%= health.heartbeat ? dateTime(health.heartbeat):'Belum ada kabar' %></dd></div>
@@ -39,7 +39,7 @@
 <% if (!failures.length) { %><p>Antrean tinjauan notifikasi kosong.</p><% } %>
 <% for (const n of failures) { %><details class="ops-entry"><summary><%= n.purpose==='ORDER_READY'?'Siap diambil':'Penawaran' %> · <%= statusLabel(n.state) %></summary>
 <p>Simulasi · <%= dateTime(n.updated_at) %> · <%= n.attempts %> percobaan</p>
-<form class="stack" action="/api/v1/management/notices/<%= n.id %>" method="post"><label>Alasan tindak lanjut<input name="reason" minlength="5" maxlength="500" required></label>
+<form class="stack" action="/api/v1/management/notices/<%= n.id %>" method="post"><label><span class="field-label">Alasan tindak lanjut<span class="req" aria-hidden="true"></span></span><input name="reason" minlength="5" maxlength="500" required></label>
 <%- include('reauth') %><div class="actions"><button name="action" value="retry">Coba lagi</button><button class="secondary" name="action" value="close">Tutup pengiriman</button></div></form></details><% } %></section>
 <section class="card timeline"><h2>Riwayat pengelolaan</h2><% if (!events.length) { %><p>Belum ada keputusan tercatat.</p><% } %><ol>
 <% for (const e of events) { %><li><strong><%= eventLabel(e.action) %></strong><span><%= e.display_name %> · <%= dateTime(e.created_at) %></span><% if(e.reason) { %><p><%= e.reason %></p><% } %></li><% } %></ol></section>

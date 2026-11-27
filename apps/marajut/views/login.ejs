@@ -10,8 +10,8 @@
       <input type="hidden" name="_csrf" value="<%= csrf %>">
       <% if (nextPath) { %><input type="hidden" name="next" value="<%= nextPath %>"><% } %>
       <% if (shopLogin) { %><input type="hidden" name="ruang" value="usaha"><% } %>
-      <label>Email <input type="email" name="email" autocomplete="username" maxlength="254" required></label>
-      <label>Kata sandi <input type="password" name="password" autocomplete="current-password" maxlength="128" required></label>
+      <label><span class="field-label">Email<span class="req" aria-hidden="true"></span></span> <input type="email" name="email" autocomplete="username" maxlength="254" required></label>
+      <label><span class="field-label">Kata sandi<span class="req" aria-hidden="true"></span></span> <input type="password" name="password" autocomplete="current-password" maxlength="128" required></label>
       <button>Masuk <%- include('icon', {name:'arrow'}) %></button>
     </form>
     <div class="actions auth-links"><a href="/akun/lupa">Lupa kata sandi?</a><% if (!shopLogin) { %><a href="/akun/daftar">Daftar sebagai pelanggan</a><% } %></div>

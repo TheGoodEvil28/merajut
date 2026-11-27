@@ -6,7 +6,7 @@
   <% if (saved) { %><p class="notice" role="status">Profil tersimpan.</p><% } %>
   <form class="card stack" action="/akun/profil" method="post">
     <input type="hidden" name="_csrf" value="<%= csrf %>">
-    <label>Nama pelanggan<input name="name" minlength="2" maxlength="80" autocomplete="name" value="<%= profile.display_name %>" required></label>
+    <label><span class="field-label">Nama pelanggan<span class="req" aria-hidden="true"></span></span><input name="name" minlength="2" maxlength="80" autocomplete="name" value="<%= profile.display_name %>" required></label>
     <div><strong>Email terverifikasi</strong><p><%= profile.email %></p></div>
     <label>Nomor WhatsApp<input name="phone" type="tel" autocomplete="tel" maxlength="32" placeholder="0812 3456 7890" value="<%= profile.phone ?? '' %>"></label>
     <label>Alamat pengiriman <span class="label-optional">(untuk pesanan kirim)</span><textarea name="address" maxlength="400" autocomplete="street-address"><%= profile.address ?? '' %></textarea></label>

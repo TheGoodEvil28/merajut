@@ -75,7 +75,7 @@ const nextStep = order ? {
               <form method="post" action="<%= staffBase %>/orders/<%= order.id %>/transitions" class="stack">
                 <input type="hidden" name="_csrf" value="<%= csrf %>">
                 <input type="hidden" name="revision" value="<%= order.revision %>">
-                <label>Alasan pembatalan<textarea name="detail" maxlength="500" required></textarea></label>
+                <label><span class="field-label">Alasan pembatalan<span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" required></textarea></label>
                 <button name="action" value="cancel" class="secondary">Batalkan pesanan</button>
               </form>
             </details>
@@ -102,7 +102,7 @@ const nextStep = order ? {
               <form class="stack" method="post" action="/api/v1/inquiries/<%= inquiry.id %>/actions">
                 <input type="hidden" name="_csrf" value="<%= csrf %>">
                 <input type="hidden" name="revision" value="<%= inquiry.revision %>">
-                <label>Pertanyaan untuk penjahit<textarea name="detail" maxlength="500" required></textarea></label>
+                <label><span class="field-label">Pertanyaan untuk penjahit<span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" required></textarea></label>
                 <p class="muted">Penjahit perlu mengirimkan penawaran baru setelah menjawab pertanyaan ini.</p>
                 <button class="secondary" name="action" value="question">Kirim pertanyaan</button>
               </form>
@@ -129,10 +129,10 @@ const nextStep = order ? {
           <form class="stack" action="/api/v1/inquiries/<%= inquiry.id %>/actions" method="post">
             <input type="hidden" name="_csrf" value="<%= csrf %>">
             <input type="hidden" name="revision" value="<%= inquiry.revision %>">
-            <label>Catatan untuk pelanggan dan penjahit<textarea name="detail" rows="3" maxlength="500"></textarea></label>
+            <label><span class="field-label">Catatan untuk pelanggan dan penjahit<span class="req" aria-hidden="true"></span></span><textarea name="detail" rows="3" maxlength="500" required></textarea></label>
             <div class="actions">
               <% if (canManage) { %>
-                <% if (['NEW','EXPIRED'].includes(inquiry.status)) { %><button name="action" value="review" class="secondary">Mulai tinjau</button><% } %>
+                <% if (['NEW','EXPIRED'].includes(inquiry.status)) { %><button name="action" value="review" class="secondary" formnovalidate>Mulai tinjau</button><% } %>
                 <% if (['NEW', 'UNDER_REVIEW'].includes(inquiry.status)) { %><button name="action" value="clarify" class="secondary">Minta klarifikasi</button><% } %>
                 <button name="action" value="decline" class="secondary">Tolak permintaan</button>
               <% } else { %>

@@ -43,7 +43,7 @@ const actionPath = '/api/v1/intake/threads/' + thread.id + '/actions'; %>
                 <summary>Tautkan permintaan yang sudah ada</summary>
                 <form class="stack" method="post" action="<%= actionPath %>">
                   <input type="hidden" name="_csrf" value="<%= csrf %>">
-                  <label>ID permintaan<input name="inquiryId" maxlength="36" required></label>
+                  <label><span class="field-label">ID permintaan<span class="req" aria-hidden="true"></span></span><input name="inquiryId" maxlength="36" required></label>
                   <button class="secondary" name="kind" value="link">Tautkan permintaan</button>
                 </form>
               </details>
@@ -68,7 +68,7 @@ const actionPath = '/api/v1/intake/threads/' + thread.id + '/actions'; %>
           <h2>Tanggapi percakapan</h2>
           <form class="stack" method="post" action="<%= actionPath %>">
             <input type="hidden" name="_csrf" value="<%= csrf %>">
-            <label>Balasan<textarea name="text" maxlength="1500" rows="4" required></textarea></label>
+            <label><span class="field-label">Balasan<span class="req" aria-hidden="true"></span></span><textarea name="text" maxlength="1500" rows="4" required></textarea></label>
             <button name="kind" value="reply">Kirim balasan simulasi</button>
           </form>
           <form class="actions" method="post" action="<%= actionPath %>">

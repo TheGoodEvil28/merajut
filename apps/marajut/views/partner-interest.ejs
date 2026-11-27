@@ -3,9 +3,9 @@
 <% if (sent) { %><p class="notice" role="status">Pendaftaran diterima. Admin akan menghubungi Anda melalui WhatsApp untuk meninjau profil dan layanan.</p>
 <% } else { %><p>Admin mengelola profil dan pesanan Anda. Cantumkan nomor yang dapat dihubungi untuk koordinasi pekerjaan.</p>
 <form method="post" class="card stack" action="/mitra/daftar"><input type="hidden" name="_csrf" value="<%= csrf %>">
-<label>Nama usaha<input name="name" required minlength="3" maxlength="80"></label>
-<label>Area layanan<input name="area" required minlength="3" maxlength="100"></label>
-<label>Spesialisasi<input name="specialty" required minlength="2" maxlength="160"></label>
-<label>Nomor WhatsApp<input name="whatsapp" type="tel" autocomplete="tel" required maxlength="32"></label>
+<label><span class="field-label">Nama usaha<span class="req" aria-hidden="true"></span></span><input name="name" required minlength="3" maxlength="80"></label>
+<label><span class="field-label">Area layanan<span class="req" aria-hidden="true"></span></span><input name="area" required minlength="3" maxlength="100"></label>
+<label><span class="field-label">Spesialisasi<span class="req" aria-hidden="true"></span></span><input name="specialty" required minlength="2" maxlength="160"></label>
+<label><span class="field-label">Nomor WhatsApp<span class="req" aria-hidden="true"></span></span><input name="whatsapp" type="tel" autocomplete="tel" required maxlength="32"></label>
 <button>Kirim pendaftaran</button></form><% } %></section>
 <%- include('footer') %>

@@ -22,7 +22,7 @@
       <summary>Minta penyesuaian</summary>
       <form class="stack" method="post" action="/api/v1/inquiries/<%= inquiry.id %>/actions">
         <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
-        <label>Pesan untuk admin<textarea name="detail" rows="3" maxlength="500" required></textarea></label>
+        <label><span class="field-label">Pesan untuk admin<span class="req" aria-hidden="true"></span></span><textarea name="detail" rows="3" maxlength="500" required></textarea></label>
         <p class="form-help muted">Admin akan menindaklanjuti permintaan Anda dan mengirim versi penawaran baru.</p>
         <button class="secondary" name="action" value="question">Kirim permintaan penyesuaian</button>
       </form>

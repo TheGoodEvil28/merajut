@@ -59,7 +59,7 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
           <% if (journey.key==='NEEDS_DETAILS' && isCustomer) { %>
             <form class="stack" method="post" action="/api/v1/inquiries/<%= inquiry.id %>/actions">
               <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
-              <label>Jawaban untuk admin<textarea name="detail" maxlength="500" rows="3" required></textarea></label>
+              <label><span class="field-label">Jawaban untuk admin<span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" rows="3" required></textarea></label>
               <button name="action" value="respond">Kirim jawaban</button>
             </form>
           <% } %>
@@ -95,13 +95,13 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
           <% if (user.manager && open && ['NEW','UNDER_REVIEW'].includes(inquiry.status)) { %>
             <form class="stack" action="/api/v1/inquiries/<%= inquiry.id %>/actions" method="post">
               <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
-              <label>Pertanyaan untuk pelanggan<textarea name="detail" maxlength="500" rows="2" required></textarea></label>
+              <label><span class="field-label">Pertanyaan untuk pelanggan<span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" rows="2" required></textarea></label>
               <button class="secondary" name="action" value="clarify">Minta detail pelanggan</button>
             </form>
           <% } %>
           <form class="stack" method="post" action="<%= open?'/api/v1/inquiries/'+inquiry.id+'/actions':orderPath %>">
             <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= open?inquiry.revision:order.revision %>">
-            <label>Alasan <%= user.manager && open?'penutupan':'pembatalan' %><textarea name="detail" maxlength="500" rows="2" required></textarea></label>
+            <label><span class="field-label">Alasan <%= user.manager && open?'penutupan':'pembatalan' %><span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" rows="2" required></textarea></label>
             <button class="secondary" name="action" value="<%= user.manager && open?'decline':'cancel' %>"><%= user.manager && open?'Tutup permintaan':open?'Batalkan permintaan':'Batalkan pesanan' %></button>
           </form>
         </details>

@@ -691,3 +691,8 @@ button.danger:hover { background: #8a3322; }
 .card:has(> .desk-table) { padding: clamp(.85rem, 1.6vw, 1.15rem) clamp(.9rem, 1.8vw, 1.25rem); }
 .card > .desk-table:first-child table { margin-top: 0; }
 .card > h2 + .desk-table table { margin-top: .75rem; }
+
+/* Required fields: small red star after the label text (the star is aria-hidden; the field itself carries required). */
+.field-label { min-width: 0; }
+.req::before { content: "*"; margin-left: .2em; color: #b42318; font-weight: 700; } /* drawn in CSS so label text (and getByLabel) stays unchanged */
+.check-label .req::before { margin-left: .1em; }

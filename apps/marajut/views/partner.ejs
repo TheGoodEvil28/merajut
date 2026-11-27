@@ -15,12 +15,12 @@
         <input type="hidden" name="_csrf" value="<%= csrf %>">
         <% if (business) { %><input type="hidden" name="revision" value="<%= business.moderation_revision %>"><% } %>
         <div class="field-pair">
-          <label>Nama usaha<input name="name" required minlength="3" maxlength="80" value="<%= business?.name ?? '' %>"></label>
-          <label>Area layanan<input name="area" required minlength="3" maxlength="100" value="<%= business?.area ?? '' %>"></label>
+          <label><span class="field-label">Nama usaha<span class="req" aria-hidden="true"></span></span><input name="name" required minlength="3" maxlength="80" value="<%= business?.name ?? '' %>"></label>
+          <label><span class="field-label">Area layanan<span class="req" aria-hidden="true"></span></span><input name="area" required minlength="3" maxlength="100" value="<%= business?.area ?? '' %>"></label>
         </div>
-        <label>Spesialisasi<input name="specialty" required minlength="2" maxlength="160" value="<%= business?.specialty ?? '' %>"></label>
-        <label>Tentang penjahit<textarea name="description" required minlength="10" maxlength="600" rows="3"><%= business?.description ?? '' %></textarea></label>
-        <label>WhatsApp pribadi mitra<input name="whatsapp" type="tel" required maxlength="32" placeholder="0812 3456 7890" value="<%= business?.whatsapp ?? '' %>"></label>
+        <label><span class="field-label">Spesialisasi<span class="req" aria-hidden="true"></span></span><input name="specialty" required minlength="2" maxlength="160" value="<%= business?.specialty ?? '' %>"></label>
+        <label><span class="field-label">Tentang penjahit<span class="req" aria-hidden="true"></span></span><textarea name="description" required minlength="10" maxlength="600" rows="3"><%= business?.description ?? '' %></textarea></label>
+        <label><span class="field-label">WhatsApp pribadi mitra<span class="req" aria-hidden="true"></span></span><input name="whatsapp" type="tel" required maxlength="32" placeholder="0812 3456 7890" value="<%= business?.whatsapp ?? '' %>"></label>
         <p class="muted form-help">Kontak WhatsApp digunakan admin untuk koordinasi pesanan.</p>
         <button>Simpan mitra</button>
       </form>
@@ -48,7 +48,7 @@
           <summary><%= business.published?'Ubah publikasi':'Publikasikan profil' %></summary>
           <form class="stack" action="/api/v1/management/shops/<%= business.id %>" method="post">
             <input type="hidden" name="revision" value="<%= business.moderation_revision %>">
-            <label>Alasan perubahan<textarea name="reason" required minlength="5" maxlength="500" rows="2"></textarea></label>
+            <label><span class="field-label">Alasan perubahan<span class="req" aria-hidden="true"></span></span><textarea name="reason" required minlength="5" maxlength="500" rows="2"></textarea></label>
             <%- include('reauth') %>
             <button name="action" value="<%= business.published?'hide':'publish' %>"><%= business.published?'Sembunyikan profil':'Publikasikan profil' %></button>
           </form>
@@ -59,7 +59,7 @@
           <summary>Akses akun penjahit</summary><p><%= business.operator %></p>
           <form class="stack" action="/api/v1/management/shops/<%= business.id %>" method="post">
             <input type="hidden" name="revision" value="<%= business.moderation_revision %>">
-            <label>Alasan pencabutan<textarea name="reason" required minlength="5" maxlength="500" rows="2"></textarea></label>
+            <label><span class="field-label">Alasan pencabutan<span class="req" aria-hidden="true"></span></span><textarea name="reason" required minlength="5" maxlength="500" rows="2"></textarea></label>
             <%- include('reauth') %><button class="secondary" name="action" value="revoke">Cabut akses dan sembunyikan profil</button>
           </form>
         </details>
