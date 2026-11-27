@@ -5,3 +5,6 @@ node_modules/
 !.env.preview.example
 .preview-secrets/
 coverage/
+
+# Private local dev notes (contain demo password)
+DEV-LOCAL.md
