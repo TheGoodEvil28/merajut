@@ -901,3 +901,32 @@ Checks run with Playwright (Edge) as `operator@marajut.test` on the demo request
 - Screenshots were reviewed. The reassign partial rendered correctly in its normal, urgent and no-alternatives states. Templates compile, and `npm.cmd run check` passed.
 
 Not verified: real reassign, clarify or close submissions; the customer view of the reassign modal; and the smoke suite run.
+
+### Operasional: delivery health as a status button and popover · 27 November 2026 WIB
+
+The role affected is the admin operator (**Operasional** at `/pengelola/operasional`). Prerequisites: the dev-mode stack with the worker running (`npm.cmd run dev:worker`) and `operator@marajut.test`.
+
+The **Kesehatan pengiriman** card is removed from the page. In its place, a status button sits left of **Percakapan simulasi** in the header. Its coloured dot pulses like Tailwind `animate-pulse` (opacity 1 to 0.5 over 2 s, off with reduce motion):
+- green **Pengiriman normal** — worker seen in the last 5 minutes, nothing failed
+- amber **Worker tidak aktif** — no heartbeat for 5 minutes
+- red **N perlu ditinjau** — failed inbound messages, account emails, or notifications awaiting review
+
+Clicking the button opens a notification-style panel (native popover) anchored under it and right-aligned. It shows **Kesehatan pengiriman** with a ✕ and four rows with round icons: Worker terakhir aktif (time), Notifikasi dalam proses, Pesan masuk gagal, Email akun gagal. Each row is green, amber, plum or red by state. Then either "Antrean tinjauan notifikasi kosong" or the failed-notification entries, with their **Coba lagi** / **Tutup pengiriman** forms unchanged. The panel closes with ✕, Esc or an outside click. Browsers without CSS anchor positioning show it at the top right.
+
+1. With the worker running and no failures, expect the green **Pengiriman normal**. Open the panel and check the four rows.
+2. Stop the worker for over 5 minutes and reload. Expect amber **Worker tidak aktif** and an amber worker row.
+3. On a disposable stack with a failed notification, expect red **1 perlu ditinjau** and the entry inside the panel.
+
+Checks run with Playwright (Edge) as `operator@marajut.test`:
+- At 1280 px the green state shows, the panel opens under the button right-aligned (384 px wide) with four green rows, and ✕, Esc and an outside click each close it (screenshot reviewed).
+- At 375 px the panel is 343 px wide with 16 px margins.
+- Dot opacity samples 1.00 → 0.52 → 0.90 over 2 s, and the animation is `none` with reduced motion.
+- The template compiles, and `npm.cmd run check` passed.
+
+Not verified: the amber and red states (steps 2–3), Firefox and Safari positioning, and retry/close forms inside the panel.
+
+Update (same day): the status button is now styled as a chip, not a button: no border, a pill shape, a soft tinted background per state (green #e6f2ea, amber #fbefd9, red #fbe4e1) with matching text colour, 0.85 rem text, 40 px tall, and a slightly darker tint on hover. Checked with Playwright: border none, radius 999px, green tint and dark-green text, 40 px tall, the popover still opens on click, and a header screenshot was reviewed. Amber and red chips were not seen live.
+
+### Modal confirm buttons: primary colour · 27 November 2026 WIB
+
+Roles affected: all. Confirm buttons in every modal (logout **Ya, keluar**, cancel, close, revoke, hide, and the shared confirmation for crucial actions) now use the standard primary plum (`var(--plum)`, hover `#693955`) instead of clay red. The `danger` class stays in the markup as a marker for destructive actions. The red-outline opener buttons on pages (**Cabut akses**, **Batalkan permintaan**, **Tutup permintaan**) and the clay icon circle in modals are unchanged. Checked in the in-app browser as the synthetic tailor: the logout modal's **Ya, keluar** computes to rgb(81, 39, 70) (screenshot reviewed), and **Batal** closed it with the session kept.

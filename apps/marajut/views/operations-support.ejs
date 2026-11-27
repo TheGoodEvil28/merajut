@@ -2,8 +2,30 @@
 <section class="section admin-page">
   <header class="page-heading admin-heading">
     <div><h1>Operasional</h1><p>Tinjau pembatalan, notifikasi, dan aktivitas pengelolaan.</p></div>
-    <% if (intakeEnabled) { %><a class="button secondary" href="/workspace/intake">Percakapan simulasi <%- include('icon',{name:'chat'}) %></a><% } %>
+    <% const heartbeatAge = health.heartbeat ? Date.now() - new Date(health.heartbeat).getTime() : Infinity;
+       const failedTotal = Number(health.inbound_failed) + Number(health.mail_failed) + failures.length;
+       const workerIdle = heartbeatAge > 5 * 60 * 1000;
+       const healthTone = failedTotal ? 'bad' : workerIdle ? 'warn' : 'ok';
+       const healthLabel = failedTotal ? failedTotal + ' perlu ditinjau' : workerIdle ? 'Worker tidak aktif' : 'Pengiriman normal'; %>
+    <div class="actions heading-actions">
+      <button type="button" class="secondary health-status" data-tone="<%= healthTone %>" popovertarget="health-panel" aria-haspopup="dialog"><span class="status-dot" aria-hidden="true"></span><%= healthLabel %></button>
+      <% if (intakeEnabled) { %><a class="button secondary" href="/workspace/intake">Percakapan simulasi <%- include('icon',{name:'chat'}) %></a><% } %>
+    </div>
   </header>
+  <div id="health-panel" popover class="health-popover" role="dialog" aria-labelledby="health-title">
+    <div class="health-head"><h2 id="health-title">Kesehatan pengiriman</h2><button type="button" class="popover-close" popovertarget="health-panel" popovertargetaction="hide" aria-label="Tutup"></button></div>
+    <ul class="health-list">
+      <li data-tone="<%= workerIdle ? 'warn' : 'ok' %>"><span class="health-icon" aria-hidden="true"><%- include('icon',{name:'clock'}) %></span><span>Worker terakhir aktif<small><%= health.heartbeat ? dateTime(health.heartbeat) : 'Belum ada kabar' %></small></span></li>
+      <li data-tone="<%= Number(health.pending) ? 'info' : 'ok' %>"><span class="health-icon" aria-hidden="true"><%- include('icon',{name:'refresh'}) %></span><span>Notifikasi dalam proses</span><b><%= health.pending %></b></li>
+      <li data-tone="<%= Number(health.inbound_failed) ? 'bad' : 'ok' %>"><span class="health-icon" aria-hidden="true"><%- include('icon',{name:'chat'}) %></span><span>Pesan masuk gagal</span><b><%= health.inbound_failed %></b></li>
+      <li data-tone="<%= Number(health.mail_failed) ? 'bad' : 'ok' %>"><span class="health-icon" aria-hidden="true"><%- include('icon',{name:'inbox'}) %></span><span>Email akun gagal</span><b><%= health.mail_failed %></b></li>
+    </ul>
+    <% if (!failures.length) { %><p class="health-empty"><%- include('icon',{name:'check'}) %> Antrean tinjauan notifikasi kosong.</p><% } %>
+    <% for (const n of failures) { %><details class="ops-entry"><summary><%= n.purpose==='ORDER_READY'?'Siap diambil':'Penawaran' %> · <%= statusLabel(n.state) %></summary>
+<p>Simulasi · <%= dateTime(n.updated_at) %> · <%= n.attempts %> percobaan</p>
+<form class="stack" action="/api/v1/management/notices/<%= n.id %>" method="post"><label><span class="field-label">Alasan tindak lanjut<span class="req" aria-hidden="true"></span></span><input name="reason" minlength="5" maxlength="500" required></label>
+<%- include('reauth') %><div class="actions"><button name="action" value="retry">Coba lagi</button><button class="secondary" name="action" value="close" data-confirm="Notifikasi ini tidak akan dicoba dikirim lagi." data-confirm-title="Tutup pengiriman notifikasi?" data-confirm-action="Ya, tutup" data-confirm-icon="cancel" data-confirm-tone="danger">Tutup pengiriman</button></div></form></details><% } %>
+  </div>
   <% if (saved) { %><p class="save-feedback" role="status">Perubahan tercatat.</p><% } %>
   <div class="split"><div class="stack">
 <section class="card"><h2>Permohonan pembatalan</h2>
@@ -37,15 +59,6 @@
 <label><span class="field-label">Email penjahit<span class="req" aria-hidden="true"></span></span><input name="email" type="email" required maxlength="254" autocomplete="off"></label>
 <%- include('reauth') %>
 <div class="confirm-actions"><button type="button" class="secondary" data-dialog-close>Batal</button><button>Kirim undangan</button></div></form></dialog>
-<section class="card"><h2>Kesehatan pengiriman</h2><dl class="terms">
-<div><dt>Worker terakhir aktif</dt><dd><%= health.heartbeat ? dateTime(health.heartbeat):'Belum ada kabar' %></dd></div>
-<div><dt>Notifikasi dalam proses</dt><dd><%= health.pending %></dd></div>
-<div><dt>Pesan masuk gagal</dt><dd><%= health.inbound_failed %></dd></div><div><dt>Email akun gagal</dt><dd><%= health.mail_failed %></dd></div></dl>
-<% if (!failures.length) { %><p>Antrean tinjauan notifikasi kosong.</p><% } %>
-<% for (const n of failures) { %><details class="ops-entry"><summary><%= n.purpose==='ORDER_READY'?'Siap diambil':'Penawaran' %> · <%= statusLabel(n.state) %></summary>
-<p>Simulasi · <%= dateTime(n.updated_at) %> · <%= n.attempts %> percobaan</p>
-<form class="stack" action="/api/v1/management/notices/<%= n.id %>" method="post"><label><span class="field-label">Alasan tindak lanjut<span class="req" aria-hidden="true"></span></span><input name="reason" minlength="5" maxlength="500" required></label>
-<%- include('reauth') %><div class="actions"><button name="action" value="retry">Coba lagi</button><button class="secondary" name="action" value="close" data-confirm="Notifikasi ini tidak akan dicoba dikirim lagi." data-confirm-title="Tutup pengiriman notifikasi?" data-confirm-action="Ya, tutup" data-confirm-icon="cancel" data-confirm-tone="danger">Tutup pengiriman</button></div></form></details><% } %></section>
 <section class="card timeline"><h2>Riwayat pengelolaan</h2><% if (!events.length) { %><p>Belum ada keputusan tercatat.</p><% } %><ol>
 <% for (const e of events) { %><li><strong><%= eventLabel(e.action) %></strong><span><%= e.display_name %> · <%= dateTime(e.created_at) %></span><% if(e.reason) { %><p><%= e.reason %></p><% } %></li><% } %></ol></section>
 
