@@ -722,3 +722,29 @@ Checks run in the in-app browser as the synthetic operator at 375 px with `?filt
 ### Dashboard sidebar: full-width Keluar · 27 November 2026 WIB
 
 Roles affected are tailor and admin operator (desktop sidebar, 960 px and wider). **Keluar** at the bottom of the sidebar is now a full-width row (same width, left edge, padding and icon gap as the nav links) instead of a text-width button. Hovering highlights the whole row. It still opens the logout confirmation. The phone and tablet drawer already used a full-width **Keluar**. Checked in the in-app browser as the synthetic operator at 1024 px: the button and the nav links are both 184 px wide from the same left edge; a zoomed screenshot was reviewed. Not verified: the tailor sidebar (same rule) and the hover colour.
+
+### Operasional: invite old business users in a modal · 27 November 2026 WIB
+
+The role affected is the admin operator (**Operasional** at `/pengelola/operasional`). Prerequisites: the dev-mode stack and `operator@marajut.test`. Use a disposable stack if you will submit.
+
+The collapsible **Undang pengguna ruang usaha lama** form is replaced by a card **Pengguna ruang usaha lama** with a short explanation and a primary **Undang pengguna** button (plus icon). It opens the modal **Undang penjahit lama** with the same fields and endpoint: **Nama usaha**, **Area layanan**, **Cerita usaha**, **Email penjahit**, **Kata sandi pengelola**, plus **Batal** and **Kirim undangan**. Focus starts in **Nama usaha**. **Email penjahit** now has `autocomplete="off"`: the browser had been filling it with the signed-in admin's own email, as if it were the username for the password field below. **Batal** and Esc close the modal; a backdrop click does not.
+
+1. Open **Operasional**. The card shows **Undang pengguna** on one line. Open the modal and press **Kirim undangan** with empty fields: the browser asks for each required field and nothing is sent.
+2. With saved browser passwords, open the modal again. **Email penjahit** should stay empty (browsers may still offer suggestions on click).
+3. On a disposable stack, fill and submit. Expect the same result as before (draft profile plus invite email).
+
+Test change: `scripts/pilot-browser-smoke.js` now clicks the **Undang pengguna** button to open the modal. The rest of the step (locating the form by its **Kirim undangan** button and filling the fields) is unchanged.
+
+Checks run in the in-app browser as the synthetic operator, with nothing submitted:
+- The opener opened a true modal with focus in the name field and all 5 fields required; an empty submit was invalid (screenshot reviewed).
+- **Batal** and Esc closed the modal, and a backdrop click kept it open.
+- The opener is 44 px (one line) in the 290 px card, and it is the only button with that name.
+- The template compiles, and `npm.cmd run check` passed.
+
+Not verified: a real invite, whether Edge or Chrome honours `autocomplete="off"` here (step 2), the pilot smoke run, and 375 px.
+
+### Tailor pages: no back link · 27 November 2026 WIB
+
+The role affected is the tailor. Prerequisites: the dev-mode stack and `tailor@marajut.test`. **Layanan Saya**, **Profil Usaha** and **Chat simulasi** no longer show the **Ringkasan Usaha** back link (the sidebar or drawer already links to **Ringkasan**). Each page now starts with its title row at the top. On the chat page, customers keep **Pesanan Saya** and admin managers keep **Pesanan**, because they do not have the tailor sidebar.
+
+Checks run in the in-app browser: as the synthetic operator, `/workspace/intake` still has the back link **Pesanan** to `/pengelola`. After signing in as the synthetic tailor, `/workspace/services`, `/workspace/profile` and `/workspace/intake` have no back link, their first element is the title row, and the title is 26 px from the top. A screenshot of **Layanan Saya** was reviewed. `npm.cmd run check` passed. No smoke script uses these back links. Not verified: the customer chat page and phone widths.

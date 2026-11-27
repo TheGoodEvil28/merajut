@@ -1,6 +1,5 @@
 <%- include('header') %>
 <section class="section">
-  <a class="back" href="/workspace">Ringkasan Usaha</a>
   <div class="page-heading"><h1>Layanan Saya</h1>
     <% if (business.published) { %><a class="button secondary" href="/penjahit/<%= business.slug %>">Lihat profil publik</a><% } %></div>
   <p class="muted"><%= services.filter(service => service.active).length %> ditampilkan ·

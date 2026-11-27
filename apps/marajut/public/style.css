@@ -718,3 +718,7 @@ button.danger-outline:hover { color: #fff; background: var(--clay); border-color
   .studio-shell .nav-account form { width: 100%; }
   .studio-shell .site-header .nav-account .quiet { width: 100%; justify-content: flex-start; gap: .72rem; min-height: 44px; padding: .6rem .8rem; font-size: .95rem; }
 }
+
+/* Operasional: invite card stacks heading, text and the opener button. */
+.invite-card .section-caption { display: grid; justify-items: start; gap: .75rem; margin-bottom: 0; }
+.invite-card .section-caption p { margin-top: .35rem; }

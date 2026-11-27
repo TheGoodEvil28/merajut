@@ -27,11 +27,16 @@
         </form>
       <% } %></details><% } %>
   </div><div class="stack">
-<details class="card"><summary>Undang pengguna ruang usaha lama</summary><form class="stack" action="/api/v1/management/invites" method="post">
-<label><span class="field-label">Nama usaha<span class="req" aria-hidden="true"></span></span><input name="name" required minlength="3" maxlength="80"></label><label><span class="field-label">Area layanan<span class="req" aria-hidden="true"></span></span><input name="area" required minlength="3" maxlength="100"></label>
+<section class="card invite-card"><div class="section-caption"><div><h2>Pengguna ruang usaha lama</h2><p class="muted">Buat profil mitra dan kirim undangan masuk ke email penjahit.</p></div>
+<button type="button" command="show-modal" commandfor="invite-dialog"><%- include('icon',{name:'plus'}) %>Undang pengguna</button></div></section>
+<dialog class="confirm-dialog form-dialog" id="invite-dialog" aria-labelledby="invite-title"><form class="confirm-panel" action="/api/v1/management/invites" method="post">
+<span class="confirm-icon" aria-hidden="true"><%- include('icon',{name:'inbox'}) %></span><h2 id="invite-title">Undang penjahit lama</h2>
+<p>Profil usaha dibuat sebagai draf, lalu undangan masuk dikirim ke email penjahit.</p>
+<label><span class="field-label">Nama usaha<span class="req" aria-hidden="true"></span></span><input name="name" required minlength="3" maxlength="80" autofocus></label><label><span class="field-label">Area layanan<span class="req" aria-hidden="true"></span></span><input name="area" required minlength="3" maxlength="100"></label>
 <label><span class="field-label">Cerita usaha<span class="req" aria-hidden="true"></span></span><textarea name="description" required minlength="10" maxlength="600"></textarea></label>
-<label><span class="field-label">Email penjahit<span class="req" aria-hidden="true"></span></span><input name="email" type="email" required maxlength="254"></label>
-<%- include('reauth') %><button>Kirim undangan</button></form></details>
+<label><span class="field-label">Email penjahit<span class="req" aria-hidden="true"></span></span><input name="email" type="email" required maxlength="254" autocomplete="off"></label>
+<%- include('reauth') %>
+<div class="confirm-actions"><button type="button" class="secondary" data-dialog-close>Batal</button><button>Kirim undangan</button></div></form></dialog>
 <section class="card"><h2>Kesehatan pengiriman</h2><dl class="terms">
 <div><dt>Worker terakhir aktif</dt><dd><%= health.heartbeat ? dateTime(health.heartbeat):'Belum ada kabar' %></dd></div>
 <div><dt>Notifikasi dalam proses</dt><dd><%= health.pending %></dd></div>

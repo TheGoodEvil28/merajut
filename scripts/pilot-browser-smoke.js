@@ -89,7 +89,7 @@ try {
   await signIn(staff,'operator@marajut.test');
   await checkScreen(staff,'management');
   await staff.getByRole('link',{name:'Operasional',exact:true}).click();
-  await staff.getByText('Undang pengguna ruang usaha lama',{exact:true}).click();
+  await staff.getByRole('button',{name:'Undang pengguna',exact:true}).click(); // opens the invite modal
   const invite=staff.locator('form').filter({has:staff.getByRole('button',{name:'Kirim undangan',exact:true})});
   const business='Jahit Uji '+tag;
   await invite.getByLabel('Nama usaha').fill(business);

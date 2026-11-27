@@ -4,7 +4,7 @@
   AWAITING_HUMAN: 'Perlu ditangani', HUMAN: 'Sedang ditangani', RESOLVED: 'Percakapan selesai'
 }; %>
 <section class="section">
-  <% const backLink = user.role === 'provider' ? ['/workspace', 'Ringkasan Usaha'] : user.role === 'customer' ? ['/workspace', 'Pesanan Saya'] : user.manager ? ['/pengelola', 'Pesanan'] : null; %>
+  <% const backLink = user.role === 'provider' ? null : user.role === 'customer' ? ['/workspace', 'Pesanan Saya'] : user.manager ? ['/pengelola', 'Pesanan'] : null; %>
   <% if (backLink) { %><a class="back" href="<%= backLink[0] %>"><%= backLink[1] %></a><% } %>
   <div class="page-heading">
     <h1><%= user.role === 'customer' ? 'Simulasi WhatsApp' : 'Percakapan WhatsApp' %></h1>
