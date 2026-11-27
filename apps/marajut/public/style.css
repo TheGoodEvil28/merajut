@@ -154,7 +154,8 @@ button:disabled { cursor: not-allowed; opacity: .65; }
 .shop-identity .location { color: #f7e5ed; }
 .shop-mark { display: grid; place-items: center; width: 4rem; height: 4rem; background: var(--apricot); color: var(--plum); border-radius: 1rem; }
 .shop-mark .icon { width: 2.1rem; height: 2.1rem; }
-.service-setting > summary { display: grid; gap: .4rem; }
+.service-setting.card { padding: clamp(.9rem, 1.8vw, 1.2rem) clamp(1rem, 2.2vw, 1.4rem); } /* Layanan Saya cards: tighter than the default card */
+.service-setting > summary { display: grid; gap: .4rem; padding-block: 0; }
 .service-setting > summary::-webkit-details-marker { display: none; }
 .setting-top { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: .4rem; }
 .setting-top strong { font: 700 1.2rem/1.2 var(--display); overflow-wrap: anywhere; }
@@ -220,8 +221,8 @@ a:hover > .dir:not(.dir-up, .dir-down) .icon { transform: translateX(3px); }
 .queue-empty { padding: 1.25rem; background: #f6e3e8; border: 1px solid #e6c4ce; color: var(--plum); border-radius: .7rem; overflow-wrap: anywhere; }
 .queue-empty > .icon { color: var(--plum); margin-right: .45rem; }
 .queue-empty p { margin: .35rem 0 0; color: var(--muted); }
-.other-queues summary, .order-group h2 { font: 700 1.35rem/1.15 var(--display); letter-spacing: -.035em; }
-.other-queues summary { min-height: 44px; align-content: center; }
+.other-queues h2, .order-group h2 { font: 700 1.35rem/1.15 var(--display); letter-spacing: -.035em; }
+.other-queues h2 { margin: 0 0 .6rem; }
 .other-queues a { display: flex; gap: .6rem; align-items: center; min-height: 50px; padding: .45rem .12rem; border-top: 1px solid var(--line); font-size: .88rem; font-weight: 630; color: var(--ink); text-decoration: none; }
 .other-queues a span { overflow-wrap: anywhere; }
 .other-queues a .icon { color: var(--muted); }
@@ -361,8 +362,8 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
   .work-banner { padding-bottom: 1rem; margin-bottom: 1rem; }
   .work-summary h2 { margin-bottom: .65rem; }
   .work-layout { gap: .8rem; }
-  .other-queues { grid-row: 1; padding: .05rem .85rem; }
-  .other-queues summary { font-size: 1rem; }
+  .other-queues { padding: .9rem .85rem .35rem; }
+  .other-queues h2 { font-size: 1.15rem; }
   .other-queues a { min-height: 44px; font-size: .85rem; }
   .other-queues a[aria-current] { border-color: currentColor; }
   .auth-panel { grid-template-columns: 1fr; max-width: 27rem; }
@@ -537,6 +538,9 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
 .desk-pagination { padding-top: 1rem; }
 .desk-table { overflow-x: auto; }
 .desk-table td { font-variant-numeric: tabular-nums; }
+.desk-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.service-performance h2 { margin: 0; }
+.service-performance .desk-table caption { color: var(--muted); font-size: .88rem; }
 .partner-directory { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,17rem),1fr)); gap: 1rem; }
 .partner-directory .card { padding: 1.15rem; align-content: start; }
 .partner-directory .card h2 { font-size: 1.35rem; }
@@ -634,4 +638,29 @@ button.danger:hover { background: #8a3322; }
 }
 @media (max-width: 959px) and (prefers-reduced-motion: reduce) {
   .studio-shell .nav-drawer, .nav-scrim { transition: none; }
+}
+
+/* Custom dropdown: native <select> styled with customizable select (appearance: base-select).
+   Keeps form submission, keyboard and screen-reader behaviour; browsers without support keep the plain select above. */
+@supports (appearance: base-select) {
+  select, ::picker(select) { appearance: base-select; }
+  select { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding-right: .75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background-image: none; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
+  select:hover { border-color: var(--plum); }
+  select:open { border-color: var(--plum); box-shadow: 0 0 0 3px rgb(81 39 70 / .12); }
+  select::picker-icon { content: ""; flex: none; width: 1.1rem; height: 1.1rem; background: var(--plum); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; transition: rotate .2s ease; }
+  select:open::picker-icon { rotate: 180deg; }
+  ::picker(select) { margin-block: .35rem; padding: .35rem; border: 1px solid var(--line); border-radius: .85rem; background: var(--surface); color: var(--ink); box-shadow: 0 18px 40px rgb(49 39 46 / .16), 0 2px 6px rgb(49 39 46 / .08); max-height: min(22rem, 60vh); overflow-y: auto;
+    opacity: 0; translate: 0 -6px; transition: opacity .16s ease, translate .16s ease, display .16s allow-discrete, overlay .16s allow-discrete; }
+  ::picker(select):popover-open { opacity: 1; translate: 0 0; }
+  @starting-style { ::picker(select):popover-open { opacity: 0; translate: 0 -6px; } }
+  select option { display: flex; align-items: center; gap: .6rem; min-height: 44px; padding: .55rem .75rem; border-radius: .55rem; cursor: pointer; }
+  select option:hover, select option:focus-visible { background: #f2e8eb; color: var(--plum); outline: none; }
+  select option:checked { background: #f6e3e8; color: var(--plum); font-weight: 650; }
+  select option::checkmark { content: ""; order: 1; margin-left: auto; width: 1rem; height: 1rem; background: var(--clay); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5 10 17 19 7'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5 10 17 19 7'/%3E%3C/svg%3E") center / contain no-repeat; }
+  select option:disabled { color: var(--muted); cursor: not-allowed; }
+  select optgroup { padding-top: .35rem; color: var(--muted); font-size: .8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  select optgroup option { color: var(--ink); font-size: 1rem; font-weight: 400; letter-spacing: 0; text-transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::picker(select), select::picker-icon { transition: none; }
 }

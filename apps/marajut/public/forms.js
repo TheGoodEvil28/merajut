@@ -2,7 +2,7 @@ const money = new Intl.NumberFormat('id-ID', {
   style: 'currency', currency: 'IDR', maximumFractionDigits: 0
 });
 
-for (const [selector, breakpoint] of [['[data-queue-menu]',720],['[data-desk-filter-menu]',680]]) {
+for (const [selector, breakpoint] of [['[data-desk-filter-menu]',680]]) {
   const menu = document.querySelector(selector);
   if (!menu) continue;
   const compact = window.matchMedia('(max-width: '+breakpoint+'px)');

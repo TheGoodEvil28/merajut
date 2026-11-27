@@ -519,3 +519,61 @@ Roles affected are guest, customer, tailor and admin operator. Every `.back` lin
 Checks run in the in-app browser, as the synthetic tailor: on `/workspace/services` the `::before` has empty content, an 18 px masked icon in the link colour, and a zoomed screenshot shows the drawn arrow. There are no console or CSP errors. `/penjahit/jahit-rina` renders the back link as "Cari Penjahit". Searched `scripts/`, `tests/` and `docs/` for "←" and found none, so no test matched the old name. `npm.cmd run check` passed. Other unicode arrows (↑ ↓ → in the landing steps and the service editor toggle) are not back links and were left unchanged.
 
 Not verified: customer, admin and account pages visually, Safari and Firefox mask rendering, and Windows High Contrast mode, where masked icons can disappear.
+
+### Icon arrows everywhere and custom dropdowns · 27 November 2026 WIB
+
+Roles affected are guest, customer, tailor and admin operator. Prerequisites: the dev-mode stack and synthetic accounts. Hard refresh (Ctrl+F5) first.
+
+**Arrows.** No unicode arrows remain in `apps/marajut`.
+- The landing links **Bagaimana cara memesan?** (down), **Jelajahi layanan** (up), **Buka simulasi WhatsApp** and **Lihat pesanan saya** (right) use the site arrow icon. Hovering a right arrow nudges it.
+- The **Ubah layanan** toggle on **Layanan Saya** shows a down arrow that rotates up when the editor is open.
+
+**Dropdowns.** All 8 `<select>` fields stay native selects, restyled with CSS customizable select (`appearance: base-select`):
+- service picker and handover fields in **Minta penawaran**
+- category and visibility in **Layanan Saya**
+- handover in the quote editor
+- admin reassign (with groups)
+- chat simulation service
+
+Browsers without support keep the previous plain select. Form values, `change` events and the service hint script are unchanged.
+
+1. As a tailor open **Layanan Saya → Tambah layanan → Kategori layanan**. Expect a one-line field with a plum chevron. Click it: the chevron flips, and a rounded card with a soft shadow fades and slides in under the field. Rows are 44 px tall with a plum hover. The current choice has a pink background and a clay check at the right.
+2. Pick an option with the mouse, and with the keyboard (Enter or Space to open, arrow keys, Enter to choose, Esc to close). The field shows the new value.
+3. As a customer on **Minta penawaran**, change **Penjahit dan layanan**. The guidance hint under it still updates. Submit a request and confirm the chosen handover and fitting values are saved.
+4. As an admin on a reassign page, open **Layanan pengganti**. Group labels show in small uppercase muted text above their options.
+5. At 375 px the popup fits the screen and scrolls when long (max 60% of the viewport height).
+6. In Firefox or Safari (if no `base-select` support), the old select style appears and works.
+
+Checks run in the in-app browser (Chromium 156, `base-select` supported), as the synthetic tailor on **Layanan Saya**, without submitting the form:
+- The select computes `appearance: base-select` and the popup screenshot was reviewed.
+- Long values stay on one 45 px line.
+- Mouse choice set `repair` and keyboard choice set `custom`, each firing one `change` event.
+- The **Ubah layanan** arrow is an icon rotated 90°.
+- A landing screenshot shows the icon arrows.
+- `npm.cmd run check` passed. The smoke scripts use Playwright `selectOption`, which sets values directly.
+
+Not verified: the customer request form and its hint script, the admin grouped select, the quote editor, 375 px, Firefox and Safari fallbacks, screen readers, and the browser smoke suites.
+
+### Tailor overview: open queue panel and performance table · 27 November 2026 WIB
+
+The role affected is the tailor (**Ringkasan** at `/workspace`). Prerequisites: the dev-mode stack, demo seed and `tailor@marajut.test`.
+
+1. Open **Ringkasan** at desktop width. **Antrean lain** is a fixed card with a heading and no ▼ toggle. It always lists **Butuh klarifikasi**, **Menunggu persetujuan** and **Riwayat** with counts. Each link still opens its queue.
+2. Below it, **Kinerja layanan saya** is a fixed card (not collapsible) with a table: **Layanan**, **Permintaan**, **Diterima**, **Selesai** and **Bagian mitra**. The caption reads "Seluruh periode · bagian mitra dari pembayaran terverifikasi". Numbers are right-aligned. It uses the same table style as the admin **Kinerja** page.
+3. At 375 px **Antrean lain** is open (it no longer folds shut on phones) and sits below **Perlu tindakan**. The table scrolls sideways inside its card, and the page itself does not scroll sideways. The table region can be focused with Tab and scrolled with the arrow keys.
+
+Code and test changes: `provider-workspace.ejs` uses `<section>` plus `<h2>` for both blocks. `forms.js` no longer collapses `[data-queue-menu]` (the admin desk filter still collapses at 680 px). `scripts/browser-smoke.js` waits for the **Antrean lain** heading and no longer clicks a summary before choosing a queue.
+
+Checks run in the in-app browser as the synthetic tailor:
+- No `<details>` remains in either block.
+- The heading and 3 queue links are present, and the table headers and two seeded rows (all zero) are correct, with numbers right-aligned. The desktop screenshot was reviewed.
+- At 375 px all 3 queue links are visible, there is no page overflow, and the table scrolls inside its box (495 px of content in 297 px). The screenshot was reviewed.
+- `npm.cmd run check` passed.
+
+Not verified: queue links clicked after this change, the table with real non-zero data and long service names, keyboard scrolling of the table region, and the browser smoke suite run.
+
+### Layanan Saya: tighter service cards · 27 November 2026 WIB
+
+The role affected is the tailor (**Layanan Saya** at `/workspace/services`). Prerequisites: the dev-mode stack and `tailor@marajut.test`. Open **Layanan Saya**. Each service card (for example **Ganti ritsleting**) has smaller padding: about 18 px top/bottom and 22 px left/right at desktop width (from about 31 px), with no extra space above the title. Select **Ubah layanan**. The editor still opens below a divider with normal spacing. The **Tambah layanan** card and every other card keep the default padding.
+
+Checks run in the in-app browser: computed padding of the service card (18.4 px / 22.4 px) against another card (30.7 px); a desktop screenshot; one card opened by script to measure the gap from the summary to the editor form. Not verified: 375 px, and saving an edit.

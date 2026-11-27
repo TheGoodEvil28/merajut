@@ -132,9 +132,8 @@ try {
   await tailor.setViewportSize({ width: 360, height: 800 });
   assert.equal(await tailor.evaluate(() => document.documentElement.scrollWidth), 360);
   const queueMenu = tailor.locator('[data-queue-menu]');
-  await queueMenu.and(tailor.locator('details:not([open])')).waitFor({ timeout: 5000 });
+  await queueMenu.getByRole('heading', { name: 'Antrean lain', exact: true }).waitFor(); // always expanded, also on phones
   if (screenshotDir) await tailor.screenshot({ path: screenshotDir + '/workspace-mobile.png', fullPage: true });
-  await queueMenu.getByText('Antrean lain', { exact: true }).click();
   await queueMenu.locator('[data-queue="clarify"]').click();
   await tailor.getByRole('heading', { name: 'Butuh klarifikasi', exact: true }).waitFor();
   await (await dashboardNav(tailor)).getByRole('link', { name: 'Layanan Saya' }).click();

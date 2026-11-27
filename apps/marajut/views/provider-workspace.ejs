@@ -8,7 +8,7 @@
     <% } else { %><span class="status">Profil belum dipublikasikan</span><% } %>
   </header>
   <section aria-labelledby="summary-title" class="work-summary">
-    <h2 id="summary-title">Ringkasan pekerjaan</h2>
+    <!-- <h2 id="summary-title">Ringkasan pekerjaan</h2> -->
     <div class="queue-metrics">
       <% for (const key of ['inbox', ...(intakeEnabled ? ['handoffs'] : []), 'work','ready']) { %>
         <a class="queue-metric" href="/workspace?view=<%= key %>#antrean" data-queue="<%= key %>" <% if (view === key) { %>aria-current="true"<% } %>>
@@ -55,19 +55,25 @@
         </nav>
       <% } %>
     </section>
-    <details class="card other-queues" data-queue-menu open>
-      <summary>Antrean lain</summary>
+    <section class="card other-queues" data-queue-menu aria-labelledby="other-queues-title">
+      <h2 id="other-queues-title">Antrean lain</h2>
       <% for (const key of ['clarify','quotes','history']) { %>
         <a data-queue="<%= key %>" href="/workspace?view=<%= key %>#antrean" <% if (view === key) { %>aria-current="true"<% } %>>
           <%- include('icon', {name:glyphs[key] ?? 'clock'}) %><span><%= queues[key].label %></span><b><%= counts[key] ?? 0 %></b>
         </a>
       <% } %>
-    </details>
+    </section>
   </div>
-  <% if (view==='overview' && performance.length) { %><details class="card"><summary>Kinerja layanan saya</summary>
-    <ul class="record-list"><% for (const row of performance) { %><li><strong><%= row.service %></strong>
-      <p><%= row.requests %> permintaan · <%= row.accepted %> diterima · <%= row.completed %> selesai</p>
-      <p>Bagian mitra dari pembayaran terverifikasi · <%= money(row.partner_net) %></p></li><% } %></ul>
-  </details><% } %>
+  <% if (view==='overview' && performance.length) { %><section class="card service-performance" aria-labelledby="performance-title">
+    <h2 id="performance-title">Kinerja layanan saya</h2>
+    <div class="desk-table" tabindex="0" role="region" aria-labelledby="performance-title">
+      <table><caption>Seluruh periode</caption>
+        <thead><tr><th scope="col">Layanan</th><th scope="col" class="num">Permintaan</th><th scope="col" class="num">Diterima</th><th scope="col" class="num">Selesai</th><th scope="col" class="num">Bagian mitra</th></tr></thead>
+        <tbody><% for (const row of performance) { %>
+          <tr><th scope="row"><%= row.service %></th><td class="num"><%= row.requests %></td><td class="num"><%= row.accepted %></td><td class="num"><%= row.completed %></td><td class="num"><%= money(row.partner_net) %></td></tr>
+        <% } %></tbody>
+      </table>
+    </div>
+  </section><% } %>
 </section>
 <%- include('footer') %>
