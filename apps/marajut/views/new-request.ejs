@@ -49,14 +49,14 @@ const total = selected?.price_hint && Number.isInteger(count) && count>=1 && cou
           </select></label>
         </div>
         <p class="form-help muted">Anda dapat menambahkan foto referensi setelah mengirim atau menyimpan draf.</p>
-        <div class="mobile-estimate price-highlight"><span>Perkiraan awal</span>
+        <div class="mobile-estimate price-highlight" <%= selected ? '' : 'hidden' %>><span>Perkiraan awal</span>
           <output form="request-intake" for="intake-service intake-quantity" data-request-estimate aria-label="Perkiraan awal di formulir"><%= total ? money(total) : selected ? 'Sesuai penawaran' : 'Pilih layanan' %></output>
         </div>
         <button><%= user?'Kirim permintaan':'Simpan draf dan verifikasi email' %></button>
       </form>
       <aside class="card order-summary" aria-labelledby="estimate-title">
         <h2 id="estimate-title">Perkiraan awal</h2>
-        <div class="price-highlight desktop-estimate"><output data-request-estimate aria-label="Perkiraan total"><%= total ? money(total) : selected ? 'Sesuai penawaran' : 'Pilih layanan' %></output></div>
+        <div class="price-highlight desktop-estimate" <%= selected ? '' : 'hidden' %>><output data-request-estimate aria-label="Perkiraan total"><%= total ? money(total) : selected ? 'Sesuai penawaran' : 'Pilih layanan' %></output></div>
         <p>Perkiraan dihitung dari harga awal layanan dan jumlah pakaian. Anda akan meninjau harga akhir sebelum memesan.</p>
         <ol class="request-next">
           <li>Admin menghubungi penjahit.</li>

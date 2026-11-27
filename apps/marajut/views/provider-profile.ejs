@@ -4,7 +4,13 @@
     <% if (business.published) { %><a class="button secondary" href="/penjahit/<%= business.slug %>">Lihat profil publik</a><% } %>
   </div>
   <% if (saved) { %><p class="notice" role="status">Profil usaha berhasil disimpan.</p><% } %>
-  <div class="split">
+  <div class="stack profile-layout">
+    <aside class="card profile-info" aria-labelledby="profile-info-title">
+      <h2 id="profile-info-title">Tampilan untuk pelanggan</h2>
+      <p>Pelanggan melihat nama usaha, area layanan, cerita usaha, dan layanan yang Anda tampilkan.</p>
+      <p>Gunakan keterangan publik. Hindari mencantumkan alamat rumah atau kontak pribadi.</p>
+      <% if (!business.published) { %><p class="notice">Profil belum dipublikasikan oleh pengelola Marajut.</p><% } %>
+    </aside>
     <form class="card stack" method="post" action="/api/v1/provider/profile">
       <input type="hidden" name="_csrf" value="<%= csrf %>">
       <label><span class="field-label">Nama usaha<span class="req" aria-hidden="true"></span></span><input name="name" value="<%= business.name %>" minlength="3" maxlength="80" required></label>
@@ -16,12 +22,6 @@
       <p class="muted form-help" id="description-help">Jelaskan jenis jahitan dan cara pelanggan dapat menyiapkan permintaan.</p>
       <button>Simpan profil</button>
     </form>
-    <aside class="card">
-      <h2>Tampilan untuk pelanggan</h2>
-      <p>Pelanggan melihat nama usaha, area layanan, cerita usaha, dan layanan yang Anda tampilkan.</p>
-      <p>Gunakan keterangan publik. Hindari mencantumkan alamat rumah atau kontak pribadi.</p>
-      <% if (!business.published) { %><p class="notice">Profil belum dipublikasikan oleh pengelola Marajut.</p><% } %>
-    </aside>
   </div>
 </section>
 <%- include('footer') %>

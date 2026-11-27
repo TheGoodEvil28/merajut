@@ -89,7 +89,8 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
       <% if (showHandover) { %><%- include('managed-handover',{isCustomer}) %><% } %>
       <% if (hasPayment) { %><%- include('order-payment') %><% } %>
       <% if (user.manager && !dispatchFirst && (open || progressAction || order?.status==='READY')) { %><%- include('managed-dispatch') %><% } %>
-      <% if (open || (user.manager && order?.status==='CONFIRMED')) { %>
+      <% if (isCustomer) { %><%# customer cancel card lives in the right column %>
+      <% } else if (open || (user.manager && order?.status==='CONFIRMED')) { %>
         <details class="card workflow-options">
           <summary><%= user.manager?'Tindakan lain':'Batalkan permintaan' %></summary>
           <% if (user.manager && open && ['NEW','UNDER_REVIEW'].includes(inquiry.status)) { %>
@@ -106,6 +107,16 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
           </form>
         </details>
       <% } %>
+      <% if (isCustomer) { %>
+      <%- include('inquiry-photos') %>
+      <section class="card timeline history-card" aria-labelledby="history-title"><h2 id="history-title">Riwayat aktivitas</h2>
+        <ol><% for (const item of shownEvents) { %><li>
+          <strong><%= eventLabel(item.kind) %></strong>
+          <time datetime="<%= item.created_at.toISOString() %>"><%= dateTime(item.created_at) %></time>
+          <% if (item.detail) { %><p class="preserve"><%= item.detail %></p><% } %>
+        </li><% } %></ol>
+      </section>
+      <% } %>
     </div>
     <div class="stack">
       <section class="card order-summary" aria-labelledby="summary-title">
@@ -115,6 +126,10 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
           <strong><%= order ? money(order.amount) : inquiry.estimate ? money(inquiry.estimate) : 'Sesuai penawaran' %></strong>
         </div>
         <% if (!order) { %><p class="muted">Harga akhir mengikuti penawaran yang Anda setujui.</p><% } %>
+        <div class="summary-detail" id="detail" tabindex="-1">
+          <h3>Detail permintaan</h3><p class="preserve"><%= inquiry.description %></p>
+          <% if (inquiry.fit_notes) { %><p class="preserve"><strong>Catatan ukuran</strong><br><%= inquiry.fit_notes %></p><% } %>
+        </div>
         <dl class="summary-list">
           <div><dt>Penjahit</dt><dd><% if (inquiry.published) { %><a href="/penjahit/<%= inquiry.slug %>"><%= inquiry.business %></a><% } else { %><%= inquiry.business %><% } %></dd></div>
           <div><dt>Jumlah pakaian</dt><dd><%= inquiry.quantity ?? 1 %></dd></div>
@@ -135,11 +150,21 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
           <% } %>
         </div><% } %>
       </section>
-      <section class="card workflow-card" id="detail" tabindex="-1">
-        <h2>Detail permintaan</h2><p class="preserve"><%= inquiry.description %></p>
-        <% if (inquiry.fit_notes) { %><p class="preserve"><strong>Catatan ukuran</strong><br><%= inquiry.fit_notes %></p><% } %>
-      </section>
-      <%- include('inquiry-photos') %>
+      <% if (isCustomer && open) { %>
+        <section class="card cancel-card" aria-labelledby="cancel-title"><div class="section-caption"><div><h2 id="cancel-title">Tidak jadi menjahit?</h2><p class="muted">Anda bisa membatalkan selama permintaan belum menjadi pesanan.</p></div>
+          <button type="button" class="secondary danger-outline" command="show-modal" commandfor="cancel-dialog"><%- include('icon',{name:'cancel'}) %>Batalkan permintaan</button></div></section>
+        <dialog class="confirm-dialog form-dialog" id="cancel-dialog" aria-labelledby="cancel-dialog-title">
+          <form class="confirm-panel" method="post" action="/api/v1/inquiries/<%= inquiry.id %>/actions">
+            <span class="confirm-icon" aria-hidden="true"><%- include('icon',{name:'cancel'}) %></span>
+            <h2 id="cancel-dialog-title">Batalkan permintaan?</h2>
+            <p>Permintaan ditutup dan tidak akan diproses. Tindakan ini tidak bisa dibatalkan.</p>
+            <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+            <label><span class="field-label">Alasan pembatalan<span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" rows="3" required autofocus></textarea></label>
+            <div class="confirm-actions"><button type="button" class="secondary" data-dialog-close>Batal</button><button class="danger" name="action" value="cancel">Ya, batalkan</button></div>
+          </form>
+        </dialog>
+      <% } %>
+      <% if (!isCustomer) { %><%- include('inquiry-photos') %><% } %>
       <% if (quotes.length>1) { %>
         <details class="card workflow-options"><summary>Versi penawaran sebelumnya</summary>
           <ul class="quote-history"><% for (const quote of quotes.slice(1)) { %><li>
@@ -149,13 +174,13 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
         </details>
       <% } %>
       <% if (conversation && intakeEnabled) { %><p><a href="/workspace/intake/<%= conversation.id %>">Buka percakapan simulasi</a></p><% } %>
-      <details class="card timeline workflow-options"><summary>Riwayat aktivitas</summary>
+      <% if (!isCustomer) { %><details class="card timeline workflow-options"><summary>Riwayat aktivitas</summary>
         <ol><% for (const item of shownEvents) { %><li>
           <strong><%= eventLabel(item.kind) %></strong>
           <time datetime="<%= item.created_at.toISOString() %>"><%= dateTime(item.created_at) %></time>
           <% if (item.detail) { %><p class="preserve"><%= item.detail %></p><% } %>
         </li><% } %></ol>
-      </details>
+      </details><% } %>
     </div>
   </div>
 </section>

@@ -722,3 +722,48 @@ button.danger-outline:hover { color: #fff; background: var(--clay); border-color
 /* Operasional: invite card stacks heading, text and the opener button. */
 .invite-card .section-caption { display: grid; justify-items: start; gap: .75rem; margin-bottom: 0; }
 .invite-card .section-caption p { margin-top: .35rem; }
+
+/* Modals: thin rounded plum scrollbar (same look as the filter chips), kept inside the rounded corners. */
+.confirm-dialog::-webkit-scrollbar { width: 6px; }
+.confirm-dialog::-webkit-scrollbar-track { background: transparent; margin-block: 1rem; }
+.confirm-dialog::-webkit-scrollbar-thumb { background: #cfb0c2; border-radius: 999px; }
+.confirm-dialog::-webkit-scrollbar-thumb:hover { background: var(--plum); }
+@supports not selector(::-webkit-scrollbar) { .confirm-dialog { scrollbar-width: thin; scrollbar-color: #cfb0c2 transparent; } }
+/* A scrollable modal can take keyboard focus itself; show the site focus glow instead of the browser's dark ring. */
+.confirm-dialog:focus-visible { outline: none; box-shadow: 0 24px 60px rgb(49 39 46 / .28), 0 0 0 3px rgb(189 87 40 / .45); }
+
+/* Dashboard page titles: tailor pages use the same size as the admin pages. */
+.studio-shell main h1 { font-size: clamp(2rem, 4vw, 3.25rem); }
+
+/* Profil Usaha: info card on top, form below, one readable column. */
+.profile-layout { max-width: 52rem; }
+.profile-info h2 { font-size: 1.2rem; margin-bottom: .4rem; }
+.profile-info p { margin-bottom: .35rem; color: var(--muted); }
+.profile-info p:last-child { margin-bottom: 0; }
+
+/* Customer request page: open history card and slim cancel card. */
+.history-card h2 { font-size: 1.2rem; margin: 0 0 .6rem; }
+.cancel-card .section-caption { margin-bottom: 0; align-items: center; }
+.cancel-card h2 { font-size: 1.15rem; }
+.cancel-card .section-caption p { margin-top: .25rem; }
+
+/* Request summary: the customer's description sits under the price. */
+.summary-detail { margin: .25rem 0 .75rem; padding: .8rem 0 0; border-top: 1px solid var(--line); scroll-margin-top: 6rem; }
+.summary-detail h3 { font-size: .95rem; margin: 0 0 .3rem; color: var(--muted); }
+.summary-detail p { margin: 0 0 .4rem; }
+.summary-detail:focus { outline: none; }
+
+/* Public shop banner: plum-to-magenta gradient, completed-orders pill, large faint shop icon cropped at the corner. */
+.shop-identity { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 1rem 1.5rem; padding: clamp(1.5rem, 4vw, 2.75rem) clamp(1.5rem, 4.5vw, 3.25rem); border: 0; border-radius: 1rem; background: linear-gradient(90deg, #4f2747 0%, #5c1d53 55%, #6c1159 100%); color: #fff; }
+.shop-identity .shop-copy { position: relative; z-index: 1; min-width: 0; }
+.shop-identity .location { display: flex; align-items: center; gap: .35rem; margin: 0 0 .5rem; color: #f3dbe8; font-size: .9rem; font-weight: 500; }
+.shop-identity h1 { margin: 0 0 .45rem; color: #fff; font-size: clamp(2.2rem, 5vw, 3.6rem); letter-spacing: -.04em; }
+.shop-identity .shop-description { max-width: 60ch; margin: 0; color: #f6e6ef; font-size: 1.05rem; }
+.shop-identity .shop-specialty { margin: .6rem 0 0; color: #f3dbe8; font-size: .92rem; }
+.shop-badge { position: relative; z-index: 1; justify-self: end; margin: 0; padding: .35rem .95rem; border-radius: 999px; background: #ffd6ea; color: var(--plum); font-size: .85rem; font-weight: 700; white-space: nowrap; }
+.shop-watermark { position: absolute; right: -1.25rem; bottom: -2.25rem; width: clamp(7rem, 14vw, 10.5rem); height: clamp(7rem, 14vw, 10.5rem); color: rgb(255 255 255 / .14); pointer-events: none; }
+.shop-watermark .icon { width: 100%; height: 100%; stroke-width: 1.35; }
+@media (max-width: 520px) {
+  .shop-identity { grid-template-columns: minmax(0, 1fr); }
+  .shop-badge { justify-self: start; order: -1; }
+}

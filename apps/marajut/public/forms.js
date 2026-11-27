@@ -37,7 +37,11 @@ if (service) {
     const count = quantity?.valueAsNumber;
     const amount = !choice?.value ? 'Pilih layanan' : !price ? 'Sesuai penawaran'
       : Number.isInteger(count) && count>=1 && count<=50 ? money.format(price*count) : 'Isi jumlah pakaian';
-    for (const output of estimates) output.textContent = amount;
+    for (const output of estimates) {
+      output.textContent = amount;
+      const box = output.closest('.price-highlight');
+      if (box) box.hidden = !choice?.value; // no estimate box until a service is chosen
+    }
   }
   service.addEventListener('change', refresh);
   quantity?.addEventListener('input', refresh);

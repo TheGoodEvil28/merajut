@@ -2,9 +2,14 @@
 <section class="section">
   <a class="back" href="/#services">Cari Penjahit</a>
   <div class="profile-banner shop-identity">
-    <span class="shop-mark"><%- include('icon', {name:'shop'}) %></span>
-    <div><p class="location"><%- include('icon', {name:'pin'}) %> <%= profile.area %></p>
-      <h1><%= profile.name %></h1><p class="preserve"><%= profile.description %></p><% if (profile.specialty) { %><p><strong>Spesialisasi</strong> · <%= profile.specialty %></p><% } %><p><%= profile.completed_orders %> pesanan selesai di Marajut</p></div>
+    <div class="shop-copy">
+      <p class="location"><%- include('icon', {name:'pin'}) %> <%= profile.area %></p>
+      <h1><%= profile.name %></h1>
+      <p class="preserve shop-description"><%= profile.description %></p>
+      <% if (profile.specialty) { %><p class="shop-specialty"><strong>Spesialisasi</strong> · <%= profile.specialty %></p><% } %>
+    </div>
+    <p class="shop-badge"><%= profile.completed_orders %> Pesanan Selesai</p>
+    <span class="shop-watermark" aria-hidden="true"><%- include('icon', {name:'shop'}) %></span>
   </div>
   <div class="section-caption profile-services"><div><h2>Layanan yang ditawarkan</h2>
     <p class="muted">Harga dibawah adalah perkiraan, selanjutnya penjahit mengirim harga dan tanggal selesai setelah meninjau permintaan.</p></div></div>

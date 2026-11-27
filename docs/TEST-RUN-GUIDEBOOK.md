@@ -748,3 +748,66 @@ Not verified: a real invite, whether Edge or Chrome honours `autocomplete="off"`
 The role affected is the tailor. Prerequisites: the dev-mode stack and `tailor@marajut.test`. **Layanan Saya**, **Profil Usaha** and **Chat simulasi** no longer show the **Ringkasan Usaha** back link (the sidebar or drawer already links to **Ringkasan**). Each page now starts with its title row at the top. On the chat page, customers keep **Pesanan Saya** and admin managers keep **Pesanan**, because they do not have the tailor sidebar.
 
 Checks run in the in-app browser: as the synthetic operator, `/workspace/intake` still has the back link **Pesanan** to `/pengelola`. After signing in as the synthetic tailor, `/workspace/services`, `/workspace/profile` and `/workspace/intake` have no back link, their first element is the title row, and the title is 26 px from the top. A screenshot of **Layanan Saya** was reviewed. `npm.cmd run check` passed. No smoke script uses these back links. Not verified: the customer chat page and phone widths.
+
+### Modals: custom scrollbar and focus glow · 27 November 2026 WIB
+
+Roles affected: all (every modal: logout confirmation, the admin publish, revoke and invite forms). Prerequisites: the dev-mode stack. When a modal is taller than the window (short screens, or browser zoom of 110% and above), it now scrolls with a 6 px rounded plum scrollbar on a transparent track, inset 1 rem from the top and bottom so it stays inside the rounded corners. It darkens on hover. Firefox gets a thin scrollbar in the same colour. Because Chrome and Edge make scrollable boxes keyboard-focusable, a focused modal now shows the site focus glow (a soft clay ring) instead of the browser default dark outline.
+
+1. As the admin open **Operasional → Undang pengguna** at 110% zoom or in a short window. Expect the thin plum scrollbar and no dark ring around the modal.
+2. Scroll inside the modal with the mouse and keyboard. All fields and **Batal** / **Kirim undangan** are reachable.
+
+Checks run in the in-app browser as the synthetic tailor at 900x420 px, with filler added to the logout modal in the page (not in code): the modal scrolls, the scrollbar is 6 px with the plum thumb, inset from the corners (screenshot reviewed). Not verified: the focus glow itself (focus could not be placed on the modal in the pane), Firefox, and the admin invite modal at 110% zoom.
+
+Known issue, not fixed: in the user's Edge, **Email penjahit** in the invite modal is still autofilled with the signed-in admin email even with `autocomplete="off"`.
+
+### Tailor page titles: same size as admin · 27 November 2026 WIB
+
+The role affected is the tailor (and admin dashboard pages, which already used this size). Every dashboard title (`.studio-shell main h1`) now uses `clamp(2rem, 4vw, 3.25rem)`, the admin page-heading size, instead of the global `clamp(2.5rem, 5vw, 4rem)`. This covers the business name on **Ringkasan**, **Layanan Saya**, **Profil Usaha** and **Percakapan WhatsApp**. Storefront and home titles are unchanged. Checked in the in-app browser as the synthetic tailor at 1024 px: all four titles compute to about 40.8 px (the admin rule at that width), and the home hero stays at about 54.6 px; a screenshot of **Profil Usaha** was reviewed. Not verified: phone widths.
+
+### Profil Usaha: info card above the form · 27 November 2026 WIB
+
+The role affected is the tailor (**Profil Usaha** at `/workspace/profile`). Prerequisites: the dev-mode stack and `tailor@marajut.test`. The page is now one column (max 52 rem wide). The **Tampilan untuk pelanggan** card comes first as a compact info card (smaller heading, muted text), and the profile form is below it with the same width and a 16 px gap. The "not yet published" notice still appears inside the info card for unpublished profiles. Saving the form is unchanged. Checked in the in-app browser as the synthetic tailor at 1024 px: the info card sits above the form, both 742 px wide with a 16 px gap; a screenshot was reviewed; the template compiles; `npm.cmd run check` passed. Not verified: saving the profile after the change, the unpublished notice, and 375 px.
+
+### Minta penawaran: no "Pilih layanan" estimate box · 27 November 2026 WIB
+
+Roles affected are guest and customer (**Minta penawaran** at `/requests/new`). Prerequisites: the dev-mode stack. The highlighted estimate box (in the **Perkiraan awal** card on desktop and inside the form on phones) is now hidden until a service is chosen, so the large "Pilih layanan" placeholder no longer appears. The server renders it hidden when no service is preselected, and `forms.js` shows it as soon as a service is picked and hides it again if the choice is cleared. The "Pilih layanan" option inside the dropdown stays (the required check needs it). Opening the page from a service card (preselected service) shows the estimate straight away.
+
+Checks run with Playwright (Edge, signed out) on `/requests/new`: the box is hidden and no visible box says "Pilih layanan"; picking the first service showed **Rp 35.000**; quantity 3 showed **Rp 105.000**; clearing the service hid the box; the screenshot was reviewed. The template compiles, and `npm.cmd run check` passed. No test refers to the placeholder text. Not verified: the phone layout (the in-form estimate) and a signed-in customer.
+
+### Customer request page: open history, cancel modal, new card order · 27 November 2026 WIB
+
+The role affected is the customer (`/requests/<id>`, managed request view). Admin and tailor views are unchanged. Prerequisites: the dev-mode stack and a synthetic customer with an open request (for example `customer2@marajut.test`). Use a disposable stack if you will submit.
+
+1. Open the request. The left column shows the next-step card, **Foto referensi** and **Riwayat aktivitas**, which is now an always-open card with a heading. The right column shows **Ringkasan permintaan**, **Detail permintaan** and **Tidak jadi menjahit?**.
+2. **Tidak jadi menjahit?** has a short explanation and a red-outline **Batalkan permintaan** button with a cancel icon (new `cancel` symbol). It opens the modal **Batalkan permintaan?** with **Alasan pembatalan**, **Batal** and **Ya, batalkan**. It posts the same `cancel` action as before.
+3. Press **Ya, batalkan** with an empty reason: the browser asks for it and nothing is sent. **Batal** and Esc close the modal.
+4. On a disposable stack, submit a reason. The request should show as cancelled, as before.
+5. As the admin, the same request still has **Tindakan lain** (left) and the collapsible **Riwayat aktivitas** (right).
+
+Checks run with Playwright (Edge, headless sessions, nothing submitted):
+- As `customer2@marajut.test`: history, photos and the cancel card are in the expected columns, and no "Riwayat aktivitas" summary remains. The modal opened with focus in the reason field, the empty submit was blocked, and **Batal** closed it. Layout and modal screenshots were reviewed.
+- As `operator@marajut.test`: the admin layout is unchanged. The photo section is absent for the admin because the partial only shows it when photos exist or the customer can add them.
+- The template compiles, and `npm.cmd run check` passed. A backup of the previous template is in the session scratch folder.
+
+Not verified: a real cancellation (step 4), 375 px (single column order), and a request that already has photos or several history items.
+
+### Request page: Detail permintaan inside the summary card · 27 November 2026 WIB
+
+Roles affected are customer and admin (the managed request view; both share the summary card). The separate **Detail permintaan** card is removed. Its text (description and **Catatan ukuran**) now sits inside **Ringkasan permintaan** / **Detail pesanan**, under the price box and the "Harga akhir…" note, above the Penjahit / Jumlah pakaian list, separated by a thin divider with a small muted heading. It keeps `id="detail"`, so **Lihat detail permintaan** still scrolls to it.
+
+Checks run with Playwright (Edge, headless, as `customer2@marajut.test`): the detail is inside the summary card, after the price and before the list, and no separate detail card remains; **Lihat detail permintaan** sets `#detail` and the block is visible; a screenshot of the card was reviewed; the template compiles; `npm.cmd run check` passed. Not verified: the admin view, an order (with **Detail pesanan** and the quote breakdown), long descriptions with fit notes, and 375 px.
+
+### Public shop page: banner redesign · 27 November 2026 WIB
+
+Roles affected: guest, customer and anyone viewing `/penjahit/<slug>`. Prerequisites: the dev-mode stack.
+
+The shop banner now follows the mockup:
+- a plum-to-magenta gradient
+- the pin icon and area as a small line
+- the shop name as the title, then the description (and specialty if set)
+- a pink pill **N Pesanan Selesai** at the top right, replacing the old line "N pesanan selesai di Marajut"
+- the shop icon as a large faint outline cropped at the bottom-right corner (decorative, hidden from screen readers), replacing the apricot icon tile
+
+Below 520 px the banner is one column and the pill moves above the location.
+
+Checks run with Playwright (Edge) on `/penjahit/jahit-rina`: at 1280 px the pill is at the top right and the watermark is cropped by the banner edge; at 375 px the layout stacks with the pill first and no horizontal overflow; screenshots at both widths were reviewed. The template compiles, and `npm.cmd run check` passed. No test refers to the old text. Not verified: a shop with a specialty line, long names and descriptions, and contrast measurement of the pill and the light text on the gradient.
