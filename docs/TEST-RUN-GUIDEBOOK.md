@@ -577,3 +577,44 @@ Not verified: queue links clicked after this change, the table with real non-zer
 The role affected is the tailor (**Layanan Saya** at `/workspace/services`). Prerequisites: the dev-mode stack and `tailor@marajut.test`. Open **Layanan Saya**. Each service card (for example **Ganti ritsleting**) has smaller padding: about 18 px top/bottom and 22 px left/right at desktop width (from about 31 px), with no extra space above the title. Select **Ubah layanan**. The editor still opens below a divider with normal spacing. The **Tambah layanan** card and every other card keep the default padding.
 
 Checks run in the in-app browser: computed padding of the service card (18.4 px / 22.4 px) against another card (30.7 px); a desktop screenshot; one card opened by script to measure the gap from the summary to the editor form. Not verified: 375 px, and saving an edit.
+
+### Chat simulation page: back link · 27 November 2026 WIB
+
+Roles affected are tailor, customer and admin operator on **Percakapan WhatsApp** / **Simulasi WhatsApp** (`/workspace/intake`). Prerequisites: the dev-mode stack and synthetic accounts.
+
+1. As a tailor open **Chat simulasi**. Above the title expect the back link **Ringkasan Usaha** with the arrow icon, the same as on **Layanan Saya**. It opens `/workspace`.
+2. As a customer open **Simulasi WhatsApp**. The back link reads **Pesanan Saya** and opens `/workspace`.
+3. As an admin manager the back link reads **Pesanan** and opens `/pengelola`.
+4. As a chat-only operator (no manager rights) there is no back link, because this page is their home and `/workspace` sends them back here.
+
+Checks run in the in-app browser as the synthetic tailor: the back link text, `href` (`/workspace`), icon and position above the heading; a screenshot was reviewed. `npm.cmd run check` passed. Not verified: the customer, admin and chat-only operator variants, and the inbound browser smoke suite.
+
+### Dashboards: smaller top spacing · 27 November 2026 WIB
+
+Roles affected are tailor and admin operator (studio dashboard pages). Prerequisites: the dev-mode stack and `tailor@marajut.test`. The first section on dashboard pages now starts `clamp(1.25rem, 2.5vw, 2rem)` from the top (about 26 px at 1024 px wide, 32 px max), down from up to 80 px. Open **Ringkasan**, **Layanan Saya**, **Profil Usaha** and **Chat simulasi**. The location line or back link sits close below the top edge. Storefront pages (home, shop pages) keep their larger section spacing.
+
+Checks run in the in-app browser as the synthetic tailor: computed first-section top padding was 25.6 px on `/workspace`, `/workspace/services`, `/workspace/profile` and `/workspace/intake`, and the home catalog section stays at 61 px; the dashboard screenshot was reviewed. Not verified: admin pages, and phones below 960 px (the rule also applies there, under the hamburger top bar).
+
+### Tailor overview: consistent card gaps · 27 November 2026 WIB
+
+The role affected is the tailor (**Ringkasan** at `/workspace`). Prerequisites: the dev-mode stack and `tailor@marajut.test`. Every gap on the overview uses one value (`--card-gap` on `.provider-home`): 1.25 rem (20 px) above 720 px and 0.85 rem (14 px) on phones. This covers the gaps between the count tiles, tiles to **Perlu tindakan**, **Perlu tindakan** to **Antrean lain**, and both cards to **Kinerja layanan saya**. **Perlu tindakan** and **Antrean lain** now stretch to the same height, so their bottom edges line up.
+
+1. Open **Ringkasan** at desktop width. All gaps look equal, and the two middle cards end at the same line.
+2. At 375 px the stacked tiles and cards are all evenly spaced, with no horizontal scroll.
+3. With many open requests, **Antrean lain** grows to match the taller **Perlu tindakan** card (its links stay at the top, with empty space below).
+
+Checks run in the in-app browser as the synthetic tailor: measured every gap as 20 px at 1024 px and 14 px at 375 px; the two middle cards had equal height; there was no overflow at 375 px; the desktop screenshot was reviewed. Not verified: a busy queue (step 3), 721–959 px, and the admin desk.
+
+### Layanan Saya and Profil Usaha: no business name above the title · 27 November 2026 WIB
+
+The role affected is the tailor. Prerequisites: the dev-mode stack and `tailor@marajut.test`. On **Layanan Saya** the line "Jahit Rina · Semarang Tengah" is removed, and on **Profil Usaha** the line "Jahit Rina" is removed. Each page now shows the back link, then the title and **Lihat profil publik**. The business name still appears on the **Ringkasan** heading, in the sidebar account name, and in the **Nama usaha** field on **Profil Usaha**.
+
+Checks run in the in-app browser as the synthetic tailor: both pages render with no `.location` line in the main content, the order is back link then heading, and the title sits at the same position on both. Searched the smoke scripts: they look for "Jahit Rina" only on the overview heading and the public shop page, which are unchanged. `npm.cmd run check` passed. Not verified: 375 px.
+
+### Profil Usaha back link label · 27 November 2026 WIB
+
+The role affected is the tailor. The back link on **Profil Usaha** now reads **Ringkasan Usaha** (it was **Ringkasan**), matching **Layanan Saya** and **Chat simulasi**. It still opens `/workspace`. Checked: rendered back link text and `href` on `/workspace/profile` and `/workspace/services` in the in-app browser. The smoke script's **Ringkasan** lookups are scoped to the dashboard navigation, so they are unaffected.
+
+### Chat simulation: refresh icon on Muat ulang · 27 November 2026 WIB
+
+Roles affected are tailor, customer and admin operator on `/workspace/intake`. The **Muat ulang** button at the top right now shows a refresh icon (new `refresh` symbol in `public/studio-icons.svg`, same line style as the other icons) before its label. The icon turns half a circle on hover; with reduce motion turned on it does not move. It still reloads `/workspace/intake`, and the accessible name is still "Muat ulang". Checked in the in-app browser as the synthetic tailor: the button text, link and icon reference, the sprite served with the new symbol, and a zoomed screenshot. Not verified: the inline **Muat ulang** link on a conversation page and **Muat ulang notifikasi** on the customer messages page, which were left as text links.

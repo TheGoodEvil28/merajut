@@ -4,9 +4,11 @@
   AWAITING_HUMAN: 'Perlu ditangani', HUMAN: 'Sedang ditangani', RESOLVED: 'Percakapan selesai'
 }; %>
 <section class="section">
+  <% const backLink = user.role === 'provider' ? ['/workspace', 'Ringkasan Usaha'] : user.role === 'customer' ? ['/workspace', 'Pesanan Saya'] : user.manager ? ['/pengelola', 'Pesanan'] : null; %>
+  <% if (backLink) { %><a class="back" href="<%= backLink[0] %>"><%= backLink[1] %></a><% } %>
   <div class="page-heading">
     <h1><%= user.role === 'customer' ? 'Simulasi WhatsApp' : 'Percakapan WhatsApp' %></h1>
-    <a class="button secondary" href="/workspace/intake">Muat ulang</a>
+    <a class="button secondary refresh-button" href="/workspace/intake"><%- include('icon', {name:'refresh'}) %>Muat ulang</a>
   </div>
   <p class="notice"><strong>Simulasi WhatsApp.</strong> Pesan hanya muncul di Marajut. <%= user.role === 'customer' ? 'Pilih layanan dan ceritakan kebutuhan Anda. Setelah tersambung, permintaan bisa dilanjutkan ke penawaran di akun Anda.' : 'Buka percakapan yang perlu ditangani, lalu hubungkan dengan permintaan untuk menyiapkan penawaran.' %></p>
   <% if (user.role === 'customer') { %>

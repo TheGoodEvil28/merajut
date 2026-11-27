@@ -80,6 +80,7 @@ button:disabled { cursor: not-allowed; opacity: .65; }
 .back:hover::before { transform: translateX(-3px); }
 @media (prefers-reduced-motion: reduce) { .back::before { transition: none; } }
 .site-footer { margin-top: clamp(2.5rem, 6vw, 5rem); border-top: 1px solid var(--line); color: var(--muted); }
+.studio-shell main > .section:first-child { padding-top: clamp(1.25rem, 2.5vw, 2rem); } /* dashboards: content starts close to the top */
 .studio-shell .site-footer { display: none; } /* dashboards (tailor workspace, admin) have no footer */
 .site-footer .wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 2rem clamp(2rem, 8vw, 7rem); padding-block: clamp(2rem, 5vw, 3.5rem); font-size: .9rem; }
 .footer-brand { display: inline-flex; align-items: center; gap: .35rem; font-weight: 760; font-size: 1.5rem; color: var(--plum); margin: 0 0 .7rem; }
@@ -664,3 +665,15 @@ button.danger:hover { background: #8a3322; }
 @media (prefers-reduced-motion: reduce) {
   ::picker(select), select::picker-icon { transition: none; }
 }
+
+/* Tailor overview: one gap between every card (tiles, Perlu tindakan / Antrean lain, Kinerja layanan saya). */
+.provider-home { --card-gap: 1.25rem; }
+.provider-home .queue-metrics { gap: var(--card-gap); }
+.provider-home .work-layout { gap: var(--card-gap); margin-top: var(--card-gap); align-items: stretch; }
+.provider-home .service-performance { margin-top: var(--card-gap); }
+@media (max-width: 720px) { .provider-home { --card-gap: .85rem; } }
+
+/* Refresh button (Muat ulang): the icon turns on hover */
+.refresh-button .icon { transition: transform .45s ease; }
+.refresh-button:hover .icon { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .refresh-button .icon { transition: none; } }
