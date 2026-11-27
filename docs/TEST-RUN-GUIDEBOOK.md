@@ -672,3 +672,43 @@ Roles affected: all (guest, customer, tailor, admin operator), on every form. Pr
 Checks run: a field inventory script over all templates against the backend schemas; a Playwright run (Edge) on `/login` confirming `getByLabel('Email'|'Kata sandi', { exact: true })` each match 1 field after the change (they matched 0 while the star was text, which is why it moved to CSS); the partner sign-up form shows 4 stars for 4 required fields; screenshots of the login and partner forms were reviewed; all 48 templates compile with EJS; `npm.cmd run check` passed. The in-app browser showed the stars on the admin **Tambah mitra** form.
 
 Not verified: step 3 (no requests exist in the demo data), the quote editor and tailor and customer forms visually, `npm test` and the browser smoke suites (not run against the primary demo database), and screen-reader output.
+
+### Admin partner page: publication and access changes in modals · 27 November 2026 WIB
+
+The role affected is the admin operator (**Kelola mitra** at `/pengelola/mitra/<id>`, card **Marketplace**). Prerequisites: the dev-mode stack and `operator@marajut.test`. Use a disposable stack if you will submit.
+
+The two collapsible forms (**Ubah publikasi** / **Publikasikan profil**, and **Akses akun penjahit**) are replaced by buttons with icons that open modal forms. The account name moved into the summary list as **Akun penjahit**.
+- **Publikasikan profil** (primary, eye icon) or **Sembunyikan profil** (secondary, eye-off icon) opens **Publikasikan profil?** / **Sembunyikan profil?**. The modal holds **Alasan perubahan**, **Kata sandi pengelola**, **Batal**, and **Ya, publikasikan** (plum) / **Ya, sembunyikan** (clay).
+- **Cabut akses** (red outline, lock icon) opens **Cabut akses <nama>?** with **Alasan pencabutan**, **Kata sandi pengelola**, **Batal** and **Ya, cabut akses** (clay).
+
+The modals reuse the logout modal look (pop-in animation, blurred backdrop, centred icon and title) with left-aligned fields. They open with `command="show-modal"` (native Invoker Commands, with a script fallback for older browsers). **Batal** and Esc close them with the closing animation. A backdrop click does not close them, so typed text is kept. Focus starts in the reason field. The forms post to the same endpoint with the same fields as before.
+
+1. Open a published partner. The card shows the summary and the two buttons; no expandable sections remain.
+2. Open each modal. Press **Ya, …** with empty fields: the browser asks for the reason and password, and nothing is sent. Click the backdrop: the modal stays open. Press **Batal** or Esc: it closes.
+3. On a disposable stack, submit each modal with a reason and the admin password. Expect "Perubahan tercatat." and the profile state to change (hidden, published, or access revoked).
+4. On an unpublished partner with an active service, the primary button reads **Publikasikan profil**.
+
+Test change: in `scripts/pilot-browser-smoke.js` the publish step now clicks **Publikasikan profil**, fills the fields inside the dialog **Publikasikan profil?**, and presses **Ya, publikasikan**.
+
+Checks run in the in-app browser as the synthetic operator on **Ruang Jahit Dewi**, with nothing submitted:
+- No `<details>` remains in the card; the openers have the right icons, classes and `commandfor`.
+- A real click on **Cabut akses** opened a true modal with focus in the reason field and two starred fields (screenshot reviewed).
+- An empty submit was blocked with no navigation, a backdrop click kept it open, and **Batal** and Esc closed it.
+- The publication modal title and submit button matched the published state.
+- At 375 px the modal is 319 px wide and fits the screen.
+- `partner.ejs` compiles, and `npm.cmd run check` passed.
+
+Not verified: real submissions (step 3, to avoid changing the demo data), the unpublished state (step 4), the pilot smoke suite run, and Firefox and Safari.
+
+### Admin partner page: tighter Layanan mitra list · 27 November 2026 WIB
+
+The role affected is the admin operator (**Layanan mitra** card on **Kelola mitra**). Prerequisites: the dev-mode stack and `operator@marajut.test`. The card now uses `.disclosure-list`. The heading sits about 10 px above the first divider (from 42 px). Each service row and **Tambah layanan** is a single row of about 49 px with the text centred between its dividers. The 30 px of dead space between rows is gone. An opened row keeps 1 rem below its form. Checked in the in-app browser on **Ruang Jahit Dewi**: measured heading gap, row heights and zero gap between rows; zoomed screenshot reviewed. Not verified: a partner with many services, opened rows, and 375 px.
+
+### Even card headings on admin pages, smaller top padding on all inner pages · 27 November 2026 WIB
+
+Roles affected: all. Prerequisites: the dev-mode stack and synthetic accounts.
+
+1. **Admin cards.** As the admin, open **Kelola mitra**. **Profil mitra**, **Marketplace** and **Layanan mitra** each have their heading exactly 16 px above the first content. Before, the gaps were 27 px, 42 px and 10 px. Inside admin workflow layouts the card gap now does the spacing, with no extra margin on the heading or caption.
+2. **Top padding.** The first section on every page now starts `clamp(1.25rem, 2.5vw, 2rem)` from the top (about 26 px at 1024 px, 32 px max), down from up to 80 px. This rule used to apply to dashboards only. It now also covers storefront inner pages: the public shop page (`/penjahit/<slug>`), login, customer pages and the chat simulator. The home page is unchanged, because its hero is not a `.section`.
+
+Checks run in the in-app browser: measured first-section top padding of 25.5 px on `/penjahit/jahit-rina`, `/workspace/intake` and the partner page; the home page hero is unaffected; the three card heading gaps were 16 px each; a screenshot of the shop page was reviewed. Not verified: login, customer and request pages visually, and 375 px.

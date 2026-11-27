@@ -261,3 +261,23 @@ if (deskFilters && currentChip) {
   const offset = currentChip.offsetLeft - deskFilters.offsetLeft;
   if (offset + currentChip.offsetWidth > deskFilters.clientWidth) deskFilters.scrollLeft = offset - (deskFilters.clientWidth - currentChip.offsetWidth) / 2;
 }
+
+// Form dialogs (<dialog class="form-dialog"> holding a real form). Opened by <button command="show-modal"
+// commandfor="id">, which browsers handle natively; the click handler covers browsers without Invoker Commands.
+// [data-dialog-close] and Esc play the closing animation. A backdrop click does not close, so typed input is kept.
+const closeFormDialog = dialog => {
+  if (!dialog?.open || dialog.classList.contains('is-closing')) return;
+  dialog.classList.add('is-closing');
+  const done = () => { dialog.classList.remove('is-closing'); dialog.close(); };
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) done(); else setTimeout(done, 160);
+};
+const nativeCommands = 'commandForElement' in HTMLButtonElement.prototype;
+document.addEventListener('click', event => {
+  const opener = event.target.closest('button[command="show-modal"][commandfor]');
+  if (opener && !nativeCommands) document.getElementById(opener.getAttribute('commandfor'))?.showModal();
+  const closer = event.target.closest('[data-dialog-close]');
+  if (closer) { event.preventDefault(); closeFormDialog(closer.closest('dialog')); }
+});
+for (const dialog of document.querySelectorAll('dialog.form-dialog')) {
+  dialog.addEventListener('cancel', event => { event.preventDefault(); closeFormDialog(dialog); });
+}

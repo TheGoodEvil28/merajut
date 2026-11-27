@@ -25,7 +25,7 @@
         <button>Simpan mitra</button>
       </form>
       <% if (business) { const serviceBase='/api/v1/management/partners/'+business.id+'/services'; %>
-        <section class="card stack" id="layanan-mitra"><h2>Layanan mitra</h2>
+        <section class="card stack disclosure-list" id="layanan-mitra"><h2>Layanan mitra</h2>
           <% for (const service of services) { %>
             <details class="form-disclosure"><summary>
               <strong><%= service.name %></strong> <span class="muted">· <%= service.active?'Aktif':'Disembunyikan' %> · <%= service.price_hint?money(service.price_hint):'Sesuai penawaran' %></span>
@@ -42,27 +42,45 @@
       <dl class="summary-list">
         <div><dt>Layanan aktif</dt><dd><%= activeCount %></dd></div>
         <div><dt>Kontak WhatsApp</dt><dd><%= business.whatsapp?'Tersimpan':'Belum diisi' %></dd></div>
+        <% if (business.operator) { %><div><dt>Akun penjahit</dt><dd><%= business.operator %></dd></div><% } %>
       </dl>
-      <% if (business.published || (activeCount && (business.whatsapp || business.operator))) { %>
-        <details class="form-disclosure" <%= business.published?'':'open' %>>
-          <summary><%= business.published?'Ubah publikasi':'Publikasikan profil' %></summary>
-          <form class="stack" action="/api/v1/management/shops/<%= business.id %>" method="post">
+      <% const canPublish = business.published || (activeCount && (business.whatsapp || business.operator)); %>
+      <% if (!canPublish) { %><p>Simpan kontak WhatsApp dan tambahkan layanan aktif untuk memublikasikan profil.</p><% } %>
+      <% if (canPublish || business.operator) { %><div class="actions">
+        <% if (canPublish) { %><button type="button" class="<%= business.published?'secondary':'' %>" command="show-modal" commandfor="publication-dialog"><%- include('icon',{name:business.published?'eye-off':'eye'}) %><%= business.published?'Sembunyikan profil':'Publikasikan profil' %></button><% } %>
+        <% if (business.operator) { %><button type="button" class="secondary danger-outline" command="show-modal" commandfor="revoke-dialog"><%- include('icon',{name:'lock'}) %>Cabut akses</button><% } %>
+      </div><% } %>
+      <% if (canPublish) { %>
+        <dialog class="confirm-dialog form-dialog" id="publication-dialog" aria-labelledby="publication-title">
+          <form class="confirm-panel" action="/api/v1/management/shops/<%= business.id %>" method="post">
+            <span class="confirm-icon" aria-hidden="true"><%- include('icon',{name:business.published?'eye-off':'eye'}) %></span>
+            <h2 id="publication-title"><%= business.published?'Sembunyikan profil?':'Publikasikan profil?' %></h2>
+            <p><%= business.published?'Profil dan layanan mitra tidak lagi tampil di marketplace sampai dipublikasikan lagi.':'Profil dan layanan aktif mitra akan tampil di marketplace untuk pelanggan.' %></p>
             <input type="hidden" name="revision" value="<%= business.moderation_revision %>">
-            <label><span class="field-label">Alasan perubahan<span class="req" aria-hidden="true"></span></span><textarea name="reason" required minlength="5" maxlength="500" rows="2"></textarea></label>
+            <label><span class="field-label">Alasan perubahan<span class="req" aria-hidden="true"></span></span><textarea name="reason" required minlength="5" maxlength="500" rows="2" autofocus></textarea></label>
             <%- include('reauth') %>
-            <button name="action" value="<%= business.published?'hide':'publish' %>"><%= business.published?'Sembunyikan profil':'Publikasikan profil' %></button>
+            <div class="confirm-actions">
+              <button type="button" class="secondary" data-dialog-close>Batal</button>
+              <button name="action" value="<%= business.published?'hide':'publish' %>" class="<%= business.published?'danger':'' %>"><%= business.published?'Ya, sembunyikan':'Ya, publikasikan' %></button>
+            </div>
           </form>
-        </details>
-      <% } else { %><p>Simpan kontak WhatsApp dan tambahkan layanan aktif untuk memublikasikan profil.</p><% } %>
+        </dialog>
+      <% } %>
       <% if (business.operator) { %>
-        <details class="form-disclosure">
-          <summary>Akses akun penjahit</summary><p><%= business.operator %></p>
-          <form class="stack" action="/api/v1/management/shops/<%= business.id %>" method="post">
+        <dialog class="confirm-dialog form-dialog" id="revoke-dialog" aria-labelledby="revoke-title">
+          <form class="confirm-panel" action="/api/v1/management/shops/<%= business.id %>" method="post">
+            <span class="confirm-icon" aria-hidden="true"><%- include('icon',{name:'lock'}) %></span>
+            <h2 id="revoke-title">Cabut akses <%= business.operator %>?</h2>
+            <p>Akun penjahit tidak bisa lagi masuk ke ruang usaha ini, dan profil disembunyikan dari marketplace.</p>
             <input type="hidden" name="revision" value="<%= business.moderation_revision %>">
-            <label><span class="field-label">Alasan pencabutan<span class="req" aria-hidden="true"></span></span><textarea name="reason" required minlength="5" maxlength="500" rows="2"></textarea></label>
-            <%- include('reauth') %><button class="secondary" name="action" value="revoke">Cabut akses dan sembunyikan profil</button>
+            <label><span class="field-label">Alasan pencabutan<span class="req" aria-hidden="true"></span></span><textarea name="reason" required minlength="5" maxlength="500" rows="2" autofocus></textarea></label>
+            <%- include('reauth') %>
+            <div class="confirm-actions">
+              <button type="button" class="secondary" data-dialog-close>Batal</button>
+              <button name="action" value="revoke" class="danger">Ya, cabut akses</button>
+            </div>
           </form>
-        </details>
+        </dialog>
       <% } %>
     </section><% } %>
   </div>

@@ -112,9 +112,11 @@ try {
   await provider.getByText('Permak Celana '+tag,{exact:true}).waitFor();
   await staff.getByRole('navigation',{name:'Navigasi utama'}).getByRole('link',{name:'Mitra',exact:true}).click();
   await staff.getByRole('link',{name:'Kelola '+business,exact:false}).click();
-  await staff.getByLabel('Alasan perubahan').fill('Katalog demo telah ditinjau.');
-  await staff.locator('#publikasi details').first().getByLabel('Kata sandi pengelola').fill(password);
-  await staff.getByRole('button',{name:'Publikasikan profil'}).click();
+  await staff.getByRole('button',{name:'Publikasikan profil'}).click(); // opens the publication modal
+  const publication=staff.getByRole('dialog',{name:'Publikasikan profil?'});
+  await publication.getByLabel('Alasan perubahan').fill('Katalog demo telah ditinjau.');
+  await publication.getByLabel('Kata sandi pengelola').fill(password);
+  await publication.getByRole('button',{name:'Ya, publikasikan'}).click();
   await staff.getByText('Perubahan tercatat.').waitFor();
   await capture(staff,'pengelola');
 
