@@ -618,3 +618,38 @@ The role affected is the tailor. The back link on **Profil Usaha** now reads **R
 ### Chat simulation: refresh icon on Muat ulang · 27 November 2026 WIB
 
 Roles affected are tailor, customer and admin operator on `/workspace/intake`. The **Muat ulang** button at the top right now shows a refresh icon (new `refresh` symbol in `public/studio-icons.svg`, same line style as the other icons) before its label. The icon turns half a circle on hover; with reduce motion turned on it does not move. It still reloads `/workspace/intake`, and the accessible name is still "Muat ulang". Checked in the in-app browser as the synthetic tailor: the button text, link and icon reference, the sprite served with the new symbol, and a zoomed screenshot. Not verified: the inline **Muat ulang** link on a conversation page and **Muat ulang notifikasi** on the customer messages page, which were left as text links.
+
+### Admin: consistent Tambah mitra button · 27 November 2026 WIB
+
+The role affected is the admin operator. Prerequisites: the dev-mode stack and `operator@marajut.test`. On **Pengelolaan platform** (`/pengelola`) and **Mitra penjahit** (`/pengelola/mitra`) the **Tambah mitra** button is now the same primary plum button with a leading plus icon (new `plus` symbol in `public/studio-icons.svg`). Before, it was a secondary button with a shop icon on the first page and a primary button with a trailing arrow on the second. Both open `/pengelola/mitra/baru`.
+
+Checks run in the in-app browser after signing in as the synthetic operator: on both pages the button has class `button`, a plum background, white text, the plus icon before the label, and the same size and position (zoomed screenshots compared). No smoke script clicks this button by name. `npm.cmd run check` passed. Not verified: 375 px and the tailor-side pages (unchanged). The in-app browser session is now signed in as the operator.
+
+### Table cards: tighter padding · 27 November 2026 WIB
+
+Roles affected are the admin operator (**Kinerja** at `/pengelola/kinerja`) and the tailor (**Kinerja layanan saya** on **Ringkasan**). Any card that directly holds a `.desk-table` now uses smaller padding: `clamp(.85rem, 1.6vw, 1.15rem)` vertical and `clamp(.9rem, 1.8vw, 1.25rem)` horizontal. The table loses its 1 rem top margin when it is the first thing in the card, and keeps 0.75 rem when a heading sits above it.
+
+1. As the admin open **Kinerja**. The caption and table start about 17 px below the card edge (from 48 px), and the card ends about 17 px below the last row (from 32 px).
+2. As a tailor open **Ringkasan**. The **Kinerja layanan saya** card is tighter, with about 12 px between the heading and the table.
+
+Checks run in the in-app browser as the synthetic operator: the admin card padding computed to 16.4 / 18.4 px, with 17 px from the card top to the caption and 17 px from the table to the card bottom; a screenshot was reviewed. Not verified: the tailor card (the session was the operator), and 375 px.
+
+### Admin: Buka Dasbor outside the admin area · 27 November 2026 WIB
+
+The role affected is the admin operator (manager). Prerequisites: the dev-mode stack and `operator@marajut.test`. On any page outside the admin dashboard (for example **Percakapan WhatsApp** at `/workspace/intake`, the home page and public shop pages), the header shows only the wordmark and **Buka Dasbor**, which opens `/pengelola` directly. Before, the full admin links (Pesanan, Mitra, Kinerja, Operasional, Keluar) appeared on those pages in the storefront layout. Admin dashboard pages (`/pengelola…` and request pages) keep the sidebar and **Keluar**. Tailors, customers and chat-only operators are unchanged.
+
+Checks run in the in-app browser as the synthetic operator: fetched `/workspace/intake` and `/` (no nav, a single **Buka Dasbor** linking to `/pengelola`) and `/pengelola` and `/pengelola/mitra` (sidebar with 4 links and **Keluar**); a screenshot of the chat page was reviewed. The smoke scripts use admin navigation only on `/pengelola` and request pages, which are unchanged. `npm.cmd run check` passed. Not verified: request pages as the admin, 375 px, and the chat-only operator.
+
+### Footer: even row spacing · 27 November 2026 WIB
+
+Roles affected are guest, customer and admin (storefront pages show the footer; dashboards hide it). Every footer row (**Halaman** links and **Kontak** lines) is now a 44 px row with the text vertically centred. Before, the links were centred in 44 px while the plain "Semarang, Jawa Tengah" line sat at the top of a 22 px line, so the two columns looked unevenly spaced. Open any storefront page and scroll to the footer: **Cari Penjahit** / **halo@marajut.test** and **Cara memesan** / **Semarang, Jawa Tengah** sit on the same lines with equal spacing. Checked in the in-app browser: all four rows are 44 px tall, with text centres at the same heights in both columns; a zoomed screenshot was reviewed. Not verified: 375 px (single-column footer) and signed-in footers with a third link.
+
+### Footer: tighter rows · 27 November 2026 WIB
+
+Roles affected are guest, customer and admin on storefront pages. Footer rows are now 2 rem (32 px) instead of 44 px, with no extra gap between rows, so the lines in **Halaman** and **Kontak** sit 32 px apart (from 46 px). Text stays centred and aligned across both columns. Each link still has a 32 px tall tap area, above the 24 px minimum in WCAG 2.2 (2.5.8) but below the 44 px used elsewhere in the app. Checked in the in-app browser: all four rows are 32 px tall and the text centres match across the columns (648 / 680 px); a zoomed screenshot was reviewed. Not verified: 375 px and touch use on a phone.
+
+### Admin desk filters: one scrolling row · 27 November 2026 WIB
+
+The role affected is the admin operator (**Papan pesanan** on `/pengelola`). Prerequisites: the dev-mode stack and `operator@marajut.test`. The filter chips (Semua, Perlu tindak lanjut, Koordinasi, Menunggu pelanggan, Pengerjaan, Pembayaran, Serah terima, Keluhan, Riwayat) no longer wrap onto a second line. They stay on one row that scrolls sideways, with a thin rounded plum scrollbar on a pale track (WebKit and Chromium). Firefox gets a thin scrollbar in the same colours. The row snaps lightly to chip edges. When the selected filter is off-screen (for example **Riwayat**), the row opens scrolled so that chip is visible. Below 680 px the chips are still inside the collapsible **Antrean** menu, and when it is opened they show as the same scrolling row.
+
+Checks run in the in-app browser as the synthetic operator: at 1024 px all 9 chips are on one row (1195 px of chips in 702 px), with no page overflow, and a zoomed screenshot shows the scrollbar. With `?filter=history` the row opens at `scrollLeft` 493 with **Riwayat** fully visible. At 375 px the menu starts collapsed; opened, the chips are one scrolling row, the last chip is reachable, and there is no page overflow. `npm.cmd run check` passed. The smoke steps that check `aria-current` and click **Pembayaran** at 375 px rely on Playwright scrolling the chip into view. Not verified: the smoke suite run, Firefox and Safari, trackpad and touch swiping.

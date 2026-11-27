@@ -2,7 +2,7 @@
 <section class="section admin-page">
   <header class="page-heading admin-heading">
     <div><h1>Mitra penjahit</h1><p>Kelola kontak, profil publik, dan layanan penjahit.</p></div>
-    <a class="button" href="/pengelola/mitra/baru">Tambah mitra <%- include('icon',{name:'arrow'}) %></a>
+    <a class="button" href="/pengelola/mitra/baru"><%- include('icon',{name:'plus'}) %>Tambah mitra</a>
   </header>
   <% if (!shops.length) { %><div class="queue-empty"><strong>Belum ada mitra.</strong><p>Tambahkan profil dan layanan penjahit untuk membuka katalog.</p></div><% } %>
   <div class="partner-directory"><% for (const shop of shops) { %>

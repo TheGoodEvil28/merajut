@@ -253,3 +253,11 @@ if (navToggle) {
     if (event.matches && isOpen()) { document.body.classList.remove('nav-open'); navToggle.setAttribute('aria-expanded', 'false'); }
   });
 }
+
+// Admin desk filters scroll sideways: bring the selected chip into view without moving the page.
+const deskFilters = document.querySelector('.desk-filters');
+const currentChip = deskFilters?.querySelector('[aria-current]');
+if (deskFilters && currentChip) {
+  const offset = currentChip.offsetLeft - deskFilters.offsetLeft;
+  if (offset + currentChip.offsetWidth > deskFilters.clientWidth) deskFilters.scrollLeft = offset - (deskFilters.clientWidth - currentChip.offsetWidth) / 2;
+}

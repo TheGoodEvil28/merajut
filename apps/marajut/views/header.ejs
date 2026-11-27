@@ -15,7 +15,8 @@ const admin = Boolean(user?.manager && (here.startsWith('/pengelola') || here.st
 const studio = admin || (user?.role==='provider' && here!=='/' && !here.startsWith('/penjahit/'));
 // Signed-in visitors on the storefront (home and public shop pages) get a single "Buka Dasbor" button.
 const storefront = !studio && (here === '/' || here.startsWith('/penjahit/'));
-const dashboard = user && storefront ? '/workspace' : null; // /workspace redirects each role to its own dashboard
+// Outside their dashboard, signed-in tailors/customers on the storefront and admins on any non-admin page see one 'Buka Dasbor' button.
+const dashboard = !user ? null : user.manager && !studio ? '/pengelola' : storefront ? '/workspace' : null; // /workspace redirects each role to its own dashboard
 const links = dashboard ? [] : user?.role === 'provider' ? [
   ['/workspace', 'Ringkasan', 'grid', here === '/workspace' || here.startsWith('/requests/')],
   ['/workspace/services', 'Layanan Saya', 'scissors', here === '/workspace/services'],

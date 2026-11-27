@@ -87,8 +87,9 @@ button:disabled { cursor: not-allowed; opacity: .65; }
 .footer-about p { max-width: 38ch; margin: 0; }
 .footer-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
 .footer-links h2 { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); margin: 0 0 .6rem; }
-.footer-links ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .1rem; }
-.footer-links a { display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); text-decoration: none; }
+.footer-links ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.footer-links li { display: flex; align-items: center; min-height: 2rem; } /* same row height for links and plain text; 32px still clears the 24px WCAG 2.2 target size */
+.footer-links a { display: inline-flex; align-items: center; min-height: 2rem; color: var(--muted); text-decoration: none; }
 .footer-links a:hover { color: var(--plum); text-decoration: underline; }
 
 /* Marketplace */
@@ -523,6 +524,14 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
 }
 .desk-filters a:is(:hover,[aria-current]) { color: var(--plum); background: #f1e4ed; }
 .desk-filters a span { background: #f2eceb; color: var(--plum); font-size: .76rem; padding: .05rem .4rem; border-radius: .4rem; }
+/* Filter chips: one row that scrolls sideways, with a thin rounded plum scrollbar. */
+.desk-filters { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: .25rem; padding-bottom: .6rem; margin-bottom: .4rem; }
+.desk-filters a { flex: none; white-space: nowrap; scroll-snap-align: start; }
+.desk-filters::-webkit-scrollbar { height: 6px; }
+.desk-filters::-webkit-scrollbar-track { background: #f1e9ec; border-radius: 999px; }
+.desk-filters::-webkit-scrollbar-thumb { background: #cfb0c2; border-radius: 999px; }
+.desk-filters::-webkit-scrollbar-thumb:hover { background: var(--plum); }
+@supports not selector(::-webkit-scrollbar) { .desk-filters { scrollbar-width: thin; scrollbar-color: #cfb0c2 #f1e9ec; } }
 .desk-results a { margin-inline-start: .5rem; }
 .desk-list { list-style: none; padding: 0; margin: 0; }
 .desk-row {
@@ -677,3 +686,8 @@ button.danger:hover { background: #8a3322; }
 .refresh-button .icon { transition: transform .45s ease; }
 .refresh-button:hover .icon { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .refresh-button .icon { transition: none; } }
+
+/* Cards that hold a data table: tighter padding; no extra gap when the table is the first thing in the card. */
+.card:has(> .desk-table) { padding: clamp(.85rem, 1.6vw, 1.15rem) clamp(.9rem, 1.8vw, 1.25rem); }
+.card > .desk-table:first-child table { margin-top: 0; }
+.card > h2 + .desk-table table { margin-top: .75rem; }
