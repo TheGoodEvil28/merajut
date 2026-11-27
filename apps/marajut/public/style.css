@@ -567,7 +567,6 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
   .desktop-estimate { display: none; }
   .mobile-estimate { display: grid; margin: 0; }
 }
-@media (min-width: 681px) { .desk-filter-menu > summary { display: none; } }
 @media (max-width: 680px) {
   .desk-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); gap: .55rem; }
   .desk-metric .metric-icon { width: 2.05rem; height: 2.05rem; margin-bottom: 0; grid-row: span 2; }
@@ -578,11 +577,6 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
   .desk-row .desk-customer { grid-column: 1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: baseline; }
   .desk-row .desk-state { grid-column: 1; grid-row: 3; }
   .desk-row .desk-open { grid-column: 2; grid-row: 1 / 4; }
-  .desk-filter-menu > summary {
-    cursor: pointer; color: var(--muted); min-height: 44px; padding: .55rem .3rem;
-  }
-  .desk-filter-menu > summary strong { color: var(--plum); margin-inline: .35rem; }
-  .desk-filter-menu > summary span { background: #f1e4ed; color: var(--plum); padding: .08rem .45rem; border-radius: .4rem; }
   .desk-filters { gap: .15rem .3rem; }
   .desk-filters a { font-size: .8rem; padding-inline: .35rem; }
   .customer-orders .record-list a { grid-template-columns: minmax(0,1fr) auto; gap: .55rem; }
@@ -718,3 +712,9 @@ button.danger-outline:hover { color: #fff; background: var(--clay); border-color
 .admin-page .workflow-layout .card.stack > :is(h2, .section-caption):first-child { margin-bottom: 0; }
 .admin-page .workflow-layout .card.stack > .section-caption + .summary-list { margin-top: 0; }
 .admin-page .workflow-layout .card.stack.disclosure-list > h2:first-child { margin-bottom: 1rem; }
+
+/* Desktop sidebar: Keluar is a full-width row like the nav links. */
+@media (min-width: 960px) {
+  .studio-shell .nav-account form { width: 100%; }
+  .studio-shell .site-header .nav-account .quiet { width: 100%; justify-content: flex-start; gap: .72rem; min-height: 44px; padding: .6rem .8rem; font-size: .95rem; }
+}

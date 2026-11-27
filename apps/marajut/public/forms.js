@@ -2,15 +2,6 @@ const money = new Intl.NumberFormat('id-ID', {
   style: 'currency', currency: 'IDR', maximumFractionDigits: 0
 });
 
-for (const [selector, breakpoint] of [['[data-desk-filter-menu]',680]]) {
-  const menu = document.querySelector(selector);
-  if (!menu) continue;
-  const compact = window.matchMedia('(max-width: '+breakpoint+'px)');
-  const fitMenu = () => { menu.open = !compact.matches; };
-  compact.addEventListener('change',fitMenu);
-  fitMenu();
-}
-
 const service = document.querySelector('[data-service-picker]');
 const emailProof = document.querySelector('[data-email-proof]');
 if (emailProof && /^#[a-f0-9]{64}$/.test(location.hash)) {

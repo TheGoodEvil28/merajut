@@ -712,3 +712,13 @@ Roles affected: all. Prerequisites: the dev-mode stack and synthetic accounts.
 2. **Top padding.** The first section on every page now starts `clamp(1.25rem, 2.5vw, 2rem)` from the top (about 26 px at 1024 px, 32 px max), down from up to 80 px. This rule used to apply to dashboards only. It now also covers storefront inner pages: the public shop page (`/penjahit/<slug>`), login, customer pages and the chat simulator. The home page is unchanged, because its hero is not a `.section`.
 
 Checks run in the in-app browser: measured first-section top padding of 25.5 px on `/penjahit/jahit-rina`, `/workspace/intake` and the partner page; the home page hero is unaffected; the three card heading gaps were 16 px each; a screenshot of the shop page was reviewed. Not verified: login, customer and request pages visually, and 375 px.
+
+### Admin desk filters: no fold-out on phones · 27 November 2026 WIB
+
+The role affected is the admin operator (**Papan pesanan** on `/pengelola`). Prerequisites: the dev-mode stack and `operator@marajut.test`. The filter chips are no longer wrapped in a collapsible "Antrean …" menu below 680 px. They always show as the single scrolling row, and the selected chip is scrolled into view. The `<details>` became a plain `<div data-desk-filter-menu>`. The `forms.js` code that closed it on phones and the summary styles were removed. In `scripts/browser-smoke.js` the two phone steps now wait for the **Filter pesanan** navigation and no longer open a summary before choosing a filter.
+
+Checks run in the in-app browser as the synthetic operator at 375 px with `?filter=work`: no summary, the chip row is visible on one line, **Pengerjaan** is selected and fully in view, and there is no page overflow (screenshot reviewed). `desk-overview.ejs` compiles, and `npm.cmd run check` passed. Not verified: the browser smoke suite run, and widths 681–959 px.
+
+### Dashboard sidebar: full-width Keluar · 27 November 2026 WIB
+
+Roles affected are tailor and admin operator (desktop sidebar, 960 px and wider). **Keluar** at the bottom of the sidebar is now a full-width row (same width, left edge, padding and icon gap as the nav links) instead of a text-width button. Hovering highlights the whole row. It still opens the logout confirmation. The phone and tablet drawer already used a full-width **Keluar**. Checked in the in-app browser as the synthetic operator at 1024 px: the button and the nav links are both 184 px wide from the same left edge; a zoomed screenshot was reviewed. Not verified: the tailor sidebar (same rule) and the hover colour.

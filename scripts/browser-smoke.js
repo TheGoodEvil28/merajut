@@ -210,9 +210,8 @@ try {
   await followUp.getByText('Fitting perlu dijadwalkan ulang',{exact:true}).waitFor();
   assert.match(await followUp.innerText(), /Jadwal sebelumnya .* WIB/);
   await admin.setViewportSize({width:360,height:844});
-  await compactDesk.and(admin.locator('details:not([open])')).waitFor({ timeout: 5000 });
+  await compactDesk.getByRole('navigation', { name: 'Filter pesanan' }).waitFor(); // filters stay visible on phones (no fold-out)
   assert.equal(await admin.evaluate(()=>document.documentElement.scrollWidth),360);
-  await compactDesk.locator('summary').press('Enter');
   assert.equal(await deskFilters.getByRole('link',{name:/Perlu tindak lanjut/}).getAttribute('aria-current'),'true');
   if (screenshotDir) await admin.screenshot({path:screenshotDir+'/admin-follow-up-mobile.png'});
   await followUp.click();
@@ -285,9 +284,8 @@ try {
   await admin.getByRole('heading',{name:'Papan pesanan'}).waitFor();
   await admin.setViewportSize({width:375,height:844});
   assert.equal(await admin.evaluate(()=>document.documentElement.scrollWidth),375);
-  await compactDesk.and(admin.locator('details:not([open])')).waitFor({ timeout: 5000 });
+  await compactDesk.getByRole('navigation', { name: 'Filter pesanan' }).waitFor(); // filters stay visible on phones (no fold-out)
   if (screenshotDir) await admin.screenshot({path:screenshotDir+'/admin-board-mobile.png'});
-  await compactDesk.locator('summary').click();
   await deskFilters.getByRole('link',{name:/Pembayaran/}).click();
   assert.equal(new URL(admin.url()).searchParams.get('filter'),'payment');
   assert.deepEqual(pageErrors, []);

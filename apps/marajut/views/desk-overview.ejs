@@ -30,14 +30,13 @@ const metrics = [
       <button class="secondary"><%- include('icon',{name:'search'}) %> Cari</button>
     </form>
   </div>
-  <details class="desk-filter-menu" data-desk-filter-menu open>
-    <summary>Antrean <strong><%= deskFilters[filter] %></strong><span><%= counts[filter] ?? 0 %></span></summary>
+  <div class="desk-filter-menu" data-desk-filter-menu>
     <nav class="desk-filters" aria-label="Filter pesanan">
       <% for (const [key,label] of Object.entries(deskFilters)) { %>
         <a href="<%= queueLink(key) %>" <%= key===filter?'aria-current=true':'' %>><%= label %><span><%= counts[key] ?? 0 %></span></a>
       <% } %>
     </nav>
-  </details>
+  </div>
   <% if (search) { %><p class="desk-results muted"><%= counts[filter] ?? 0 %> hasil untuk “<%= search %>”
     <a href="/pengelola<%= filter==='all'?'':'?filter='+filter %>#papan-pesanan">Hapus pencarian</a></p><% } %>
   <% if (!queue.length) { %>
