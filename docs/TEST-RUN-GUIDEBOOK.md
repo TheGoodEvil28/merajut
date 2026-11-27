@@ -837,3 +837,11 @@ The role affected is the customer (**Pesanan Saya** at `/workspace`). Prerequisi
 3. Each group heading now has a one-line muted description of which states it holds.
 
 Checks run with Playwright (Edge) as `customer2@marajut.test` (one request in **Sedang diproses**): no shortcut bar, and the group shows its description (screenshot reviewed). The template compiles, and `npm.cmd run check` passed. The smoke tests find groups by heading, which is unchanged. Not verified: step 2 (no synthetic customer currently has orders in two groups) and phones.
+
+### Cara memesan: no dashed line above steps · 27 November 2026 WIB
+
+Roles affected: guest and customer (home page `/`). The dashed line above each of the three steps in **Cara memesan di Marajut** is removed, along with the 1.4 rem top padding that only made room for it. The icons now start right under the section gap, and the arrows between steps stay vertically centred. Checked with Playwright (Edge) at 1280 px: all three steps have no top border, the first arrow is centred on its step, and a screenshot was reviewed. Not verified: 375 px (where the down arrows sit between stacked steps).
+
+### Tailor request page: no business name above the title · 27 November 2026 WIB
+
+The role affected is the tailor (`/requests/<id>` rendered with `request-detail.ejs`). Prerequisites: the dev-mode stack and `tailor@marajut.test`. The business name line (for example "Jahit Rina") above the service title is no longer shown to tailors, because it is their own business. Customers and admins who see this template keep the line. Checked in the in-app browser as the synthetic tailor on the demo request: the page loads (200), shows **Ringkasan Usaha** then the title **Permak panjang pakaian**, with no location line in the heading. The template compiles. Smoke scripts only look for "Jahit Rina" on the overview heading and the public shop page. Not verified: the customer and admin variants of this template.

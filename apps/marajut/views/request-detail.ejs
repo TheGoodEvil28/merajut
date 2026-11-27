@@ -24,7 +24,7 @@ const nextStep = order ? {
 <section class="section">
   <a class="back" href="<%= user.manager?'/pengelola':'/workspace' %>"><%= user.manager ? 'Papan pesanan' : user.role==='provider' ? 'Ringkasan Usaha' : 'Pesanan Saya' %></a>
   <div class="page-heading">
-    <div><p class="location"><%= inquiry.business %></p><h1><%= inquiry.service %></h1></div>
+    <div><% if (user.role !== 'provider') { %><p class="location"><%= inquiry.business %></p><% } %><h1><%= inquiry.service %></h1></div>
     <span class="status" data-state="<%= state %>"><%= label(latest?.status === 'EXPIRED' && !order && state === 'QUOTED' ? 'EXPIRED' : state) %></span>
   </div>
   <% if (user.role==='provider' && inquiry.dispatch_state) { %><p class="notice">Admin menangani pesanan ini. Berikan kabar pengerjaan melalui WhatsApp.</p><% } %>

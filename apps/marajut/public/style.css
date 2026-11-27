@@ -108,7 +108,7 @@ main > .section:first-child { padding-top: clamp(1.25rem, 2.5vw, 2rem); } /* eve
 .catalog-section .section-caption { margin-bottom: clamp(1.75rem, 3.5vw, 2.75rem); }
 .how-section { border-top: 1px solid var(--line); padding: clamp(2.4rem,6vw,5rem) 0; margin-bottom: clamp(.5rem, 2vw, 1.5rem); }
 .sewing-steps { list-style: none; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); margin: 2rem 0 0; padding: 0; --step-gap: clamp(3.5rem, 7vw, 6rem); gap: var(--step-gap); }
-.sewing-steps li { position: relative; border-top: 1px dashed #bd9da6; padding-top: 1.4rem; }
+.sewing-steps li { position: relative; }
 .sewing-steps li > .icon { color: var(--clay); margin-bottom: 1rem; width: 4.2rem; height: 4.2rem; stroke-width: 1.2; }
 /* Arrow icon centred in the gap between two steps, vertically centred on the step (points down on phones). */
 .sewing-steps .step-arrow { position: absolute; top: 50%; right: calc(var(--step-gap) / -2); transform: translate(50%, -50%); display: grid; place-items: center; color: var(--clay); pointer-events: none; }
