@@ -53,7 +53,7 @@ const actionPath = '/api/v1/intake/threads/' + thread.id + '/actions'; %>
         <% if (customer && !thread.inquiry_id && ['AUTOMATED', 'AWAITING_CUSTOMER'].includes(thread.state)) { %>
           <form class="action-details" method="post" action="<%= actionPath %>">
             <input type="hidden" name="_csrf" value="<%= csrf %>">
-            <button class="secondary" name="kind" value="close">Tutup draf ini</button>
+            <button class="secondary" name="kind" value="close" data-confirm="Draf permintaan dari percakapan ini ditutup." data-confirm-title="Tutup draf?" data-confirm-action="Ya, tutup" data-confirm-icon="cancel" data-confirm-tone="danger">Tutup draf ini</button>
           </form>
         <% } %>
       </section>
@@ -74,7 +74,7 @@ const actionPath = '/api/v1/intake/threads/' + thread.id + '/actions'; %>
           <form class="actions" method="post" action="<%= actionPath %>">
             <input type="hidden" name="_csrf" value="<%= csrf %>">
             <button class="secondary" name="kind" value="return">Kembalikan ke pengisian otomatis</button>
-            <button class="secondary" name="kind" value="resolve">Selesaikan percakapan</button>
+            <button class="secondary" name="kind" value="resolve" data-confirm="Percakapan ditandai selesai." data-confirm-title="Selesaikan percakapan?" data-confirm-action="Ya, selesaikan" data-confirm-icon="check">Selesaikan percakapan</button>
           </form>
         </section>
       <% } %>

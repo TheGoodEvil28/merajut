@@ -81,7 +81,7 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
           <% if (progressAction[0]==='start' || !fittingOutstanding) { %>
             <form method="post" action="<%= orderPath %>">
               <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
-              <button name="action" value="<%= progressAction[0] %>"><%= progressAction[1] %></button>
+              <button name="action" value="<%= progressAction[0] %>" data-confirm="Status pesanan berubah dan pelanggan akan melihat pembaruan ini." data-confirm-title="<%= progressAction[1] %>?" data-confirm-action="Ya, lanjutkan" data-confirm-icon="check"><%= progressAction[1] %></button>
             </form>
           <% } %>
         </section>
@@ -91,21 +91,37 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
       <% if (user.manager && !dispatchFirst && (open || progressAction || order?.status==='READY')) { %><%- include('managed-dispatch') %><% } %>
       <% if (isCustomer) { %><%# customer cancel card lives in the right column %>
       <% } else if (open || (user.manager && order?.status==='CONFIRMED')) { %>
-        <details class="card workflow-options">
-          <summary><%= user.manager?'Tindakan lain':'Batalkan permintaan' %></summary>
-          <% if (user.manager && open && ['NEW','UNDER_REVIEW'].includes(inquiry.status)) { %>
-            <form class="stack" action="/api/v1/inquiries/<%= inquiry.id %>/actions" method="post">
-              <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
-              <label><span class="field-label">Pertanyaan untuk pelanggan<span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" rows="2" required></textarea></label>
-              <button class="secondary" name="action" value="clarify">Minta detail pelanggan</button>
-            </form>
-          <% } %>
-          <form class="stack" method="post" action="<%= open?'/api/v1/inquiries/'+inquiry.id+'/actions':orderPath %>">
-            <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= open?inquiry.revision:order.revision %>">
-            <label><span class="field-label">Alasan <%= user.manager && open?'penutupan':'pembatalan' %><span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" rows="2" required></textarea></label>
-            <button class="secondary" name="action" value="<%= user.manager && open?'decline':'cancel' %>"><%= user.manager && open?'Tutup permintaan':open?'Batalkan permintaan':'Batalkan pesanan' %></button>
+        <% const closeLabel = user.manager && open ? 'Tutup permintaan' : open ? 'Batalkan permintaan' : 'Batalkan pesanan';
+           const canClarify = user.manager && open && ['NEW','UNDER_REVIEW'].includes(inquiry.status); %>
+        <section class="card workflow-card action-card" aria-labelledby="other-actions-title">
+          <div class="section-caption"><div><h2 id="other-actions-title">Tindakan lain</h2><p class="muted">Minta keterangan tambahan atau tutup proses ini.</p></div>
+            <div class="actions">
+              <% if (canClarify) { %><button type="button" class="secondary" command="show-modal" commandfor="clarify-dialog"><%- include('icon',{name:'chat'}) %>Minta detail pelanggan</button><% } %>
+              <button type="button" class="secondary danger-outline" command="show-modal" commandfor="close-dialog"><%- include('icon',{name:'cancel'}) %><%= closeLabel %></button>
+            </div></div>
+        </section>
+        <% if (canClarify) { %>
+        <dialog class="confirm-dialog form-dialog" id="clarify-dialog" aria-labelledby="clarify-title">
+          <form class="confirm-panel" action="/api/v1/inquiries/<%= inquiry.id %>/actions" method="post">
+            <span class="confirm-icon" aria-hidden="true"><%- include('icon',{name:'chat'}) %></span>
+            <h2 id="clarify-title">Minta detail pelanggan</h2>
+            <p>Pelanggan akan diminta melengkapi permintaan sebelum koordinasi dilanjutkan.</p>
+            <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+            <label><span class="field-label">Pertanyaan untuk pelanggan<span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" rows="3" required autofocus></textarea></label>
+            <div class="confirm-actions"><button type="button" class="secondary" data-dialog-close>Batal</button><button name="action" value="clarify">Kirim pertanyaan</button></div>
           </form>
-        </details>
+        </dialog>
+        <% } %>
+        <dialog class="confirm-dialog form-dialog" id="close-dialog" aria-labelledby="close-title">
+          <form class="confirm-panel" method="post" action="<%= open?'/api/v1/inquiries/'+inquiry.id+'/actions':orderPath %>">
+            <span class="confirm-icon" aria-hidden="true"><%- include('icon',{name:'cancel'}) %></span>
+            <h2 id="close-title"><%= closeLabel %>?</h2>
+            <p>Proses ditutup untuk pelanggan dan penjahit. Tindakan ini tidak bisa diurungkan.</p>
+            <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= open?inquiry.revision:order.revision %>">
+            <label><span class="field-label">Alasan <%= user.manager && open?'penutupan':'pembatalan' %><span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" rows="3" required autofocus></textarea></label>
+            <div class="confirm-actions"><button type="button" class="secondary" data-dialog-close>Batal</button><button class="danger" name="action" value="<%= user.manager && open?'decline':'cancel' %>">Ya, <%= closeLabel.toLowerCase() %></button></div>
+          </form>
+        </dialog>
       <% } %>
       <% if (isCustomer) { %>
       <%- include('inquiry-photos') %>
@@ -174,13 +190,13 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
         </details>
       <% } %>
       <% if (conversation && intakeEnabled) { %><p><a href="/workspace/intake/<%= conversation.id %>">Buka percakapan simulasi</a></p><% } %>
-      <% if (!isCustomer) { %><details class="card timeline workflow-options"><summary>Riwayat aktivitas</summary>
+      <% if (!isCustomer) { %><section class="card timeline history-card" aria-labelledby="history-title"><h2 id="history-title">Riwayat aktivitas</h2>
         <ol><% for (const item of shownEvents) { %><li>
           <strong><%= eventLabel(item.kind) %></strong>
           <time datetime="<%= item.created_at.toISOString() %>"><%= dateTime(item.created_at) %></time>
           <% if (item.detail) { %><p class="preserve"><%= item.detail %></p><% } %>
         </li><% } %></ol>
-      </details><% } %>
+      </section><% } %>
     </div>
   </div>
 </section>

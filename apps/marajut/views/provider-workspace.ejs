@@ -2,7 +2,7 @@
 <% const glyphs = {inbox:'inbox', work:'scissors', ready:'bag', clarify:'chat', quotes:'quote', handoffs:'chat'}; %>
 <section class="provider-home section">
   <header class="work-banner">
-    <div><p class="work-kicker"><%- include('icon', {name:'shop'}) %> Ruang usaha · <%= business.area %></p>
+    <div><p class="work-kicker"><%- include('icon', {name:'shop'}) %> <%= business.area %></p>
       <h1><%= business.name %></h1></div>
     <% if (business.published) { %><a class="button secondary" href="/penjahit/<%= business.slug %>">Lihat profil publik <%- include('icon', {name:'external'}) %></a>
     <% } else { %><span class="status">Profil belum dipublikasikan</span><% } %>

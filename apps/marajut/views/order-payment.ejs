@@ -54,8 +54,8 @@ const startLabel = modeUsed==='demo' ? (failed ? 'Ulangi pembayaran simulasi' : 
     <% if (canCheck) { %>
       <form method="post" class="actions" action="/api/v1/payments/<%= payment.id %>/check#pembayaran"><input type="hidden" name="_csrf" value="<%= csrf %>">
         <% if (modeUsed==='demo') { %>
-          <button name="action" value="confirm">Verifikasi simulasi lunas</button>
-          <button class="secondary" name="action" value="reject">Tandai simulasi gagal</button>
+          <button name="action" value="confirm" data-confirm="Pembayaran simulasi ditandai lunas." data-confirm-title="Verifikasi pembayaran lunas?" data-confirm-action="Ya, verifikasi" data-confirm-icon="check">Verifikasi simulasi lunas</button>
+          <button class="secondary" name="action" value="reject" data-confirm="Pembayaran simulasi ditandai gagal dan pelanggan perlu membayar ulang." data-confirm-title="Tandai pembayaran gagal?" data-confirm-action="Ya, tandai gagal" data-confirm-icon="cancel" data-confirm-tone="danger">Tandai simulasi gagal</button>
         <% } else { %><button>Periksa status pembayaran</button><% } %>
       </form>
     <% } %>

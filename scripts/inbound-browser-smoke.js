@@ -11,6 +11,13 @@ if (!['localhost', '127.0.0.1'].includes(origin.hostname) || !password) {
 }
 const pageOptions = { baseURL: origin.origin, ...previewBrowserOptions(origin) };
 const browser = await chromium.launch(process.env.BROWSER_CHANNEL ? { channel: process.env.BROWSER_CHANNEL } : {});
+// Crucial actions ask for confirmation in the shared modal; press its confirm button.
+async function confirmAction(page) {
+  const ok = page.locator('dialog[data-confirm-dialog][open] [data-confirm-ok]');
+  await ok.waitFor();
+  await ok.click();
+  await page.locator('dialog[data-confirm-dialog]').and(page.locator(':not([open])')).waitFor({ state: 'attached' });
+}
 const customer = await browser.newPage({ ...pageOptions, viewport: { width: 390, height: 844 } });
 const tailor = await browser.newPage({ ...pageOptions, viewport: { width: 1366, height: 900 } });
 
@@ -85,16 +92,16 @@ try {
   await admin.getByLabel(/Harga satuan/).first().fill('24000');
   await admin.getByLabel('Perkiraan selesai').fill(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
   await admin.getByLabel('Rincian pengerjaan dan pengambilan').fill('Repair jacket seam, collect in person.');
-  await admin.getByRole('button', { name: 'Kirim penawaran' }).click();
+  await admin.getByRole('button', { name: 'Kirim penawaran' }).click(); await confirmAction(admin);
   await admin.getByRole('heading', { name: 'Penawaran harga' }).waitFor();
 
   await customer.reload();
   await customer.getByRole('link', { name: 'Buka permintaan layanan' }).click();
-  await customer.getByRole('button', { name: 'Setujui penawaran' }).click();
+  await customer.getByRole('button', { name: 'Setujui penawaran' }).click(); await confirmAction(customer);
   await customer.getByRole('heading', { name: 'Detail pesanan' }).waitFor();
   assert.equal(new URL(customer.url()).pathname, new URL(tailor.url()).pathname);
   await tailor.goto(conversationUrl);
-  await tailor.getByRole('button', { name: 'Selesaikan percakapan' }).click();
+  await tailor.getByRole('button', { name: 'Selesaikan percakapan' }).click(); await confirmAction(tailor);
   await customer.goto(conversationUrl);
   await customer.getByText('Percakapan selesai', { exact: true }).waitFor();
   console.log('Inbound browser workflow passed through simulated reply, draft conversion, quote acceptance, and resolution.');

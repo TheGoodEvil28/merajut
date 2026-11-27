@@ -32,7 +32,7 @@ const fitForm = fittingDraft?.action === 'propose' ? fittingDraft : {};
     <% if (order.fitting_state==='SCHEDULED') { %>
       <form method="post" action="<%= path %>">
         <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
-        <button name="action" value="done">Catat fitting selesai</button>
+        <button name="action" value="done" data-confirm="Fitting ditandai selesai dan pengerjaan dapat dilanjutkan." data-confirm-title="Catat fitting selesai?" data-confirm-action="Ya, catat" data-confirm-icon="check">Catat fitting selesai</button>
       </form>
     <% } %>
     <details class="form-disclosure" <%= order.fitting_state==='REQUESTED' || fittingDraft?.action==='propose'?'open':'' %>>

@@ -785,3 +785,13 @@ button.danger-outline:hover { color: #fff; background: var(--clay); border-color
 
 /* Customer orders: one-line description under each group heading. */
 .order-group .group-blurb { margin: -.35rem 0 .5rem; font-size: .9rem; }
+
+/* Dashboard cards (tailor and admin): one padding everywhere, matching the Ringkasan cards. */
+.studio-shell main .card { padding: clamp(1rem, 1.8vw, 1.45rem); }
+
+/* A hint after a row of buttons (not under a field) needs normal spacing. */
+.actions + .form-help { margin-top: .75rem; }
+/* Action cards: heading and text on the left, buttons on the right (wrap on small screens). */
+.action-card .section-caption { margin-bottom: 0; align-items: center; }
+.action-card h2 { font-size: 1.15rem; }
+.action-card .section-caption p { margin-top: .25rem; }

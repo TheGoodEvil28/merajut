@@ -184,17 +184,19 @@ if (confirmDialog && typeof confirmDialog.showModal === 'function') {
 
   document.addEventListener('submit', event => {
     const form = event.target;
-    if (!(form instanceof HTMLFormElement) || !form.dataset.confirm) return;
+    if (!(form instanceof HTMLFormElement)) return;
+    // data-confirm on the pressed button wins over the form's, so forms with several actions confirm only the crucial ones.
+    const d = event.submitter?.dataset.confirm ? event.submitter.dataset : form.dataset;
+    if (!d.confirm) return;
     if (form.dataset.confirmed === 'yes') { delete form.dataset.confirmed; return; }
     event.preventDefault();
     pending = { form, submitter: event.submitter };
-    const d = form.dataset;
     part('title').textContent = d.confirmTitle || 'Yakin?';
     part('message').textContent = d.confirm;
     part('ok').textContent = d.confirmAction || 'Lanjutkan';
     part('cancel').textContent = d.confirmCancel || 'Batal';
     part('ok').classList.toggle('danger', d.confirmTone === 'danger');
-    part('icon-use').setAttribute('href', `/assets/studio-icons.svg#${d.confirmIcon || 'door'}`);
+    part('icon-use').setAttribute('href', `/assets/studio-icons.svg#${d.confirmIcon || 'check'}`);
     confirmDialog.returnValue = '';
     confirmDialog.showModal();
     window.lenis?.stop();

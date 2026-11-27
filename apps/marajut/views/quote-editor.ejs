@@ -41,6 +41,6 @@ const handover = quoteDraft?.handover ?? latest?.handover ?? inquiry.requested_h
       </details>
     <% } %>
     <label><span class="field-label">Rincian pengerjaan dan pengambilan<span class="req" aria-hidden="true"></span></span><textarea name="terms" minlength="5" maxlength="1000" rows="3" required><%= quoteDraft?.terms ?? latest?.terms ?? '' %></textarea></label>
-    <button>Kirim penawaran</button>
+    <button data-confirm="Pelanggan akan menerima penawaran ini dan dapat menyetujuinya." data-confirm-title="Kirim penawaran?" data-confirm-action="Ya, kirim" data-confirm-icon="check">Kirim penawaran</button>
   </form>
 </section>

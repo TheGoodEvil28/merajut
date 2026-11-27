@@ -67,7 +67,7 @@ const nextStep = order ? {
             <form method="post" action="<%= staffBase %>/orders/<%= order.id %>/transitions">
               <input type="hidden" name="_csrf" value="<%= csrf %>">
               <input type="hidden" name="revision" value="<%= order.revision %>">
-              <button name="action" value="<%= next[0] %>"><%= next[1] %></button>
+              <button name="action" value="<%= next[0] %>" data-confirm="Status pesanan berubah dan pelanggan akan melihat pembaruan ini." data-confirm-title="<%= next[1] %>?" data-confirm-action="Ya, lanjutkan" data-confirm-icon="check"><%= next[1] %></button>
             </form>
           <% } %>
           <% if (canManage && order.status === 'CONFIRMED') { %>
@@ -76,7 +76,7 @@ const nextStep = order ? {
                 <input type="hidden" name="_csrf" value="<%= csrf %>">
                 <input type="hidden" name="revision" value="<%= order.revision %>">
                 <label><span class="field-label">Alasan pembatalan<span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" required></textarea></label>
-                <button name="action" value="cancel" class="secondary">Batalkan pesanan</button>
+                <button name="action" value="cancel" class="secondary" data-confirm="Pesanan dibatalkan untuk pelanggan dan penjahit. Tindakan ini tidak bisa diurungkan." data-confirm-title="Batalkan pesanan?" data-confirm-action="Ya, batalkan" data-confirm-icon="cancel" data-confirm-tone="danger">Batalkan pesanan</button>
               </form>
             </details>
           <% } %>
@@ -95,8 +95,8 @@ const nextStep = order ? {
             <form method="post" action="/api/v1/quotes/<%= latest.id %>/decisions" class="actions">
               <input type="hidden" name="_csrf" value="<%= csrf %>">
               <input type="hidden" name="version" value="<%= latest.version %>">
-              <button name="decision" value="ACCEPTED">Setujui penawaran v<%= latest.version %></button>
-              <button name="decision" value="REJECTED" class="secondary">Tolak penawaran</button>
+              <button name="decision" value="ACCEPTED" data-confirm="Penawaran menjadi pesanan dengan harga dan jadwal ini." data-confirm-title="Setujui penawaran?" data-confirm-action="Ya, setujui" data-confirm-icon="check">Setujui penawaran v<%= latest.version %></button>
+              <button name="decision" value="REJECTED" class="secondary" data-confirm="Penjahit akan diberi tahu bahwa penawaran ini ditolak." data-confirm-title="Tolak penawaran?" data-confirm-action="Ya, tolak" data-confirm-icon="cancel" data-confirm-tone="danger">Tolak penawaran</button>
             </form>
             <details class="action-details"><summary>Tanyakan rincian penawaran</summary>
               <form class="stack" method="post" action="/api/v1/inquiries/<%= inquiry.id %>/actions">
@@ -134,10 +134,10 @@ const nextStep = order ? {
               <% if (canManage) { %>
                 <% if (['NEW','EXPIRED'].includes(inquiry.status)) { %><button name="action" value="review" class="secondary" formnovalidate>Mulai tinjau</button><% } %>
                 <% if (['NEW', 'UNDER_REVIEW'].includes(inquiry.status)) { %><button name="action" value="clarify" class="secondary">Minta klarifikasi</button><% } %>
-                <button name="action" value="decline" class="secondary">Tolak permintaan</button>
+                <button name="action" value="decline" class="secondary" data-confirm="Permintaan ditutup dan pelanggan diberi tahu. Tindakan ini tidak bisa diurungkan." data-confirm-title="Tolak permintaan?" data-confirm-action="Ya, tolak" data-confirm-icon="cancel" data-confirm-tone="danger">Tolak permintaan</button>
               <% } else { %>
                 <% if (inquiry.status === 'NEEDS_DETAILS') { %><button name="action" value="respond">Kirim detail</button><% } %>
-                <button name="action" value="cancel" class="secondary">Batalkan permintaan</button>
+                <button name="action" value="cancel" class="secondary" data-confirm="Permintaan ditutup dan tidak akan diproses." data-confirm-title="Batalkan permintaan?" data-confirm-action="Ya, batalkan" data-confirm-icon="cancel" data-confirm-tone="danger">Batalkan permintaan</button>
               <% } %>
             </div>
           </form>

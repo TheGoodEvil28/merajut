@@ -1,7 +1,7 @@
 <%- include('header') %>
 <section class="section">
   <div class="page-heading"><h1>Profil Usaha</h1>
-    <% if (business.published) { %><a class="button secondary" href="/penjahit/<%= business.slug %>">Lihat profil publik</a><% } %>
+    <% if (business.published) { %><a class="button secondary" href="/penjahit/<%= business.slug %>">Lihat profil publik <%- include('icon', {name:'external'}) %></a><% } %>
   </div>
   <% if (saved) { %><p class="notice" role="status">Profil usaha berhasil disimpan.</p><% } %>
   <div class="stack profile-layout">

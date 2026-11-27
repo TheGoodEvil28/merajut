@@ -15,6 +15,13 @@ const pageOptions = { baseURL: app.origin, ...previewBrowserOptions(app) };
 const mailHeaders = previewMailboxHeaders(mail);
 const axePath=createRequire(import.meta.url).resolve('axe-core/axe.min.js');
 const browser=await chromium.launch(process.env.BROWSER_CHANNEL ? {channel:process.env.BROWSER_CHANNEL} : {});
+// Crucial actions ask for confirmation in the shared modal; press its confirm button.
+async function confirmAction(page) {
+  const ok = page.locator('dialog[data-confirm-dialog][open] [data-confirm-ok]');
+  await ok.waitFor();
+  await ok.click();
+  await page.locator('dialog[data-confirm-dialog]').and(page.locator(':not([open])')).waitFor({ state: 'attached' });
+}
 const screenshots=process.env.BROWSER_SCREENSHOTS;
 const metric=[];
 const tag=randomBytes(4).toString('hex');
@@ -145,7 +152,7 @@ try {
   await staff.getByLabel(/Harga satuan/).first().fill('20000');
   await staff.getByLabel('Perkiraan selesai').fill(new Date(Date.now()+7*86400000).toISOString().slice(0,10));
   await staff.getByLabel('Rincian pengerjaan dan pengambilan').fill('Ambil di toko jika pakaian siap.');
-  await staff.getByRole('button',{name:'Kirim penawaran'}).click();
+  await staff.getByRole('button',{name:'Kirim penawaran'}).click(); await confirmAction(staff);
   await staff.locator('#penawaran').getByText(/Versi 1/).waitFor();
   await guest.reload();
   await guest.getByText('Minta penyesuaian',{exact:true}).click();
@@ -154,23 +161,23 @@ try {
   await guest.locator('#klarifikasi').getByText('Apakah bisa diambil di toko?',{exact:true}).waitFor();
   assert.equal(await guest.getByRole('button',{name:'Setujui penawaran'}).count(),0);
   await staff.reload();
-  await staff.getByRole('button',{name:'Kirim penawaran'}).click();
+  await staff.getByRole('button',{name:'Kirim penawaran'}).click(); await confirmAction(staff);
   await staff.locator('#penawaran').getByText(/Versi 2/).waitFor();
   await guest.reload();
-  await guest.getByRole('button',{name:'Setujui penawaran'}).click();
+  await guest.getByRole('button',{name:'Setujui penawaran'}).click(); await confirmAction(guest);
   await guest.getByRole('heading',{name:'Detail pesanan'}).waitFor();
   await staff.reload();
   for (const label of ['Mulai pengerjaan','Tandai jahitan siap']) await staff.getByRole('button',{name:label}).click();
   await guest.reload();
   await guest.getByRole('button',{name:'Mulai pembayaran simulasi'}).click();
   await staff.reload();
-  await staff.getByRole('button',{name:'Verifikasi simulasi lunas'}).click();
+  await staff.getByRole('button',{name:'Verifikasi simulasi lunas'}).click(); await confirmAction(staff);
   await guest.reload();
   await guest.getByText('Lunas · transaksi uji').waitFor();
   await guest.locator('#pembayaran').scrollIntoViewIfNeeded();
   await capture(guest,'pembayaran');
   await checkScreen(guest,'order');
-  await staff.getByRole('button',{name:'Selesaikan pesanan'}).click();
+  await staff.getByRole('button',{name:'Selesaikan pesanan'}).click(); await confirmAction(staff);
   await guest.reload();
   await guest.locator('.workflow-heading .status').getByText('Pesanan selesai',{exact:true}).waitFor();
 

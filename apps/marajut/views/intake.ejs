@@ -64,7 +64,7 @@
             <% if (sender.bound) { %><p>Terhubung dengan akun Anda.</p>
               <details><summary>Lepas tautan pengirim</summary><p>Sesi percakapan aktif akan ditutup dan notifikasi simulasi dinonaktifkan.</p>
                 <form method="post" action="/api/v1/intake/binding/unlink"><input type="hidden" name="_csrf" value="<%= csrf %>">
-                  <input type="hidden" name="senderId" value="<%= sender.id %>"><button class="secondary">Konfirmasi pelepasan</button></form></details>
+                  <input type="hidden" name="senderId" value="<%= sender.id %>"><button class="secondary" data-confirm="Nomor WhatsApp simulasi tidak lagi terhubung ke akun Anda." data-confirm-title="Lepaskan tautan WhatsApp?" data-confirm-action="Ya, lepaskan" data-confirm-icon="cancel" data-confirm-tone="danger">Konfirmasi pelepasan</button></form></details>
             <% } else if (challenge?.proved) { %>
               <form method="post" action="/api/v1/intake/binding/confirm">
                 <input type="hidden" name="_csrf" value="<%= csrf %>">

@@ -37,14 +37,14 @@ const lastPost=events.findLast(item => item.kind==='GROUP_POSTED');
           <button class="secondary" name="state" value="CONTACTED">Catat sudah dihubungi</button>
         <% } %>
         <% if (inquiry.dispatch_state!=='AVAILABLE') { %><button name="state" value="AVAILABLE">Penjahit bersedia</button><% } %>
-        <% if (inquiry.dispatch_state!=='UNAVAILABLE') { %><button class="secondary" name="state" value="UNAVAILABLE">Penjahit berhalangan</button><% } %>
+        <% if (inquiry.dispatch_state!=='UNAVAILABLE') { %><button class="secondary" name="state" value="UNAVAILABLE" data-confirm="Permintaan perlu dialihkan ke penjahit lain." data-confirm-title="Catat penjahit berhalangan?" data-confirm-action="Ya, catat" data-confirm-icon="cancel" data-confirm-tone="danger">Penjahit berhalangan</button><% } %>
       </form>
     <% } else { %>
       <details class="form-disclosure"><summary>Penjahit berhalangan</summary>
         <p>Catat perubahan kesediaan untuk membuka pilihan penjahit pengganti.<% if (journey.key==='QUOTED') { %> Penawaran saat ini akan ditarik.<% } %></p>
         <form method="post" action="<%= dispatchPath %>">
           <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
-          <button class="secondary" name="state" value="UNAVAILABLE">Catat penjahit berhalangan</button>
+          <button class="secondary" name="state" value="UNAVAILABLE" data-confirm="Permintaan perlu dialihkan ke penjahit lain." data-confirm-title="Catat penjahit berhalangan?" data-confirm-action="Ya, catat" data-confirm-icon="cancel" data-confirm-tone="danger">Catat penjahit berhalangan</button>
         </form>
       </details>
     <% } %>

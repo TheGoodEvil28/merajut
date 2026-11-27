@@ -16,7 +16,7 @@
     <p class="form-help muted">Dengan menyetujui penawaran, Anda memesan sesuai rincian di atas. Pembayaran dilakukan saat jahitan siap.</p>
     <form method="post" action="/api/v1/quotes/<%= latest.id %>/decisions">
       <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="version" value="<%= latest.version %>">
-      <button name="decision" value="ACCEPTED">Setujui penawaran</button>
+      <button name="decision" value="ACCEPTED" data-confirm="Penawaran menjadi pesanan dengan harga dan jadwal ini." data-confirm-title="Setujui penawaran?" data-confirm-action="Ya, setujui" data-confirm-icon="check">Setujui penawaran</button>
     </form>
     <details class="form-disclosure">
       <summary>Minta penyesuaian</summary>
@@ -32,7 +32,7 @@
       <p>Anda dapat memilih penjahit lain atau menunggu penawaran baru setelah menolak.</p>
       <form method="post" action="/api/v1/quotes/<%= latest.id %>/decisions">
         <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="version" value="<%= latest.version %>">
-        <button class="secondary" name="decision" value="REJECTED">Tolak penawaran ini</button>
+        <button class="secondary" name="decision" value="REJECTED" data-confirm="Penjahit akan diberi tahu bahwa penawaran ini ditolak." data-confirm-title="Tolak penawaran?" data-confirm-action="Ya, tolak" data-confirm-icon="cancel" data-confirm-tone="danger">Tolak penawaran ini</button>
       </form>
     </details>
   <% } %>

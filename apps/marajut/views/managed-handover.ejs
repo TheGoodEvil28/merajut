@@ -16,10 +16,10 @@
         <div><strong>Alamat di profil pelanggan</strong>
           <p class="preserve"><%= contacts.address || 'Alamat belum diisi. Konfirmasi alamat dengan pelanggan.' %></p></div>
         <label><span class="field-label">Kurir, nomor resi, atau catatan pengantaran<span class="req" aria-hidden="true"></span></span><textarea name="detail" maxlength="500" rows="2" required></textarea></label>
-        <button name="action" value="ship">Catat sudah dikirim</button>
+        <button name="action" value="ship" data-confirm="Pelanggan akan melihat bahwa pesanan sedang dikirim." data-confirm-title="Catat sudah dikirim?" data-confirm-action="Ya, catat" data-confirm-icon="bag">Catat sudah dikirim</button>
       <% } else { %>
         <p class="form-help muted"><%= order.handover==='delivery' ? 'Selesaikan setelah pelanggan menerima kiriman.' : 'Selesaikan setelah pelanggan mengambil pakaian.' %></p>
-        <button name="action" value="complete">Selesaikan pesanan</button>
+        <button name="action" value="complete" data-confirm="Pesanan ditandai selesai dan dipindahkan ke riwayat." data-confirm-title="Selesaikan pesanan?" data-confirm-action="Ya, selesaikan" data-confirm-icon="check">Selesaikan pesanan</button>
       <% } %>
     </form>
   <% } %>

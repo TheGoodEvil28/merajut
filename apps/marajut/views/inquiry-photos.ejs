@@ -11,7 +11,7 @@
             <% if (mayEdit) { %>
               <form method="post" action="<%= address %>/remove">
                 <input type="hidden" name="_csrf" value="<%= csrf %>">
-                <button class="quiet" name="remove" value="true" aria-label="Hapus foto <%= index + 1 %>">Hapus foto</button>
+                <button class="quiet" name="remove" value="true" aria-label="Hapus foto <%= index + 1 %>" data-confirm="Foto referensi ini dihapus permanen." data-confirm-title="Hapus foto?" data-confirm-action="Ya, hapus" data-confirm-icon="cancel" data-confirm-tone="danger">Hapus foto</button>
               </form>
             <% } %>
           </figure>

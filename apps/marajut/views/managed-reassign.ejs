@@ -1,12 +1,8 @@
-<% const choosePath = '/api/v1/'+(user.manager?'management/':'')+'inquiries/'+inquiry.id+'/reassign'; %>
-<% if (['UNAVAILABLE','REJECTED'].includes(journey.key)) { %>
-  <section class="card workflow-card" id="ganti-penjahit" tabindex="-1">
-    <h2>Pilih penjahit lain</h2>
-<% } else { %>
-  <details class="card workflow-options" id="ganti-penjahit"><summary>Pilih penjahit lain</summary>
-<% } %>
-  <% if (alternatives.length) { %>
-    <form class="stack" method="post" action="<%= choosePath %>">
+<% const choosePath = '/api/v1/'+(user.manager?'management/':'')+'inquiries/'+inquiry.id+'/reassign';
+const urgentReassign = ['UNAVAILABLE','REJECTED'].includes(journey.key);
+const reassignLabel = user.manager ? 'Alihkan permintaan' : 'Kirim ke penjahit ini';
+// The service picker, written once; shown inline when choosing is the next step, otherwise inside a modal.
+const reassignFields = () => { %>
       <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
       <label><span class="field-label">Layanan pengganti<span class="req" aria-hidden="true"></span></span><select name="serviceId" required>
         <option value="">Pilih layanan</option>
@@ -19,9 +15,35 @@
         <% } %>
       </select></label>
       <p class="muted form-help">Kami akan meneruskan detail dan foto yang sudah Anda kirim. Penawaran lama tetap tersimpan di riwayat.</p>
-      <button><%= user.manager?'Alihkan permintaan':'Kirim ke penjahit ini' %></button>
-    </form>
-  <% } else { %>
-    <p>Belum ada pilihan lain yang tersedia. Admin dapat mencarikan penjahit untuk permintaan ini.</p>
+<% } %>
+<% if (urgentReassign) { %>
+  <section class="card workflow-card" id="ganti-penjahit" tabindex="-1">
+    <h2>Pilih penjahit lain</h2>
+    <% if (alternatives.length) { %>
+      <form class="stack" method="post" action="<%= choosePath %>">
+        <% reassignFields() %>
+        <button data-confirm="Permintaan dipindahkan ke layanan yang dipilih." data-confirm-title="<%= reassignLabel %>?" data-confirm-action="Ya, alihkan" data-confirm-icon="shop"><%= reassignLabel %></button>
+      </form>
+    <% } else { %>
+      <p>Belum ada pilihan lain yang tersedia. Admin dapat mencarikan penjahit untuk permintaan ini.</p>
+    <% } %>
+  </section>
+<% } else { %>
+  <section class="card workflow-card action-card" id="ganti-penjahit" aria-labelledby="reassign-title">
+    <div class="section-caption"><div><h2 id="reassign-title">Pilih penjahit lain</h2>
+      <p class="muted"><%= alternatives.length ? 'Alihkan permintaan ke layanan penjahit lain bila diperlukan.' : 'Belum ada pilihan lain yang tersedia.' %></p></div>
+      <% if (alternatives.length) { %><button type="button" class="secondary" command="show-modal" commandfor="reassign-dialog"><%- include('icon',{name:'shop'}) %>Pilih penjahit</button><% } %>
+    </div>
+  </section>
+  <% if (alternatives.length) { %>
+    <dialog class="confirm-dialog form-dialog" id="reassign-dialog" aria-labelledby="reassign-dialog-title">
+      <form class="confirm-panel" method="post" action="<%= choosePath %>">
+        <span class="confirm-icon" aria-hidden="true"><%- include('icon',{name:'shop'}) %></span>
+        <h2 id="reassign-dialog-title">Pilih penjahit lain</h2>
+        <p>Permintaan dipindahkan ke layanan yang dipilih.</p>
+        <% reassignFields() %>
+        <div class="confirm-actions"><button type="button" class="secondary" data-dialog-close>Batal</button><button><%= reassignLabel %></button></div>
+      </form>
+    </dialog>
   <% } %>
-<% if (['UNAVAILABLE','REJECTED'].includes(journey.key)) { %></section><% } else { %></details><% } %>
+<% } %>

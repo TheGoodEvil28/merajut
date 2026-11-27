@@ -12,7 +12,7 @@
 <p><%= statusLabel(review.status) %> · <%= dateTime(review.requested_at) %></p><p class="preserve"><%= review.reason %></p>
 <form class="stack" method="post" action="/api/v1/management/reviews/<%= review.id %>">
 <label><span class="field-label">Catatan keputusan<span class="req" aria-hidden="true"></span></span><textarea name="reason" minlength="5" maxlength="500" required></textarea></label><%- include('reauth') %>
-<div class="actions"><button name="action" value="approve">Setujui pembatalan</button><button class="secondary" name="action" value="decline">Tolak pembatalan</button></div>
+<div class="actions"><button name="action" value="approve" data-confirm="Pesanan dibatalkan. Tindakan ini tidak bisa diurungkan." data-confirm-title="Setujui pembatalan?" data-confirm-action="Ya, setujui" data-confirm-icon="cancel" data-confirm-tone="danger">Setujui pembatalan</button><button class="secondary" name="action" value="decline" data-confirm="Pesanan tetap berjalan dan pengaju diberi tahu." data-confirm-title="Tolak pembatalan?" data-confirm-action="Ya, tolak" data-confirm-icon="check">Tolak pembatalan</button></div>
 </form></article><% } %></section>
 
     <% const invites=shops.filter(shop=>!shop.operator && !shop.whatsapp); %>
@@ -45,7 +45,7 @@
 <% for (const n of failures) { %><details class="ops-entry"><summary><%= n.purpose==='ORDER_READY'?'Siap diambil':'Penawaran' %> · <%= statusLabel(n.state) %></summary>
 <p>Simulasi · <%= dateTime(n.updated_at) %> · <%= n.attempts %> percobaan</p>
 <form class="stack" action="/api/v1/management/notices/<%= n.id %>" method="post"><label><span class="field-label">Alasan tindak lanjut<span class="req" aria-hidden="true"></span></span><input name="reason" minlength="5" maxlength="500" required></label>
-<%- include('reauth') %><div class="actions"><button name="action" value="retry">Coba lagi</button><button class="secondary" name="action" value="close">Tutup pengiriman</button></div></form></details><% } %></section>
+<%- include('reauth') %><div class="actions"><button name="action" value="retry">Coba lagi</button><button class="secondary" name="action" value="close" data-confirm="Notifikasi ini tidak akan dicoba dikirim lagi." data-confirm-title="Tutup pengiriman notifikasi?" data-confirm-action="Ya, tutup" data-confirm-icon="cancel" data-confirm-tone="danger">Tutup pengiriman</button></div></form></details><% } %></section>
 <section class="card timeline"><h2>Riwayat pengelolaan</h2><% if (!events.length) { %><p>Belum ada keputusan tercatat.</p><% } %><ol>
 <% for (const e of events) { %><li><strong><%= eventLabel(e.action) %></strong><span><%= e.display_name %> · <%= dateTime(e.created_at) %></span><% if(e.reason) { %><p><%= e.reason %></p><% } %></li><% } %></ol></section>
 

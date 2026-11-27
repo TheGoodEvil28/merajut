@@ -18,7 +18,7 @@ const stages = {
   NEW: {
     label:'Permintaan baru', step:0, tone:'neutral',
     customer:['Permintaan sudah masuk', 'Admin akan menghubungi penjahit pilihan Anda dan menyiapkan penawaran.', 'Lihat detail permintaan', '#detail'],
-    admin:['Hubungi penjahit', 'Kirim ringkasan permintaan dan tanyakan apakah penjahit bisa mengerjakannya.', 'Buka koordinasi', '#koordinasi']
+    admin:['Hubungi penjahit', 'Kirim ringkasan permintaan dan tanyakan apakah penjahit bisa mengerjakannya.']
   },
   CONTACTED: {
     label:'Menunggu jawaban penjahit', step:0, tone:'neutral',

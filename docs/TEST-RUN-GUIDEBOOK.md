@@ -845,3 +845,59 @@ Roles affected: guest and customer (home page `/`). The dashed line above each o
 ### Tailor request page: no business name above the title · 27 November 2026 WIB
 
 The role affected is the tailor (`/requests/<id>` rendered with `request-detail.ejs`). Prerequisites: the dev-mode stack and `tailor@marajut.test`. The business name line (for example "Jahit Rina") above the service title is no longer shown to tailors, because it is their own business. Customers and admins who see this template keep the line. Checked in the in-app browser as the synthetic tailor on the demo request: the page loads (200), shows **Ringkasan Usaha** then the title **Permak panjang pakaian**, with no location line in the heading. The template compiles. Smoke scripts only look for "Jahit Rina" on the overview heading and the public shop page. Not verified: the customer and admin variants of this template.
+
+### "Lihat profil publik" buttons made consistent · 27 November 2026 WIB
+
+Roles affected are the tailor and admin operator. All four **Lihat profil publik** buttons now use the same markup: a secondary button with the label followed by the `external` (open) icon, linking to `/penjahit/<slug>`. These are on **Ringkasan**, **Layanan Saya** and **Profil Usaha** (tailor) and **Kelola mitra** (admin). **Layanan Saya** and **Profil Usaha** previously had no icon. Each button is only shown when the profile is published. Checked in the in-app browser as the synthetic tailor: on `/workspace`, `/workspace/services` and `/workspace/profile` the button is `button secondary` with the external icon after the text and links to `/penjahit/jahit-rina`. The two edited templates compile. The admin page was already in this form and was not re-checked.
+
+### Confirmation before crucial business actions · 27 November 2026 WIB
+
+Roles affected: customer, tailor and admin operator. Prerequisites: the dev-mode stack and synthetic accounts. Use a disposable stack to complete the actions.
+
+Every submit button was inventoried. Buttons that move money, change an order's state for the other party, cannot be undone, or delete data now open the shared confirmation modal (title, short consequence, **Batal**, and a confirm button; red for destructive actions) before submitting. Routine saves, searches, messages, uploads and sign-in stay one-click. Already confirmed or modal: logout, publish/hide shop, revoke access, invite, customer cancel.
+
+29 buttons in 14 templates:
+- **Quotes**: Kirim penawaran; Setujui penawaran / Tolak penawaran (both request views).
+- **Requests**: Tolak permintaan, Batalkan permintaan, Batalkan pesanan, admin Tutup permintaan / cancel.
+- **Order progress**: Mulai pengerjaan, Tandai jahitan siap / siap dikirim / siap diambil, Catat sudah dikirim, Selesaikan pesanan, Catat fitting selesai.
+- **Money**: Simpan penerimaan, Batalkan catatan tunai, Ajukan peninjauan (cancellation review), Verifikasi simulasi lunas, Tandai simulasi gagal.
+- **Admin**: Setujui pembatalan, Tolak pembatalan, Tutup pengiriman, Penjahit berhalangan (both), Alihkan permintaan / Kirim ke penjahit ini.
+- **Other**: Hapus foto, Tutup draf ini, Selesaikan percakapan, Konfirmasi pelepasan (unlink WhatsApp).
+
+Mechanism: `data-confirm*` attributes on the button. `forms.js` now reads them from the pressed button first and falls back to the form, so one form can confirm only its crucial action (for example **Tutup permintaan** but not **Minta detail pelanggan**). Required fields are checked before the modal opens. The default modal icon is now `check` (logout keeps `door`).
+
+Steps: as each role, press each listed button. Expect the modal; **Batal** or Esc returns with nothing sent; the confirm button submits exactly as before.
+
+Test changes: `scripts/browser-smoke.js`, `scripts/inbound-browser-smoke.js` and `scripts/pilot-browser-smoke.js` gain a `confirmAction(page)` helper, called after the 17 clicks that now confirm (Kirim penawaran, Setujui penawaran, Catat fitting selesai, Mulai pengerjaan, Tandai jahitan siap, Tandai simulasi gagal, Verifikasi simulasi lunas, Catat sudah dikirim, Selesaikan pesanan, Selesaikan percakapan). The HTTP suite in `tests/` posts directly and is unaffected.
+
+Checks run:
+- The attribute script matched each of the 29 targets exactly once; all 48 templates compile; all smoke scripts pass `node --check`; `npm.cmd run check` passed.
+- Playwright (Edge) as `operator@marajut.test` on the demo request: **Tutup permintaan** opened "Tutup permintaan?" with a red **Ya, lanjutkan**, and **Batal** closed it with 0 POST requests. **Penjahit berhalangan** opened "Catat penjahit berhalangan?", and **Batal** closed it with 0 POSTs. **Minta detail pelanggan** has no confirmation.
+
+Not verified: the confirm path completing each action (would change demo data), the other 27 buttons live, and the three smoke suites run.
+
+### Dashboard cards: one padding · 27 November 2026 WIB
+
+Roles affected are the tailor and admin operator (all dashboard pages). Every card in a dashboard page (`.studio-shell main .card`) now uses `clamp(1rem, 1.8vw, 1.45rem)` padding (about 23 px at 1280 px), the value the **Ringkasan** cards already used. This brings **Profil Usaha** (info card and form, previously 35 px) and **Tambah layanan** on **Layanan Saya** (35 px) in line, and evens out the service cards (19/22 px) and table cards (16/18 px). Storefront pages and modals are unaffected.
+
+Checks run in the in-app browser as the synthetic tailor at 1280 px: every card on `/workspace`, `/workspace/services`, `/workspace/profile` and `/workspace/intake` computes to 23 px padding; a screenshot of **Profil Usaha** was reviewed. Not verified: admin pages visually (same rule) and phones (padding falls to 16 px there).
+
+### Admin request page: open history, modal actions, no "Buka koordinasi" · 27 November 2026 WIB
+
+The role affected is the admin operator (managed request view `/requests/<id>`). Customer view changes are noted below. Prerequisites: the dev-mode stack and `operator@marajut.test`. Use a disposable stack to submit.
+
+1. **Riwayat aktivitas** is an always-open card with a heading for the admin too, so no collapsibles remain on the page.
+2. **Pilih penjahit lain** is a card with a short note and a **Pilih penjahit** button (shop icon). It opens a modal with **Layanan pengganti**, **Batal** and **Alihkan permintaan** (customers: **Kirim ke penjahit ini**). When the tailor declined or is unavailable, the picker stays inline as the main task, with its confirmation. With no alternatives the card says so and shows no button. The form markup is written once in `managed-reassign.ejs`.
+3. **Tindakan lain** is a card with **Minta detail pelanggan** (chat icon; only for NEW or UNDER_REVIEW) and a red-outline **Tutup permintaan** / **Batalkan permintaan** / **Batalkan pesanan**. Each opens a modal: **Pertanyaan untuk pelanggan** + **Kirim pertanyaan**, or **Alasan penutupan/pembatalan** + **Ya, tutup permintaan** (red). The modals are the confirmation, so no second confirm appears on submit.
+4. The **Hubungi penjahit** next-step card no longer has the **Buka koordinasi** button (removed from the admin NEW stage in `order-flow.js`). The **Koordinasi penjahit** card is directly below.
+5. The hint "Kirim pesan dari WhatsApp…" in **Koordinasi penjahit** no longer overlaps the button row (`.actions + .form-help` gets normal spacing).
+
+Test change: `scripts/browser-smoke.js` now opens **Minta detail pelanggan**, fills the question inside the dialog, and presses **Kirim pertanyaan** (no more "Tindakan lain" summary).
+
+Checks run with Playwright (Edge) as `operator@marajut.test` on the demo request, nothing submitted:
+- No `summary` elements remain on the page, and the history heading is visible. The dispatch hint is 12 px below the buttons.
+- **Pilih penjahit**, **Minta detail pelanggan** and **Tutup permintaan** each open their modal. An empty submit is blocked, no second confirm stacks, and **Batal** closes it; 0 POST requests.
+- The next-step card has 0 buttons and "Buka koordinasi" is gone.
+- Screenshots were reviewed. The reassign partial rendered correctly in its normal, urgent and no-alternatives states. Templates compile, and `npm.cmd run check` passed.
+
+Not verified: real reassign, clarify or close submissions; the customer view of the reassign modal; and the smoke suite run.
