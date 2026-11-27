@@ -326,7 +326,7 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
   .brand { font-size: 1.7rem; }
   .nav-account { padding-left: .35rem; }
   .market-shell .site-header .nav:has(.nav-account > a) { display: grid; grid-template-columns: 1fr auto; gap: 0; padding-top: .35rem; }
-  .market-shell .nav:has(.nav-account > a) nav { grid-column: 1/-1; grid-row: 2; margin: 0; padding-block: .15rem; justify-content: space-between; }
+  .market-shell .nav:has(.nav-account > a) nav { display: none; } /* guests on phones: logo + Masuk only */
   .market-shell .nav:has(.nav-account > a) .nav-account { grid-column: 2; grid-row: 1; }
   .nav-account:has(> a) { padding: 0; border: 0; }
   .nav-account > .button { padding-inline: .7rem; font-size: .86rem; }
@@ -337,7 +337,7 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
   .studio-shell .site-header nav, .market-shell:has(.nav-account form) .site-header nav { grid-column: 1/-1; grid-row: 2; margin: 0; display: flex; align-items: stretch; gap: .12rem; padding: .2rem 0 .3rem; }
   .studio-shell .site-header nav a { flex: 1 1 0; justify-content: center; text-align: center; flex-direction: column; gap: .08rem; padding: .32rem .1rem; font-size: .74rem; }
   .studio-shell .site-header nav a .icon { display: block; width: 1rem; height: 1rem; }
-  .market-intro { grid-template-columns: 1fr; gap: 1rem; min-height: calc(100svh - 6.2rem); }
+  .market-intro { grid-template-columns: 1fr; gap: 1rem; min-height: calc(100svh - 3.9rem); } /* one-row storefront header on phones */
   .market-intro h1 { font-size: clamp(2.18rem,10.5vw,3.7rem); }
   .market-intro h1 em { text-wrap: balance; }
   .market-intro-photo { min-height: 0; height: clamp(8rem,30vw,14rem); border-radius: 3rem .8rem 2rem .8rem; }

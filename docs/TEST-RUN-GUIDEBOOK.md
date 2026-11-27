@@ -456,3 +456,28 @@ Roles affected are customer, tailor and operator when they open the storefront: 
 Checks run in the in-app browser on the dev server, as the synthetic tailor: screenshot of `/penjahit/jahit-rina` with the lone button; fetched `/` (button to `/workspace`, no nav), `/workspace` and `/workspace/services` (full nav and **Keluar** unchanged); `/workspace` resolves for the tailor; at 375 px on `/` the header is one 61 px row, the button sits 16 px from the edge, and there is no overflow. `npm.cmd run check` passed.
 
 Not verified: customer and operator roles, the guest header after this change, tablet width, and the landing hero height on phones when signed in. That hero height subtracts a two-row (98 px) header, so it is about 37 px short of a full screen when the signed-in header is one row.
+
+### Guest navbar without Admin link · 27 November 2026 WIB
+
+The role affected is the guest (signed out). Prerequisites: the dev-mode stack. Open `/` in a signed-out session. Expect the header to show **Cari Penjahit**, **Cara kerja** and **Masuk** only, with no **Admin** link. Admins still reach `/pengelola` by signing in, or through the footer's **Ruang admin** link, which was left in place. Signed-in headers are unchanged: the storefront shows **Buka Dasbor**, and dashboards show the full nav.
+
+Checks run: fetched `/` without cookies in the in-app browser (nav: Cari Penjahit and Cara kerja; account: Masuk; the footer admin link is still present) and with the tailor session (Buka Dasbor only). Searched `scripts/` and `tests/` for an Admin header link and found none. `npm.cmd run check` passed. Not verified: a screenshot of the guest header, 375 px, and the operator sign-in path to `/pengelola`.
+
+### Guest footer without Ruang admin link · 27 November 2026 WIB
+
+The role affected is the guest (signed out). Prerequisites: the dev-mode stack. Open `/` signed out and scroll to the footer. Expect **Halaman** to list **Cari Penjahit** and **Cara memesan** only. There is now no link to `/pengelola` anywhere on guest pages; admins reach it by signing in through **Masuk**. Signed-in footers are unchanged: tailors also see **Ruang usaha**, and customers see **Pesanan Saya**.
+
+Checks run: fetched `/` without cookies in the in-app browser (footer: Cari Penjahit and Cara memesan, and no `/pengelola` link on the page) and with the tailor session (also Ruang usaha). Searched `scripts/` and `tests/` for "Ruang admin" and found no use. `npm.cmd run check` passed. Not verified: customer footer, and the operator sign-in path to `/pengelola`.
+
+### Guest header on phones: logo and Masuk only · 27 November 2026 WIB
+
+The role affected is the guest (signed out) on storefront and login pages at 720 px and below. Prerequisites: the dev-mode stack.
+
+1. Signed out, open `/` at 375 px. Expect one header row with the Marajut wordmark at left and **Masuk** at right. **Cari Penjahit** and **Cara kerja** are hidden on phones; they remain in the footer and as sections on the page.
+2. Expect the hero to fill the first screen below the header (the phone hero offset is now 3.9 rem, matching the one-row header used by guests and by signed-in visitors with **Buka Dasbor**).
+3. At desktop width the guest header still shows **Cari Penjahit**, **Cara kerja** and **Masuk**.
+4. Signed in as a customer on **Pesanan Saya** at 375 px, the two-row header with links and **Keluar** is unchanged (that layout keys off the logout form, not the **Masuk** link).
+
+Checks run in the in-app browser after signing out the synthetic tailor session: at 375 px the nav computes to `display: none`, the header is one 61 px row with **Masuk** on the same row as the wordmark, the hero bottom is at 810 px of 812 px, there is no horizontal overflow, and the screenshot was reviewed. At the pane's desktop width the nav is visible with both links. `npm.cmd run check` passed.
+
+Not verified: the customer header on phones (step 4), widths 721–959 px, and the login page header on phones.

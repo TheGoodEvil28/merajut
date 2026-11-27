@@ -33,7 +33,7 @@ const links = dashboard ? [] : user?.role === 'provider' ? [
   ...(user ? [
     ['/workspace', 'Pesanan Saya', 'bag', here === '/workspace' || here.startsWith('/requests/')],
     ['/akun/profil', 'Profil saya', 'shop', here === '/akun/profil']
-  ] : [['/#cara-kerja', 'Cara kerja', 'quote', false], ['/pengelola', 'Admin', 'shop', false]])
+  ] : [['/#cara-kerja', 'Cara kerja', 'quote', false]])
 ]; %>
 <body class="<%= studio ? 'studio-shell'+(admin?' admin-shell':'') : 'market-shell' %>">
   <a class="skip" href="#main">Lewati ke konten</a>
