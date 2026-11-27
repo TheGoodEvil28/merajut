@@ -1,0 +1,16 @@
+services:
+  web:
+    networks:
+      default:
+      dispatch:
+        aliases: [marajut-dispatch-callback]
+  dispatch-worker:
+    networks: [default, dispatch]
+    environment:
+      OPENWA_BASE_URL: http://openwa:2785
+      OPENWA_API_KEY: ${OPENWA_API_KEY:?Set the chat-scoped worker key in private configuration}
+
+networks:
+  dispatch:
+    external: true
+    name: ${OPENWA_DISPATCH_NETWORK:-marajut-openwa_dispatch}

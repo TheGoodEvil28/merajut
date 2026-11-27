@@ -42,6 +42,8 @@ const startLabel = modeUsed==='demo' ? (failed ? 'Ulangi pembayaran simulasi' : 
         <% if (modeUsed==='sandbox') { %><p>Gunakan nomor ini untuk transfer uji di simulator Midtrans.</p>
         <% } else { %><p>Transfer sesuai total tagihan ke nomor virtual account di atas.</p><% } %>
         <p>Jika sudah transfer, pilih <strong>Periksa status pembayaran</strong> untuk melihat hasil verifikasi.</p>
+      <% } else if (user.manager) { %>
+        <p>Setelah pelanggan mengabarkan transfer, periksa status pembayaran dan catat serah terima saat statusnya <strong>Lunas</strong>.</p>
       <% } %>
     <% } %>
     <% if (pending && modeUsed==='demo' && user.role==='customer' && !blocked) { %><p>Buka kembali pesanan ini setelah admin mencatat hasil simulasi.</p><% } %>

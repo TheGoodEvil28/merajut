@@ -8,7 +8,7 @@
 
 [PROPOSAL] Build a same-origin, modular Express/PostgreSQL application with responsive server-rendered pages and a PostgreSQL-backed messaging worker. The customer chooses a tailoring service, submits an inquiry, receives a human-issued price and completion estimate, explicitly accepts one quote revision, and tracks an order. Tailors operate in a business-scoped dashboard. PostgreSQL owns the business state. A central Marajut WhatsApp number can capture inquiries and send updates through an official adapter.
 
-[BLOCKER] Competition submission is on hold. The earlier tailoring project proposal documents its use for Poliwangi Beyond Business Season 3 (S3 PDF p. 14). SEVENT X restricts prior work (S1 p. 9) and TECHCOMFEST restricts previously published or previously entered work (S2 PDF p. 6). Each event needs its own written ruling on derivative use and any proposed cross-entry, including whether publishing for SEVENT X would affect TECHCOMFEST. Product design can proceed on a non-submission track. No organizer response, integration approval, team roster, or code implementation is established by this RFC.
+[BLOCKER]  Each event needs its own written ruling on derivative use and any proposed cross-entry, including whether publishing for SEVENT X would affect TECHCOMFEST. Product design can proceed on a non-submission track. No organizer response, integration approval, team roster, or code implementation is established by this RFC.
 
 ## 2. Evidence and verified baseline
 

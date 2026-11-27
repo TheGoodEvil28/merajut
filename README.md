@@ -83,6 +83,10 @@ From another network, open the app URL in a fresh browser session. Confirm HTTP 
 
 In the loopback example, open the app at `https://localhost:3170` and the mailbox at `https://127.0.0.1:3170`. The test guide shows how to trust the loopback certificate for the smoke run. Preview payments and messaging use simulation. The proxy is the only service with published ports. [Preview verification and pilot steps](docs/TEST-RUN-GUIDEBOOK.md#rfc-0003-private-preview-and-pilot--26-november-2026-wib)
 
+### Dispatch WhatsApp from the admin desk
+
+Open a managed request and expand **Koordinasi penjahit → Kirim ke grup** or **Hubungi mitra**. Review the destination and message, then select **Konfirmasi kirim**. Record partner consent under **Kelola mitra** and group consent under **Operasional → Pengiriman WhatsApp**. A matched reply appears under **Riwayat WhatsApp**. The **Balasan WhatsApp** inbox holds replies and receipts that need review. Use the existing availability and quote controls to continue the order. [Dispatch setup and checks](docs/TEST-RUN-GUIDEBOOK.md#rfc-0004-whatsapp-dispatch--27-november-2026-utc)
+
 ## Demo inbound intake and handoff
 
 1. Sign in as `customer2@marajut.test` and open **Pesanan Saya → Simulasi WhatsApp**. Send a message, choose **Ruang Jahit Dewi · Perbaikan jahitan lepas** (**Seam repair** on older seeds), and submit **Detail jahitan**.

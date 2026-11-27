@@ -15,8 +15,11 @@ const browser = await chromium.launch(process.env.BROWSER_CHANNEL ? { channel: p
 async function confirmAction(page) {
   const ok = page.locator('dialog[data-confirm-dialog][open] [data-confirm-ok]');
   await ok.waitFor();
-  await ok.click();
-  await page.locator('dialog[data-confirm-dialog]').and(page.locator(':not([open])')).waitFor({ state: 'attached' });
+  const [response] = await Promise.all([
+    page.waitForResponse(result => result.request().isNavigationRequest() && result.request().method() === 'POST'),
+    ok.click()
+  ]);
+  assert.equal(response.status(), 303, 'Confirmed form should save before the next browser reload.');
 }
 const customer = await browser.newPage({ ...pageOptions, viewport: { width: 390, height: 844 } });
 const tailor = await browser.newPage({ ...pageOptions, viewport: { width: 1366, height: 900 } });

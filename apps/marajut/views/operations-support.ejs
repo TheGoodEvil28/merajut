@@ -28,6 +28,33 @@
   </div>
   <% if (saved) { %><p class="save-feedback" role="status">Perubahan tercatat.</p><% } %>
   <div class="split"><div class="stack">
+<section class="card stack" id="whatsapp">
+  <h2>Pengiriman WhatsApp</h2>
+  <dl class="terms">
+    <div><dt>Mode</dt><dd><%= {mock:'Simulasi WhatsApp',openwa:'OpenWA',disabled:'Nonaktif'}[whatsapp.mode] %><%= whatsapp.paused?' · Dijeda':'' %></dd></div>
+    <div><dt>Worker terakhir aktif</dt><dd><%= whatsapp.health.heartbeat ? dateTime(whatsapp.health.heartbeat) : 'Belum ada kabar' %></dd></div>
+    <div><dt>Gateway</dt><dd><%= {ready:'Siap',retry:'Belum siap',failed:'Akses ditolak',disabled:'Nonaktif'}[whatsapp.health.gateway_state] ?? 'Belum diperiksa' %></dd></div>
+    <div><dt>Antrean tertua</dt><dd><%= whatsapp.health.oldest ? dateTime(whatsapp.health.oldest) : 'Kosong' %></dd></div>
+    <div><dt>Pengiriman perlu ditinjau</dt><dd><%= whatsapp.health.review_count %></dd></div>
+  </dl>
+  <a href="/pengelola/whatsapp">Buka kotak masuk WhatsApp</a>
+  <% if (whatsapp.mode!=='disabled') { %>
+    <details class="form-disclosure"><summary><%= whatsapp.paused?'Lanjutkan pengiriman':'Jeda pengiriman' %></summary>
+      <form class="stack" method="post" action="/api/v1/management/whatsapp/pause">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <label>Alasan perubahan<input name="reason" required minlength="5" maxlength="500"></label>
+        <button name="action" value="<%= whatsapp.paused?'resume':'pause' %>"><%= whatsapp.paused?'Lanjutkan':'Jeda' %></button>
+      </form>
+    </details>
+    <% if (whatsapp.groupChatId) { %>
+      <details class="form-disclosure"><summary>Persetujuan grup penjahit</summary>
+        <p><%= whatsapp.groupLabel || whatsapp.groupChatId %> · <%= whatsapp.groupPermission && !whatsapp.groupPermission.revoked_at?'Disetujui':'Perlu persetujuan' %></p>
+        <%- include('whatsapp-permission',{permission:whatsapp.groupPermission,partnerPermission:false,
+          permissionPath:'/api/v1/management/whatsapp/group-permission',consentLabel:'Semua anggota grup setuju menerima pengumuman pekerjaan'}) %>
+      </details>
+    <% } %>
+  <% } %>
+</section>
 <section class="card"><h2>Permohonan pembatalan</h2>
 <% if (!reviews.length) { %><p>Belum ada pembatalan yang perlu ditinjau.</p><% } %>
 <% for (const review of reviews) { %><article class="ops-entry"><h3><%= review.service %> · <%= review.business %></h3>

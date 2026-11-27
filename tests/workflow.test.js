@@ -18,6 +18,11 @@ import { midtrans } from '../apps/marajut/payments.js';
 import { createServer } from 'node:http';
 import { decideQuote, expireQuotes, issueQuote } from '../apps/marajut/quotes.js';
 import { retentionSweep } from '../apps/marajut/maintenance.js';
+import { dispatchSettings } from '../apps/marajut/whatsapp-config.js';
+import { dispatchPanel } from '../apps/marajut/whatsapp-dispatch.js';
+import { mockDispatchGateway, openwaGateway } from '../apps/marajut/whatsapp-gateway.js';
+import { finishDispatch, processDispatch } from '../apps/marajut/whatsapp-worker.js';
+import { processDispatchInbox } from '../apps/marajut/whatsapp-inbox.js';
 
 function browserClient(base) {
   const cookies = new Map();
@@ -970,4 +975,262 @@ test('admin follow-up prioritizes actionable orders across search and pages', as
   await admin.request(appointment, { body: { action: 'done', revision: fitting.revision+4 } });
   assert.equal((await byOrder(complainant.inquiry_id)).counts['follow-up'], 0);
   assert.equal((await byOrder(fitting.inquiry_id)).queue[0].follow_up_priority, 3);
+});
+
+test('RFC-0004 dispatch authorization, queue recovery and signed replies', async t => {
+  const {pool} = await isolatedDatabase(t);
+  await migrate(pool);
+  const password = randomBytes(20).toString('hex');
+  await seed(pool,password);
+  const groupChat = '120363000000000001@g.us';
+  const phone = '6281200000001';
+  const directChat = phone+'@c.us';
+  const secret = randomBytes(32).toString('hex');
+  const settings = dispatchSettings({MARAJUT_ENV:'test',DISPATCH_WHATSAPP_MODE:'mock',
+    OPENWA_GROUP_CHAT_ID:groupChat,OPENWA_WEBHOOK_SECRET:secret});
+  const sender = mockDispatchGateway();
+  const base = await serve(t,pool,{dispatch:settings});
+  const [admin,customer,tailor] = [browserClient(base),browserClient(base),browserClient(base)];
+  for (const [client,email] of [[admin,seedEmails.operator],[customer,seedEmails.customer],[tailor,seedEmails.provider]]) {
+    await client.request('/api/v1/session');
+    await client.request('/api/v1/session',{body:{email,password}});
+  }
+  const {rows:[service]} = await pool.query(`SELECT s.id,s.business_id FROM services s JOIN businesses b ON b.id=s.business_id
+    WHERE b.slug='jahit-rina' ORDER BY s.name LIMIT 1`);
+  await pool.query('UPDATE businesses SET whatsapp=$2 WHERE id=$1',[service.business_id,phone]);
+  const newRequest = async () => (await customer.request('/api/v1/inquiries',{status:201,body:{
+    key:randomUUID(),serviceId:service.id,quantity:2,description:'PRIVATE-ORDER-NOTE',fitNotes:'PRIVATE-MEASUREMENTS',desiredDate:'2099-12-10'
+  }})).id;
+  const requestId = await newRequest();
+  const path = id => '/api/v1/management/inquiries/'+id+'/whatsapp-dispatches';
+  const permission = '/api/v1/management/partners/'+service.business_id+'/whatsapp-permission';
+  const approval = {action:'grant',version:0,evidence:'Synthetic consent fixture',confirmed:'yes'};
+  const preview = async (id,channel) => (await admin.request(path(id))).previews.find(item=>item.channel===channel);
+  const approve = (id,body,status=202) => admin.request(path(id),{body,status});
+  assert.match((await preview(requestId,'partner')).reason,/Persetujuan/);
+  await customer.request(path(requestId),{status:403});
+  await tailor.request(path(requestId),{status:403});
+  await customer.request('/pengelola/whatsapp',{raw:true,status:403});
+  await tailor.request('/pengelola/whatsapp',{raw:true,status:403});
+  await admin.request('/api/v1/management/whatsapp/group-permission',{body:approval});
+  const alias = '73520000000000@lid';
+  await admin.request(permission,{body:{...approval,groupMember:'yes',senderAlias:alias}});
+  const group = await preview(requestId,'group');
+  const partner = await preview(requestId,'partner');
+  assert.equal(group.reason,null);
+  assert.equal(partner.reason,null);
+  assert.match(partner.masked,/0001$/);
+  assert.match(partner.text,/2099-12-10/);
+  assert.doesNotMatch(group.text+partner.text,/PRIVATE-|6281200000001/);
+  const page = await admin.request('/requests/'+requestId,{raw:true});
+  assert.match(page,/Konfirmasi kirim/);
+  assert.match(page,/Simulasi WhatsApp/);
+  await tailor.request(path(requestId),{body:partner,status:403});
+  const replies = await Promise.all([approve(requestId,group),approve(requestId,group)]);
+  assert.equal(replies[0].id,replies[1].id);
+  assert.equal(replies.filter(result=>result.replayed).length,1);
+  await approve(requestId,partner,409);
+  const direct = await approve(requestId,await preview(requestId,'partner'));
+  assert.equal(await processDispatch(pool,settings,sender),true);
+  assert.equal(await processDispatch(pool,settings,sender),true);
+  assert.equal(await processDispatch(pool,settings,sender),false);
+
+  const callback = async (event,data,{key=randomUUID(),sessionId=settings.sessionId,signature,status=204,timestamp=new Date().toISOString()}={}) => {
+    const body = Buffer.from(JSON.stringify({event,data,timestamp,idempotencyKey:key,sessionId}));
+    await admin.request('/webhooks/openwa',{body,status,raw:true,headers:{'x-openwa-signature':signature ||
+      'sha256='+createHmac('sha256',secret).update(body).digest('hex')}});
+  };
+  const outbound = {chatId:directChat,messageId:'mock-'+direct.id};
+  await callback('message.ack',{...outbound,status:'read'},{signature:'wrong',status:401});
+  await callback('message.ack',{...outbound,status:'read'},{sessionId:'other-session'});
+  await callback('message.ack',{...outbound,status:'read'},{timestamp:'2000-01-01T00:00:00Z'});
+  await callback('message.ack',{...outbound,status:'read'},{key:'read'});
+  await callback('message.ack',{...outbound,status:'read'},{key:'read'});
+  await callback('message.ack',{...outbound,chatId:alias,status:'delivered'});
+  await callback('message.failed',outbound);
+  const reply = {id:'reply-1',chatId:alias,from:alias,type:'text',fromMe:false,timestamp:Math.floor(Date.now()/1000),
+    body:requestId.slice(0,8)+' <em>tersedia</em>'};
+  await callback('message.received',reply);
+  await callback('message.received',reply);
+  await callback('message.received',{...reply,id:'reply-2',body:'Referensi belum diketahui'});
+  await callback('message.received',{...reply,id:'reply-3',from:'6281200000999@c.us',body:'DROP-UNAPPROVED-SENDER'});
+  await callback('message.received',{...reply,id:'reply-4',fromMe:true,body:'DROP-OWN-MESSAGE'});
+  for (let count=0; await processDispatchInbox(pool); count++) assert.ok(count<10);
+  const history = await admin.request(path(requestId));
+  assert.equal(history.history.find(job=>job.id===direct.id).delivery_level,3);
+  assert.equal(history.history.find(job=>job.id===direct.id).state,'SENT');
+  assert.equal(history.replies.length,1);
+  const repliedPage = await admin.request('/requests/'+requestId,{raw:true});
+  assert.match(repliedPage,/Balasan WhatsApp diterima/);
+  assert.match(repliedPage,/href="#balasan-whatsapp">Tinjau balasan/);
+  assert.match(repliedPage,/id="balasan-whatsapp"[\s\S]*&lt;em&gt;tersedia&lt;\/em&gt;[\s\S]*value="AVAILABLE">Penjahit bersedia/);
+  assert.doesNotMatch(repliedPage,/id="editor-penawaran"/);
+  assert.doesNotMatch(await customer.request('/requests/'+requestId,{raw:true}),/Riwayat WhatsApp|tersedia&lt;|Balasan WhatsApp diterima/);
+  await admin.request('/api/v1/management/inquiries/'+requestId+'/dispatch',{
+    body:{revision:history.previews[0].revision,state:'AVAILABLE'}
+  });
+  const quotePage = await admin.request('/requests/'+requestId,{raw:true});
+  assert.match(quotePage,/id="editor-penawaran"/);
+  assert.match(quotePage,/href="#editor-penawaran">Susun penawaran/);
+  assert.match(quotePage,/id="editor-penawaran"[\s\S]*Balasan WhatsApp dari Jahit Rina[\s\S]*&lt;em&gt;tersedia&lt;\/em&gt;/);
+  assert.doesNotMatch(quotePage,/Balasan WhatsApp diterima/);
+  const {rows:[manager]} = await pool.query('SELECT id,role,true AS manager FROM users WHERE email=$1',[seedEmails.operator]);
+  const readPanel = () => dispatchPanel(pool,manager,requestId,settings);
+  const followups = async () => (await readPanel()).followups;
+  const draft = async purpose => (await followups()).find(message=>message.purpose===purpose);
+  const sendFollowup = async purpose => {
+    const message = await draft(purpose);
+    assert.ok(message, purpose);
+    assert.equal(message.reason,null);
+    assert.equal(message.channel,'partner');
+    assert.equal(message.recipient,directChat);
+    assert.doesNotMatch(message.text,/PRIVATE-|Studio uji|50000|6281200000001/);
+    const saved = await approve(requestId,message);
+    assert.equal(await processDispatch(pool,settings,sender),true);
+    assert.equal((await readPanel()).history.find(job=>job.id===saved.id).state,'SENT');
+    return saved.id;
+  };
+  const quoteRequest = await draft('quote_request');
+  assert.match(quoteRequest.text,/usulan harga, perkiraan selesai, dan jadwal fitting/);
+  await approve(requestId,{...quoteRequest,channel:'group'},409);
+  const requested = await sendFollowup('quote_request');
+  assert.match((await draft('quote_request')).reason,/sudah tercatat/);
+  const outgoingQuote = await admin.request('/api/v1/management/inquiries/'+requestId+'/quotes',{status:201,body:{
+    revision:(await draft('quote_request')).revision,amount:50000,eta:'2099-12-11',validHours:48,
+    fittingAt:'2099-12-10T10:00',fittingPlace:'Studio uji',handover:'delivery',terms:'Harga disepakati dari balasan uji.'
+  }});
+  assert.equal(await draft('quote_request'),undefined);
+  const customerPath = '/requests/'+requestId;
+  const sharedPage = await admin.request(customerPath,{raw:true});
+  assert.ok(sharedPage.includes('id="quote-share-link">'+base+customerPath));
+  assert.match(sharedPage,/Salin tautan penawaran/);
+  assert.doesNotMatch(await customer.request(customerPath,{raw:true}),/quote-share-link|&lt;em&gt;tersedia&lt;/);
+  const visitor = browserClient(base);
+  const redirect = await visitor.request(customerPath,{raw:true,status:302});
+  assert.ok(redirect.includes('/login?next='+encodeURIComponent(customerPath)));
+  const login = await visitor.request('/login?next='+encodeURIComponent(customerPath),{raw:true});
+  assert.ok(login.includes('name="next" value="'+customerPath+'"'));
+  await visitor.request('/api/v1/session',{body:{email:seedEmails.otherCustomer,password}});
+  await visitor.request(customerPath,{raw:true,status:404});
+  const inbox = await admin.request('/pengelola/whatsapp',{raw:true});
+  assert.match(inbox,/Referensi belum diketahui/);
+  assert.doesNotMatch(inbox,/DROP-UNAPPROVED-SENDER|DROP-OWN-MESSAGE/);
+
+  const accepted = await customer.request('/api/v1/quotes/'+outgoingQuote.id+'/decisions',{
+    body:{version:outgoingQuote.version,decision:'ACCEPTED'}
+  });
+  const orderPath = '/api/v1/management/orders/'+accepted.orderId+'/transitions';
+  const order = async () => (await customer.request('/api/v1/inquiries/'+requestId)).order;
+  const transition = async (action,detail) => admin.request(orderPath,{body:{action,revision:(await order()).revision,detail}});
+  assert.match((await draft('start_work')).text,/Pelanggan telah menyetujui/);
+  assert.match((await draft('fitting')).text,/WIB/);
+  await sendFollowup('fitting');
+  const staleStart = await approve(requestId,await draft('start_work'));
+  await transition('start');
+  await processDispatch(pool,settings,{...sender,send:async()=>assert.fail('Outdated start message must not be sent')});
+  assert.equal((await readPanel()).history.find(job=>job.id===staleStart.id).state,'CANCELLED');
+  await sendFollowup('work_update');
+  assert.equal(await draft('overdue'),undefined);
+  await pool.query("UPDATE orders SET eta=(now() AT TIME ZONE 'Asia/Jakarta')::date WHERE id=$1",[accepted.orderId]);
+  assert.equal(await draft('overdue'),undefined);
+  await pool.query("UPDATE orders SET eta=(now() AT TIME ZONE 'Asia/Jakarta')::date-1 WHERE id=$1",[accepted.orderId]);
+  assert.match((await draft('overdue')).text,/sudah terlewati/);
+  await sendFollowup('overdue');
+  assert.equal(await draft('work_update'),undefined);
+  await admin.request('/api/v1/orders/'+accepted.orderId+'/fitting',{body:{action:'done',revision:(await order()).revision}});
+  await transition('ready');
+  assert.equal(await draft('paid'),undefined);
+  assert.equal(await draft('handover'),undefined);
+  await sendFollowup('await_payment');
+  await customer.request('/api/v1/orders/'+accepted.orderId+'/checkout',{body:{}});
+  const payment = (await order()).payment;
+  await admin.request('/api/v1/payments/'+payment.id+'/check',{body:{action:'confirm'}});
+  assert.match((await draft('paid')).text,/simulasi telah ditandai lunas/);
+  assert.equal(await draft('await_payment'),undefined);
+  await sendFollowup('paid');
+  await sendFollowup('handover');
+  await transition('ship','Kurir uji dan catatan privat');
+  assert.match((await draft('handover')).text,/Pengiriman sudah tercatat/);
+  await sendFollowup('handover');
+  await transition('complete');
+  assert.match((await draft('handover')).text,/Serah terima sudah dicatat selesai/);
+  const finishedNotice = await sendFollowup('handover');
+  await callback('message.received',{...reply,id:'reply-complete',timestamp:Math.floor(Date.now()/1000),body:requestId.slice(0,8)+' terima kasih'});
+  await processDispatchInbox(pool);
+  const completedPanel = await readPanel();
+  assert.equal(completedPanel.replies.find(item=>item.provider_message_id==='reply-complete').dispatch_id,finishedNotice);
+  assert.equal(completedPanel.history.find(job=>job.id===requested).purpose,'quote_request');
+  assert.match(await admin.request(customerPath,{raw:true}),/Tindak lanjut WhatsApp mitra/);
+  assert.doesNotMatch(await customer.request(customerPath,{raw:true}),/Tindak lanjut WhatsApp mitra|terima kasih/);
+
+  const retryRequest = await newRequest();
+  const retry = await approve(retryRequest,await preview(retryRequest,'partner'));
+  await processDispatch(pool,settings,{...sender,ready:async()=>({outcome:'retry',reason:'SESSION_OFFLINE'})});
+  let job = (await admin.request(path(retryRequest))).history[0];
+  assert.equal(job.state,'RETRY_WAIT');
+  assert.equal(job.attempts,1);
+  await pool.query('UPDATE whatsapp_dispatches SET next_attempt_at=now() WHERE id=$1',[retry.id]);
+  await processDispatch(pool,settings,{...sender,send:async intent=>{
+    assert.equal(intent.id,retry.id);
+    assert.equal(intent.rendered_text,job.rendered_text);
+    return {outcome:'review',reason:'GATEWAY_OUTCOME_UNKNOWN'};
+  }});
+  job = (await admin.request(path(retryRequest))).history[0];
+  assert.equal(job.state,'NEEDS_REVIEW');
+  await admin.request(path(retryRequest)+'/'+retry.id+'/review',{body:{revision:job.approved_revision+1,disposition:'unsent',reason:'Verified absence in the fixture chat'}});
+  assert.equal((await admin.request(path(retryRequest))).history[0].state,'CANCELLED');
+
+  const recoveryRequest = await newRequest();
+  const recovery = await approve(recoveryRequest,await preview(recoveryRequest,'group'));
+  const staleLease = randomUUID();
+  await pool.query(`UPDATE whatsapp_dispatches SET state='SENDING',attempts=1,lease_token=$2,lease_until=now()-interval '1 second' WHERE id=$1`,[recovery.id,staleLease]);
+  const staleJob = (await admin.request(path(recoveryRequest))).history[0];
+  await processDispatch(pool,settings,sender);
+  assert.equal((await admin.request(path(recoveryRequest))).history[0].attempts,1);
+  assert.equal(await finishDispatch(pool,staleJob,{outcome:'failed'}),undefined);
+  const uncertainRequest = await newRequest();
+  const uncertain = await approve(uncertainRequest,await preview(uncertainRequest,'group'));
+  await pool.query(`UPDATE whatsapp_dispatches SET state='SENDING',attempt_started_at=now(),lease_until=now()-interval '1 second' WHERE id=$1`,[uncertain.id]);
+  assert.equal(await processDispatch(pool,settings,sender),false);
+  assert.equal((await admin.request(path(uncertainRequest))).history[0].state,'NEEDS_REVIEW');
+
+  const revokedRequest = await newRequest();
+  await approve(revokedRequest,await preview(revokedRequest,'partner'));
+  await admin.request('/api/v1/management/whatsapp/pause',{body:{action:'pause',reason:'Pause synthetic approvals'}});
+  assert.equal(await processDispatch(pool,settings,sender),false);
+  assert.match((await preview(revokedRequest,'group')).reason,/dijeda/);
+  await admin.request(permission,{body:{action:'revoke',version:1,evidence:'Synthetic withdrawal'}});
+  await admin.request('/api/v1/management/whatsapp/pause',{body:{action:'resume',reason:'Resume synthetic approvals'}});
+  await processDispatch(pool,settings,{...sender,send:async()=>assert.fail('Revoked destination cannot be sent')});
+  assert.equal((await admin.request(path(revokedRequest))).history[0].state,'CANCELLED');
+});
+
+test('OpenWA adapter uses the scoped session, idempotency header, and conservative outcomes', async t => {
+  const recorded = [];
+  const sessionId = randomUUID();
+  const intent = {id:randomUUID(),recipient:'6281200000001@c.us',rendered_text:'Synthetic dispatch'};
+  let response = [201,{messageId:'A1B2'}];
+  const server = createServer(async (req,res) => {
+    let body = '';
+    for await (const chunk of req) body += chunk;
+    recorded.push({path:req.url,headers:req.headers,body});
+    const [status,data] = req.method==='GET' ? [200,{status:'ready'}] : response;
+    res.writeHead(status,{'Content-Type':'application/json'}).end(JSON.stringify(data));
+  });
+  server.listen(0,'127.0.0.1');
+  await once(server,'listening');
+  t.after(() => new Promise(resolve=>server.close(resolve)));
+  const gateway = openwaGateway({sessionId,baseUrl:'http://127.0.0.1:'+server.address().port,apiKey:'fixture'});
+  assert.equal((await gateway.ready()).outcome,'ready');
+  assert.deepEqual(await gateway.send(intent),{outcome:'sent',messageId:'A1B2'});
+  assert.equal(recorded[1].path,'/api/sessions/'+sessionId+'/messages/send-text');
+  assert.equal(recorded[1].headers['idempotency-key'],intent.id);
+  assert.equal(recorded[1].headers['x-api-key'],'fixture');
+  assert.deepEqual(JSON.parse(recorded[1].body),{chatId:intent.recipient,text:intent.rendered_text});
+  response=[429,{code:'SEND_PACING_LIMITED',retryAfterSeconds:60}];
+  assert.deepEqual(await gateway.send(intent),{outcome:'retry',reason:'SEND_PACING_LIMITED',retryAfter:60});
+  response=[409,{code:'IDEMPOTENCY_KEY_IN_PROGRESS'}];
+  assert.equal((await gateway.send(intent)).outcome,'review');
+  response=[201,{}];
+  assert.equal((await gateway.send(intent)).outcome,'review');
 });

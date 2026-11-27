@@ -66,6 +66,11 @@ services:
       MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY:-}
       ADMIN_WHATSAPP: ${ADMIN_WHATSAPP:-}
       SIMULATION_WEBHOOK_SECRET: ${SIMULATION_WEBHOOK_SECRET:-}
+      DISPATCH_WHATSAPP_MODE: ${DISPATCH_WHATSAPP_MODE:-disabled}
+      OPENWA_SESSION_ID: ${OPENWA_SESSION_ID:-}
+      OPENWA_GROUP_CHAT_ID: ${OPENWA_GROUP_CHAT_ID:-}
+      OPENWA_GROUP_LABEL: ${OPENWA_GROUP_LABEL:-}
+      OPENWA_WEBHOOK_SECRET: ${OPENWA_WEBHOOK_SECRET:-}
     ports:
       - "127.0.0.1:${APP_PORT:-3100}:3100"
     depends_on:
@@ -96,6 +101,21 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     depends_on:
       db: { condition: service_healthy }
+
+  dispatch-worker:
+    <<: *app
+    profiles: ["dispatch"]
+    restart: unless-stopped
+    command: ["node", "apps/marajut/dispatch-worker.js"]
+    stop_grace_period: 35s
+    environment:
+      <<: *app-env
+      DISPATCH_WHATSAPP_MODE: ${DISPATCH_WHATSAPP_MODE:-disabled}
+      OPENWA_SESSION_ID: ${OPENWA_SESSION_ID:-}
+      OPENWA_GROUP_CHAT_ID: ${OPENWA_GROUP_CHAT_ID:-}
+      OPENWA_WEBHOOK_SECRET: ${OPENWA_WEBHOOK_SECRET:-}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
 
 volumes:
   data:

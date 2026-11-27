@@ -90,6 +90,8 @@ export function savePartner(pool,actor,id,input) {
       business=await one(db,`INSERT INTO businesses(name,area,description,specialty,whatsapp,slug)
         VALUES($1,$2,$3,$4,$5,$6) RETURNING id`,[...args,slug]);
     }
+    await db.query(`UPDATE whatsapp_dispatch_permissions SET revoked_at=now(),version=version+1
+      WHERE business_id=$1 AND revoked_at IS NULL AND chat_id<>$2`,[business.id,input.whatsapp+'@c.us']);
     await db.query('INSERT INTO operator_events(actor_id,action,target_id) VALUES($1,$2,$3)',[actor.id,'PARTNER_SAVED',business.id]);
     return business;
   });
@@ -99,6 +101,12 @@ export function updateDispatch(pool,actor,id,{state,revision}) {
   return transaction(pool,async db => {
     const i=await lockInquiry(db,actor,id);
     if (!i.dispatch_state || !openStates.includes(i.status) || i.revision!==revision) conflict('Permintaan telah berubah.');
+    if (['GROUP','CONTACTED'].includes(state)) {
+      const pending=await one(db,`SELECT id FROM whatsapp_dispatches WHERE inquiry_id=$1 AND channel=$2
+        AND (state IN ('QUEUED','SENDING','RETRY_WAIT','NEEDS_REVIEW') OR late_evidence) LIMIT 1`,
+        [id,state==='GROUP'?'group':'partner']);
+      if (pending) conflict('Periksa pengiriman otomatis sebelum mencatat pengiriman manual.');
+    }
     if (state==='GROUP') {
       await db.query('UPDATE inquiries SET revision=revision+1 WHERE id=$1',[id]);
       await event(db,id,actor,'GROUP_POSTED',i.status,i.status);
@@ -136,6 +144,8 @@ export function reassign(pool,actor,id,input) {
     await db.query('INSERT INTO inquiry_photos(inquiry_id,content) SELECT $2,content FROM inquiry_photos WHERE inquiry_id=$1',[id,next]);
     await db.query("UPDATE quotes SET status='WITHDRAWN' WHERE inquiry_id=$1 AND status='SENT'",[id]);
     await db.query("UPDATE inquiries SET status='DECLINED',revision=revision+1 WHERE id=$1",[id]);
+    await db.query(`UPDATE whatsapp_dispatches SET late_evidence=true,last_error='REASSIGNED_DURING_SEND',updated_at=now()
+      WHERE inquiry_id=$1 AND state='SENDING' AND attempt_started_at IS NOT NULL`,[id]);
     await event(db,id,actor,'REASSIGNED',i.status,'DECLINED',target.name);
     return {id:next};
   });

@@ -1,0 +1,44 @@
+<% const whatsappPath='/api/v1/management/inquiries/'+inquiry.id+'/whatsapp-dispatches'; %>
+<% if (open && whatsapp.mode!=='disabled') { %>
+  <% if (whatsapp.mode==='mock') { %><p class="muted">Simulasi WhatsApp</p><% } %>
+  <% for (const preview of whatsapp.previews) { %>
+    <%- include('whatsapp-preview',{preview,whatsappPath}) %>
+  <% } %>
+<% } %>
+<% if (whatsapp.mode!=='disabled' && whatsapp.followups.length) { %>
+  <section class="workflow-card" id="tindak-lanjut-whatsapp" tabindex="-1">
+    <h3>Tindak lanjut WhatsApp mitra</h3>
+    <% if (!open && whatsapp.mode==='mock') { %><p class="muted">Simulasi WhatsApp</p><% } %>
+    <% for (const preview of whatsapp.followups) { %><%- include('whatsapp-preview',{preview,whatsappPath}) %><% } %>
+  </section>
+<% } %>
+<% if (whatsapp.history.length || whatsapp.replies.length) { %>
+  <div class="stack">
+    <h3>Riwayat WhatsApp</h3>
+    <% for (const job of whatsapp.history) { %>
+      <details class="form-disclosure" <%= job.state==='NEEDS_REVIEW'||job.late_evidence?'open':'' %>>
+        <summary><%= followupLabels[job.purpose] || (job.channel==='group'?'Grup':'Mitra') %> · <%= dispatchLabels[job.state] %>
+          <% if (job.delivery_level>=2) { %> · <%= job.delivery_level===3?'Dibaca':'Terkirim' %><% } %>
+          <% if (job.mode==='mock') { %> · Simulasi WhatsApp<% } %>
+        </summary>
+        <p class="muted"><%= dateTime(job.created_at) %> · <%= job.attempts %> percobaan</p>
+        <% if (job.rendered_text) { %><p class="message-box preserve"><%= job.rendered_text %></p><% } %>
+        <% if (job.state==='NEEDS_REVIEW' || job.late_evidence) { %>
+          <p>Periksa percakapan WhatsApp sebelum mengirim ulang.</p>
+          <form class="stack" method="post" action="<%= whatsappPath %>/<%= job.id %>/review">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <input type="hidden" name="revision" value="<%= inquiry.revision %>">
+            <label>Catatan pemeriksaan<textarea name="reason" required minlength="5" maxlength="500" rows="2"></textarea></label>
+            <div class="actions"><button name="disposition" value="sent">Catat pesan sudah dikirim</button><button class="secondary" name="disposition" value="unsent">Catat pesan belum dikirim</button></div>
+          </form>
+        <% } %>
+      </details>
+    <% } %>
+    <% for (const [index,reply] of whatsapp.replies.entries()) { %>
+      <article class="ops-entry" <% if (index===whatsapp.replies.length-1) { %>id="balasan-whatsapp" tabindex="-1"<% } %>>
+        <p class="muted"><%= reply.business %> · <%= dateTime(reply.message_at) %><%= reply.mode==='mock'?' · Simulasi WhatsApp':'' %></p>
+        <% if (reply.body) { %><p class="preserve"><%= reply.body %></p><% } %>
+      </article>
+    <% } %>
+  </div>
+<% } %>

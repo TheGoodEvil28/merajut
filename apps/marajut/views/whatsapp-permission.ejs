@@ -1,0 +1,14 @@
+<form class="stack" method="post" action="<%= permissionPath %>">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <input type="hidden" name="version" value="<%= permission?.version ?? 0 %>">
+  <label>Referensi persetujuan atau alasan pencabutan<textarea name="evidence" required minlength="5" maxlength="500" rows="2"></textarea></label>
+  <label><input type="checkbox" name="confirmed" value="yes"> <%= consentLabel %></label>
+  <% if (partnerPermission) { %>
+    <label>Identitas alternatif terverifikasi (opsional)<input name="senderAlias" maxlength="100" placeholder="123456789@lid" value="<%= permission?.sender_alias || '' %>"></label>
+    <label><input type="checkbox" name="groupMember" value="yes" <%= permission?.verified_group?'checked':'' %>> Keanggotaan di grup pengiriman sudah diperiksa</label>
+  <% } %>
+  <div class="actions">
+    <button name="action" value="grant">Simpan persetujuan</button>
+    <% if (permission && !permission.revoked_at) { %><button class="secondary" name="action" value="revoke">Cabut persetujuan</button><% } %>
+  </div>
+</form>

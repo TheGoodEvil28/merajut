@@ -53,11 +53,12 @@ if (navigator.clipboard) {
     button.hidden = false;
     button.addEventListener('click', async () => {
       const status = button.parentElement.querySelector('[data-copy-status]');
+      const label = button.dataset.copyLabel || 'Nomor';
       try {
         await navigator.clipboard.writeText(document.getElementById(button.dataset.copy).textContent.trim());
-        status.textContent = 'Nomor disalin.';
+        status.textContent = label + ' disalin.';
       } catch {
-        status.textContent = 'Pilih dan salin nomor secara manual.';
+        status.textContent = 'Pilih dan salin ' + label.toLowerCase() + ' secara manual.';
       }
     });
   }

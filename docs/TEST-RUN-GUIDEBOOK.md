@@ -2,6 +2,85 @@
 
 Update this guide with every change. Record the affected roles, prerequisites, steps, expected results, verification method, and any unverified behavior.
 
+## WhatsApp follow-ups across the order · 27 November 2026 UTC
+
+Use an admin, a customer and an existing tailor session with disposable QA data in `DISPATCH_WHATSAPP_MODE=mock`. Record consent for the assigned business in **Kelola mitra** and use a managed request. In the request, open **Tindak lanjut WhatsApp mitra** and confirm the preview for the current stage. All messages in this panel address the assigned tailor directly. The customer reviews the quote, confirms fitting and checks or completes payments in the website.
+
+| Stage | Reproduce | Expected WhatsApp action |
+| --- | --- | --- |
+| Tailor accepts the request | Record **Penjahit bersedia** before creating a quote. | **Minta penawaran dari mitra** requests the estimated price, completion date and fitting schedule. The button leaves the workflow once the quote is sent to the customer. |
+| Customer confirms the quote | Accept the current quote as the customer. Open the order as admin. | **Konfirmasi mulai pengerjaan** asks the tailor when work can begin. If the order has fitting, **Koordinasikan fitting** reflects whether a time is scheduled, proposed, or waiting for a new suggestion. |
+| Work and deadlines | Record the start. Check before, on and after the estimated completion date in WIB. | **Minta kabar pengerjaan** is available before or on the deadline. **Minta pembaruan lewat tenggat** replaces it after the deadline and requests a revised estimate. |
+| Payment | Mark work ready after fitting, then open and verify a demo payment. | **Kabari pembayaran masih ditunggu** appears before verification. **Kabari pembayaran lunas** and **Koordinasikan serah terima** appear once the stored payment is **PAID**. Demo text identifies the payment as a simulation. |
+| Handover | Record shipment for a delivery order, then complete handover. Reply from the approved tailor with the request reference. | The handover draft reflects the recorded milestone and the reply links to the corresponding order. |
+
+Each send requires admin confirmation. The queue rechecks the current milestone and recipient consent before sending. Approving a draft twice creates one job for that milestone, and stale work goes to the existing cancellation or review paths. Messages carry the service, quantity, reference and relevant timing or status. Customer contact details, measurements, photos, free-text order notes and payment numbers stay on the website. Use **WhatsApp pribadi mitra** for the current prewritten message when coordinating manually.
+
+**Checks run.** All 24 integration tests and three browser smoke scripts passed. The mock workflow verified quote requests, fitting, in-progress and overdue messages, cancellation of a queued message when work moved on, gating of payment and handover, and a signed reference reply after completion. Saved an encrypted preview backup and applied `010_whatsapp_dispatch_followups.sql`. The five existing dispatches retained their contact purpose and sent state. Hosted Chromium at 390 px verified the start-work and completed-handover previews and the customer's order view without admin messaging controls. The new sends used the mock gateway in testing. Actual follow-up delivery can be checked when an admin confirms a preview for an approved partner.
+
+**Publication check · 27 November 2026 UTC.** `npm run check` passed. `npm test` passed all 24 tests using a uniquely named disposable Compose project and PostgreSQL volume. Browser smoke scripts and live recipient tests were not rerun for this publication; use the private QA runbook for current pilot details.
+
+## Hosted end-to-end preview · 27 November 2026 UTC
+
+Use a private preview with synthetic accounts and a disposable QA database. Keep its hostname, credentials, contact details, request references, and live message history in the private QA runbook, not this repository. Open customer and admin sessions in separate browser profiles. Configure the preview origin and any partner contact only through its private environment.
+
+| Role | Reproduce | Expected result |
+| --- | --- | --- |
+| Customer | Create a synthetic request, request fitting and delivery, save the guest draft, attach a sample photo, then verify the account and submit. | The link opens at the hosted HTTPS origin. The confirmed request and photo appear only to authorized roles. The form fits a mobile viewport. |
+| Admin and approved tailor | Open the managed request, inspect the direct-message preview, and confirm only after checking current consent. Reply from the approved test account with the request reference, then review the matched reply. | The message uses the configured session and permitted order fields. A matched reply makes **Balasan WhatsApp diterima** the next admin action. |
+| Customer and admin | Record availability, issue and accept a quote, agree on a fitting change, record work completion, retry a failed demo payment, then record shipment and completion. | The customer sees the latest fitting, payment, shipment and completed history. Customer and tailor accounts receive 403 on the management dispatch API. |
+
+**Checks run.** The integration suite and all three browser smoke scripts passed. The hosted Chromium run verified the admin contact link, guest request, QA email and photo, the 390 px request form, quote acceptance, fitting rescheduling, payment retry, simulated shipment and order closure. Access checks denied customer and tailor accounts on the management dispatch API. Live recipient and delivery details are intentionally kept in the private QA runbook.
+
+### Record and forward the tailor's quote
+
+The tailor proposes the price, estimated completion and fitting availability in WhatsApp using the request reference. The admin records the agreed price and schedule in **Susun penawaran**, where the latest matched reply from the assigned tailor appears. Select **Kirim penawaran** to publish the quote in the customer's account. Use **Salin tautan penawaran** and forward the link to the customer through the chosen channel. Open it in a signed-out browser and sign in as the request owner. The quote opens on the same request and the customer can accept, decline or request a revision. An unrelated customer receives 404. The private reply stays on the admin side.
+
+After the customer accepts, the admin asks the tailor for progress updates through **WhatsApp pribadi mitra** and records the fitting and work milestones. The customer starts payment once the work is ready. In the preview, the admin uses **Verifikasi simulasi lunas**. With a configured live payment channel, **Periksa status pembayaran** checks settlement with the provider. Record handover once Marajut shows **Lunas**.
+
+All 24 integration tests and three browser smoke scripts passed. The browser copied the published quote link, opened it in a fresh session, signed in and returned to the pending quote. The integration case denied another customer and kept the tailor's reply out of the customer page. Hosted Chromium at 390 px showed the matched reply inside the quote form. The hosted customer could sign in from the order link and return to the same order. The hosted test left the quote ready for the admin to enter the agreed terms.
+
+**Release decision.** The private preview supports invited tests with synthetic data. Production rollout requires a separate production database and accounts, external SMTP for verification and recovery, an approved and tested payment channel with its signed callback, and a support and retention policy for real user data. The approved recipient pilot and production messaging plan are recorded separately. [Midtrans bank transfer activation](https://docs.midtrans.com/docs/coreapi-core-api-bank-transfer-integration) · [Production messaging ADR](adr/ADR-0004-whatsapp-integration.md) · [Authentication and retention](adr/ADR-0007-authentication-and-retention.md)
+
+## RFC-0004 WhatsApp dispatch · 27 November 2026 UTC
+
+Use a Marajut platform admin to approve messages and review replies. Use separate customer and tailor sessions to verify access and the order workflow. The platform admin records group consent in **Operasional → Pengiriman WhatsApp** and direct consent in **Kelola mitra**. Record the evidence reference for the current number. If group membership changes, pause the group, reverify membership and consent, and update the partner membership records after recording the new group permission. For a Baileys `@lid` address, verify its phone through OpenWA's session contact phone endpoint before recording the alias. [RFC-0004 dispatch plan](rfc/RFC-0004-MARAJUT-PILOT-REPORTING.md#5-admin-and-tailor-workflow)
+
+### Simulated rehearsal
+
+Use an isolated preview and synthetic accounts. Set `DISPATCH_WHATSAPP_MODE=mock`, a synthetic `OPENWA_GROUP_CHAT_ID`, and a fresh `OPENWA_WEBHOOK_SECRET` in its private env file. Keep the OpenWA overlay off this stack. Start the preview with `--profile dispatch`, seed it, and run the integration suite and the three browser scripts in the loopback preview instructions. The mock adapter records its synthetic acceptance without contacting a gateway. Signed fixtures in `tests/workflow.test.js` cover receipt and reply processing. [Loopback browser instructions](#rfc-0003-private-preview-and-pilot--26-november-2026-wib)
+
+### Private pilot deployment
+
+The gateway uses the pinned OpenWA 0.32.1 image, Baileys 7.0.0-rc14, a persistent Docker volume, and a loopback dashboard on TCP 2785. Both packages use the MIT license. The deployment runtime refused to start processes with `no-new-privileges`; the gateway entrypoint drops the process to UID/GID 997 with zero effective capabilities. Save the gateway admin key and pepper in `.env.openwa` with mode 0600, and protect the linked-device volume separately from the app database. [OpenWA installation](https://docs.open-wa.org/getting-started/installation)
+
+Create an operator key with `allowedSessions` containing the paired session UUID and `allowedChats` containing the approved group and direct JIDs. Put it in `.env.dispatch-live` with mode 0600 alongside `DISPATCH_WHATSAPP_MODE=openwa`, `OPENWA_SESSION_ID`, `OPENWA_GROUP_CHAT_ID`, `OPENWA_GROUP_LABEL`, and a separately generated `OPENWA_WEBHOOK_SECRET`. Only `dispatch-worker` receives `OPENWA_API_KEY`. The web app receives the webhook secret. The OpenWA overlay puts the gateway, web, and dispatch worker on a private internal network. PostgreSQL keeps its own network. [OpenWA key scoping](https://docs.open-wa.org/guides/authentication)
+
+```sh
+docker compose --env-file .env.openwa -f compose.openwa.yaml up -d --wait
+preview_dispatch() {
+  docker compose --env-file .env.preview --env-file .env.dispatch-live \
+    -f compose.yaml -f compose.preview.yaml -f compose.dispatch-openwa.yaml --profile dispatch "$@"
+}
+preview_dispatch config --quiet
+preview_dispatch build web
+preview_dispatch up -d --wait --no-build
+preview_dispatch exec -T proxy caddy reload --config /etc/caddy/Caddyfile
+```
+
+Use the owner's gateway key to register two subscriptions at `http://marajut-dispatch-callback:3100/webhooks/openwa`. Use the same webhook secret for both. Filter the first subscription to `message.ack` and `message.failed` for approved chats. Filter the second to `message.received`, the same chats, `type=text`, and `fromMe=false`. Run the gateway's webhook test for both, expect 204, and check that the public callback path is blocked. Update the scoped key and subscription filters when the approved chats change. [OpenWA subscriptions and filters](https://docs.open-wa.org/guides/webhooks)
+
+For new messages select **Konfirmasi kirim** on the relevant request. On **Operasional**, confirm the dispatch worker's latest heartbeat and gateway readiness. If an attempt shows **Perlu diperiksa**, inspect WhatsApp before recording the outcome from the request page. Use **Jeda pengiriman** to stop new approvals and worker claims while leaving reply and receipt processing active. To stop the worker as well, run `preview_dispatch stop dispatch-worker`. Check the session and recipient permissions before resuming. Set dispatch to `disabled` and keep callback session and secret settings when restoring a database for reconciliation. Protect gateway backups as credentials. Dispatch message and audit retention periods are pending privacy approval.
+
+| Check | Result |
+| --- | --- |
+| Mock and roles | All 24 integration tests passed. The dispatch checks exercised exact previews, concurrent approval replay, stale input, consent withdrawal, pause, worker retries, expired leases, scoped signed webhooks, verified aliases, receipt ordering, reply deduplication, and customer and tailor denial. |
+| Browser regression | Customer checkout and payment retry, fitting changes, order history, simulated chat handoff, legacy tailor access, and verified guest pickup passed on a separate QA database. The browser scripts now wait for confirmed form saves before switching sessions. |
+| Pilot deployment | Saved an encrypted pre-upgrade database backup, applied migration `009_whatsapp_dispatch.sql`, and kept the existing preview data. Chromium verified public HTTPS readiness, admin sign-in, private callback exclusion, and both confirmation forms at 390 px. A plain HTTP client received Cloudflare Error 1010. Both private subscription tests returned 204. |
+| Approved WhatsApp tests | Approved one synthetic request per channel from the website. The approved group and direct partner reached gateway acceptance in one attempt. Verified the direct-chat alias through OpenWA, recorded it on the partner permission, and recovered verified delivery for the outbound message through the chat-scoped OpenWA message API. Marajut showed **Terkirim** for the direct request. |
+
+The initial two-message test concluded with outbound work paused and a pending live partner reply. Keep the current recipient, permissions, private preview hostname and live reply status in the private QA runbook. The preview accepts form submissions from its configured loopback origin.
+
 ## RFC-0004 pilot reporting and OpenWA dispatch plan · 26 November 2026 WIB
 
 **Roles and setup.** Use separate admin, customer, and existing tailor sessions, plus a synthetic partner who replies through a fixture chat. Maintainers need Node 22, Docker Compose, Playwright Chromium, and a disposable database. After implementation, start a fresh sandbox with `DISPATCH_WHATSAPP_MODE=mock` and seed one opted-in group and partner, a partner without opt-in, and managed requests for both. Use the sandbox and browser commands from the pilot readiness check. [Sandbox setup](../README.md#rehearse-in-a-fresh-demo) · [Roadmap](roadmap/MARAJUT-IMPLEMENTATION-ROADMAP.md#next-update--26-november-2026-wib) · [RFC-0004](rfc/RFC-0004-MARAJUT-PILOT-REPORTING.md)
@@ -16,7 +95,7 @@ Update this guide with every change. Record the affected roles, prerequisites, s
 
 **Checks run for the draft.** Reviewed the existing management routes, dispatch and reassignment rules, outbox schema and worker, quote and payment records, and private preview setup. Cross-checked OpenWA 0.32.1 send, key scope, signature, webhook and deployment contracts against upstream documentation. Checked changed Markdown links, anchors, and whitespace.
 
-**Pending verification.** All RFC-0004 runtime and browser checks in the table are implementation acceptance tests. Gateway restart, actual delivery, and replies require the authorized pilot setup.
+**Verification.** See the dispatch deployment and run above for the implemented sections. The reporting rows remain acceptance tests for the reporting draft.
 
 ## RFC-0003 private preview and pilot · 26 November 2026 WIB
 

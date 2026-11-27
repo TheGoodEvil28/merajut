@@ -1,0 +1,20 @@
+<%- include('header') %>
+<section class="section admin-page stack">
+  <a class="back" href="/pengelola/operasional#whatsapp">Operasional</a>
+  <header class="page-heading"><div><h1>Balasan WhatsApp</h1><p>Tinjau balasan dan tanda terima yang belum dapat dicocokkan.</p></div></header>
+  <% if (saved) { %><p class="save-feedback" role="status">Pesan telah ditinjau.</p><% } %>
+  <% if (!items.length) { %><p>Antrean tinjauan kosong.</p><% } %>
+  <% for (const item of items) { %>
+    <article class="card stack">
+      <h2><%= item.event_kind==='message.received' ? item.business || 'Balasan mitra' : 'Tanda terima WhatsApp' %></h2>
+      <p class="muted"><%= dateTime(item.message_at || item.event_at) %><%= item.mode==='mock'?' · Simulasi WhatsApp':'' %></p>
+      <% if (item.body) { %><p class="preserve"><%= item.body %></p><% } %>
+      <form class="stack" method="post" action="/api/v1/management/whatsapp/inbox/<%= item.id %>/review">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <label>Catatan pemeriksaan<textarea name="reason" required minlength="5" maxlength="500" rows="2"></textarea></label>
+        <button>Tandai sudah ditinjau</button>
+      </form>
+    </article>
+  <% } %>
+</section>
+<%- include('footer') %>

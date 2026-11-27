@@ -1,6 +1,6 @@
 # RFC-0004 Marajut pilot reporting and OpenWA dispatch
 
-**Status** Draft for implementation · **Date** 26 November 2026 WIB
+**Status** Dispatch implemented and deployed for a restricted pilot. Reporting remains a draft. · **Date** 26 November 2026 WIB
 
 ## 1. Goal
 
@@ -50,6 +50,8 @@ Run the Express/PostgreSQL suite and the customer, admin, and tailor browser pat
 4. The admin records **Penjahit bersedia** or **Penjahit berhalangan** from the reply. They align the scope, fitting date and place, estimated completion, and pickup or delivery using the existing quote and scheduling tools. A declined quote or unavailable partner can lead to a replacement request through the existing reassignment action. The customer reviews the fixed quote, approves the fitting when required, tracks progress, and pays through checkout after the order is ready. The admin checks payment before handover. [Dispatch panel](../../apps/marajut/views/managed-dispatch.ejs) · [Dispatch and reassignment rules](../../apps/marajut/dispatch.js) · [Quote rules](../../apps/marajut/quotes.js) · [Payment verification](../../apps/marajut/payments.js)
 
 Keep the existing WhatsApp links and manual recording actions available when the queue is off or unavailable. The admin checks the chat before using a manual link for an uncertain send and records the result. The tailor receives the work and replies on WhatsApp using their existing number. Any existing tailor portal account stays scoped to its business.
+
+After the admin records availability, **Tindak lanjut WhatsApp mitra** offers a direct request for the tailor's quote. After customer approval, it offers messages for work, fitting, missed completion dates, payment and handover. Customers continue those actions on Marajut. Each follow-up uses the assigned partner's verified contact and requires its own admin confirmation. The worker rechecks the milestone and consent before sending, and the order retains one active or sent follow-up per purpose and milestone. Payment messages use the verified website state and label test payments as simulations. [Follow-up test run](../TEST-RUN-GUIDEBOOK.md#whatsapp-follow-ups-across-the-order--27-november-2026-utc)
 
 ## 6. Components and boundaries
 

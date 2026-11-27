@@ -10,19 +10,23 @@ services:
     ports: !reset []
     networks: [default, edge]
     environment:
-      APP_ORIGIN: *preview-origin
+      APP_ORIGIN: ${PREVIEW_PUBLIC_APP_ORIGIN:-https://${PREVIEW_APP_HOST:-localhost}:${PREVIEW_HTTPS_PORT:-443}}
+      PREVIEW_LOOPBACK_ORIGIN: *preview-origin
       TRUST_PROXY_HOPS: "1"
       PAYMENT_MODE: demo
       MESSAGING_MODE: simulated
       MIDTRANS_SERVER_KEY: ""
-      ADMIN_WHATSAPP: ""
+      ADMIN_WHATSAPP: ${PREVIEW_ADMIN_WHATSAPP:-}
       SIMULATION_WEBHOOK_SECRET: ""
 
   worker:
     <<: *preview-app
     environment:
-      APP_ORIGIN: *preview-origin
+      APP_ORIGIN: ${PREVIEW_PUBLIC_APP_ORIGIN:-https://${PREVIEW_APP_HOST:-localhost}:${PREVIEW_HTTPS_PORT:-443}}
       MESSAGING_MODE: simulated
+
+  dispatch-worker:
+    <<: *preview-app
 
   migrate:
     <<: *preview-app

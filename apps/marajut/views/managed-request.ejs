@@ -16,6 +16,8 @@ const showClarification = open && clarification &&
     (user.manager && ['NEW','CONTACTED','REJECTED','EXPIRED'].includes(journey.key)));
 const shownEvents = events.filter(item=>user.manager || item.kind!=='GROUP_POSTED').toReversed();
 const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey.key);
+const awaitingReplyDecision = user.manager && open && ['NEW','CONTACTED'].includes(journey.key) && whatsapp?.replies.length > 0;
+const showWhatsAppFollowups = whatsapp && whatsapp.mode!=='disabled' && whatsapp.followups.length>0;
 %>
 <section class="section workflow-page">
   <a class="back" href="<%= user.manager?'/pengelola':'/workspace' %>"><%= user.manager?'Pesanan':'Pesanan Saya' %></a>
@@ -42,14 +44,18 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
     <div class="stack">
       <section class="next-action <%= isCustomer?'customer-action':'' %>" aria-labelledby="next-title">
         <div>
-          <h2 id="next-title"><%= journey.title %></h2>
-          <p><%= journey.key==='PENDING' && isCustomer && order.payment.mode==='demo'
+          <h2 id="next-title"><%= awaitingReplyDecision ? 'Balasan WhatsApp diterima' : journey.title %></h2>
+          <p><%= awaitingReplyDecision ? 'Tinjau jawaban penjahit dan catat kesediaannya untuk melanjutkan ke penawaran.'
+            : journey.key==='PENDING' && isCustomer && order.payment.mode==='demo'
             ? 'Admin akan memeriksa transaksi simulasi. Status akan berubah setelah admin mencatat hasilnya.' : journey.description %></p>
         </div>
-        <% if (journey.href) { %>
+        <% if (awaitingReplyDecision) { %>
+          <a class="button" href="#balasan-whatsapp">Tinjau balasan <%- include('icon',{name:'arrow'}) %></a>
+        <% } else if (journey.href) { %>
           <a class="button" href="<%= journey.href %>"><%= journey.action %> <%- include('icon',{name:'arrow'}) %></a>
         <% } %>
       </section>
+      <% if (showWhatsAppFollowups) { %><a class="button secondary" href="#tindak-lanjut-whatsapp">Tindak lanjut WhatsApp mitra</a><% } %>
       <% if (showClarification) { %>
         <section class="card workflow-card" id="klarifikasi" tabindex="-1">
           <h2><%= journey.key==='NEEDS_DETAILS' ? 'Pertanyaan admin'
@@ -65,7 +71,7 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
           <% } %>
         </section>
       <% } %>
-      <% if (user.manager && dispatchFirst) { %><%- include('managed-dispatch') %><% } %>
+      <% if (user.manager && dispatchFirst) { %><%- include('managed-dispatch',{awaitingReplyDecision}) %><% } %>
       <% if (canChoose) { %><%- include('managed-reassign') %><% } %>
       <% if (latest && !order) { %><%- include('managed-quote',{latest,isCustomer}) %><% } %>
       <% if (editQuote && journey.key==='QUOTED' && !quoteError) { %>
@@ -88,7 +94,7 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
       <% } %>
       <% if (showHandover) { %><%- include('managed-handover',{isCustomer}) %><% } %>
       <% if (hasPayment) { %><%- include('order-payment') %><% } %>
-      <% if (user.manager && !dispatchFirst && (open || progressAction || order?.status==='READY')) { %><%- include('managed-dispatch') %><% } %>
+      <% if (user.manager && !dispatchFirst && (open || progressAction || order?.status==='READY' || showWhatsAppFollowups || whatsapp?.history.length || whatsapp?.replies.length)) { %><%- include('managed-dispatch',{awaitingReplyDecision}) %><% } %>
       <% if (isCustomer) { %><%# customer cancel card lives in the right column %>
       <% } else if (open || (user.manager && order?.status==='CONFIRMED')) { %>
         <% const closeLabel = user.manager && open ? 'Tutup permintaan' : open ? 'Batalkan permintaan' : 'Batalkan pesanan';

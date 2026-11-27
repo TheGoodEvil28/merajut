@@ -27,7 +27,7 @@ const links = dashboard ? [] : user?.role === 'provider' ? [
     ['/pengelola','Pesanan','bag',here==='/pengelola' || here.startsWith('/requests/')],
     ['/pengelola/mitra','Mitra','shop',here.startsWith('/pengelola/mitra')],
     ['/pengelola/kinerja','Kinerja','grid',here==='/pengelola/kinerja'],
-    ['/pengelola/operasional','Operasional','inbox',here==='/pengelola/operasional']
+    ['/pengelola/operasional','Operasional','inbox',here==='/pengelola/operasional' || here==='/pengelola/whatsapp']
   ] : intakeEnabled ? [['/workspace/intake','Chat simulasi','chat',here.startsWith('/workspace/intake')]] : [])
 ] : [
   ['/#services', 'Cari Penjahit', 'search', here === '/' || here.startsWith('/penjahit/')],

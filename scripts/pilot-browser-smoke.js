@@ -19,8 +19,11 @@ const browser=await chromium.launch(process.env.BROWSER_CHANNEL ? {channel:proce
 async function confirmAction(page) {
   const ok = page.locator('dialog[data-confirm-dialog][open] [data-confirm-ok]');
   await ok.waitFor();
-  await ok.click();
-  await page.locator('dialog[data-confirm-dialog]').and(page.locator(':not([open])')).waitFor({ state: 'attached' });
+  const [response] = await Promise.all([
+    page.waitForResponse(result => result.request().isNavigationRequest() && result.request().method() === 'POST'),
+    ok.click()
+  ]);
+  assert.equal(response.status(), 303, 'Confirmed form should save before the next browser reload.');
 }
 const screenshots=process.env.BROWSER_SCREENSHOTS;
 const metric=[];
@@ -132,6 +135,7 @@ try {
   await guest.getByLabel('Email untuk verifikasi').fill(guestEmail);
   await guest.getByLabel('Apa yang perlu dikerjakan?').fill('Mohon pendekkan dua celana untuk latihan.');
   await guest.getByLabel('Jumlah pakaian').fill('2');
+  assert.equal(await guest.evaluate(()=>document.documentElement.scrollWidth),360);
   await guest.getByRole('button',{name:'Simpan draf dan verifikasi email'}).click();
   const png=await sharp({create:{width:20,height:20,channels:3,background:'#79835c'}}).png().toBuffer();
   await guest.getByLabel('Foto pakaian').setInputFiles({name:'foto-demo.png',mimeType:'image/png',buffer:png});
@@ -167,7 +171,10 @@ try {
   await guest.getByRole('button',{name:'Setujui penawaran'}).click(); await confirmAction(guest);
   await guest.getByRole('heading',{name:'Detail pesanan'}).waitFor();
   await staff.reload();
-  for (const label of ['Mulai pengerjaan','Tandai jahitan siap']) await staff.getByRole('button',{name:label}).click();
+  for (const label of ['Mulai pengerjaan','Tandai jahitan siap']) {
+    await staff.getByRole('button',{name:label}).click();
+    await confirmAction(staff);
+  }
   await guest.reload();
   await guest.getByRole('button',{name:'Mulai pembayaran simulasi'}).click();
   await staff.reload();
@@ -190,7 +197,9 @@ try {
   await reset.getByRole('button',{name:'Simpan kata sandi baru'}).click();
   await reset.getByText('Kata sandi diperbarui.',{exact:false}).waitFor();
   await guest.goto(path);
-  await guest.waitForURL('**/login');
+  const expiredSession = new URL(guest.url());
+  assert.equal(expiredSession.pathname,'/login');
+  assert.equal(expiredSession.searchParams.get('next'),path);
   await signIn(reset,guestEmail,password+'-baru');
 
   const signup=await browser.newPage({...pageOptions,viewport:{width:360,height:844}});

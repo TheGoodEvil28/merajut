@@ -7,6 +7,9 @@ import { operationsBoard,partnerDirectory,inviteTailor,moderateShop,decideCancel
 
 import { deskOverview,partnerDetails,savePartner,updateDispatch,reassign,servicePerformance } from './dispatch.js';
 import { saveService } from './catalog.js';
+import { approveDispatch, reviewDispatch, dispatchPanel, dispatchOperations, dispatchInbox,
+  permissionFor, saveDispatchPermission, pauseDispatch, resolveDispatchInbox } from './whatsapp-dispatch.js';
+import { followupLabels } from './whatsapp-followup.js';
 
 const partner = businessProfile.extend({whatsapp:phone,specialty:z.string().trim().min(2).max(160)});
 const password=z.string().min(1).max(128);
@@ -16,7 +19,7 @@ const invite=z.union([
   z.object({businessId:id,revision,email,password}),
   businessProfile.extend({email,password})
 ]);
-export function operationsRouter(pool,{operator,provider,finish}) {
+export function operationsRouter(pool,{operator,provider,finish,dispatch}) {
   const router=Router();
   const access=(req,res,next) => {
     if (!req.actor.manager) throw new AppError(403,'FORBIDDEN','Akses pengelola diperlukan.');
@@ -33,7 +36,7 @@ export function operationsRouter(pool,{operator,provider,finish}) {
     title:'Kinerja layanan',performance:await servicePerformance(pool)
   }));
   router.get('/pengelola/operasional',async(req,res) => res.render('operations-support',{
-    title:'Operasional',...await operationsBoard(pool),saved:req.query.saved==='1'
+    title:'Operasional',...await operationsBoard(pool),whatsapp:await dispatchOperations(pool,dispatch),saved:req.query.saved==='1'
   }));
   router.get('/api/v1/management',async(req,res) => {
     const [board,desk,performance]=await Promise.all([
@@ -41,8 +44,43 @@ export function operationsRouter(pool,{operator,provider,finish}) {
     ]);
     res.json({...board,...desk,performance});
   });
-  router.get('/pengelola/mitra/baru',(req,res)=>res.render('partner',{title:'Tambah mitra',business:null,services:[],saved:false}));
-  router.get('/pengelola/mitra/:id',async(req,res)=>res.render('partner',{title:'Kelola mitra',...await partnerDetails(pool,parse(id,req.params.id)),saved:req.query.saved==='1'}));
+  router.get('/pengelola/mitra/baru',(req,res)=>res.render('partner',{title:'Tambah mitra',business:null,services:[],saved:false,whatsappPermission:null,dispatchMode:dispatch.mode}));
+  router.get('/pengelola/mitra/:id',async(req,res)=>res.render('partner',{title:'Kelola mitra',...await partnerDetails(pool,parse(id,req.params.id)),
+    whatsappPermission:await permissionFor(pool,dispatch,parse(id,req.params.id)),dispatchMode:dispatch.mode,saved:req.query.saved==='1'}));
+  router.get('/pengelola/whatsapp',async(req,res)=>res.render('whatsapp-inbox',{
+    title:'Balasan WhatsApp',items:await dispatchInbox(pool),saved:req.query.saved==='1'
+  }));
+  router.get('/api/v1/management/inquiries/:id/whatsapp-dispatches',async(req,res)=>{
+    res.json(await dispatchPanel(pool,req.actor,parse(id,req.params.id),dispatch));
+  });
+  router.post('/api/v1/management/inquiries/:id/whatsapp-dispatches',async(req,res)=>{
+    const result = await approveDispatch(pool,req.actor,parse(id,req.params.id),parse(z.object({
+      channel:z.enum(['group','partner']),purpose:z.enum(['contact',...Object.keys(followupLabels)]).default('contact'),
+      revision,requestKey:id,previewDigest:z.string().regex(/^[a-f\d]{64}$/)
+    }),req.body),dispatch);
+    finish(req,res,result,'/requests/'+result.inquiryId+'?updated=saved#koordinasi',202);
+  });
+  router.post('/api/v1/management/inquiries/:id/whatsapp-dispatches/:dispatchId/review',async(req,res)=>{
+    const result = await reviewDispatch(pool,req.actor,parse(id,req.params.id),parse(id,req.params.dispatchId),
+      parse(z.object({revision,disposition:z.enum(['sent','unsent']),reason}),req.body));
+    finish(req,res,result,'/requests/'+result.inquiryId+'?updated=saved#koordinasi');
+  });
+  router.post(['/api/v1/management/partners/:id/whatsapp-permission','/api/v1/management/whatsapp/group-permission'],async(req,res)=>{
+    const businessId = req.params.id ? parse(id,req.params.id) : null;
+    const data = parse(z.object({action:z.enum(['grant','revoke']),version:z.coerce.number().int().nonnegative(),
+      evidence:reason,confirmed:z.literal('yes').optional(),groupMember:z.literal('yes').optional(),senderAlias:z.string().max(100).optional()}),req.body);
+    const result = await saveDispatchPermission(pool,req.actor,dispatch,businessId,data);
+    finish(req,res,{id:result.id},businessId ? '/pengelola/mitra/'+businessId+'?saved=1#whatsapp-permission' : '/pengelola/operasional?saved=1#whatsapp');
+  });
+  router.post('/api/v1/management/whatsapp/pause',async(req,res)=>{
+    const data=parse(z.object({action:z.enum(['pause','resume']),reason}),req.body);
+    await pauseDispatch(pool,req.actor,dispatch,data.action==='pause',data.reason);
+    finish(req,res,{updated:true},'/pengelola/operasional?saved=1#whatsapp');
+  });
+  router.post('/api/v1/management/whatsapp/inbox/:id/review',async(req,res)=>{
+    await resolveDispatchInbox(pool,req.actor,parse(id,req.params.id),parse(z.object({reason}),req.body).reason);
+    finish(req,res,{updated:true},'/pengelola/whatsapp?saved=1');
+  });
   router.post('/api/v1/management/partners',async(req,res)=>{
     const result=await savePartner(pool,req.actor,null,parse(partner,req.body));
     finish(req,res,result,'/pengelola/mitra/'+result.id+'?saved=1#layanan-mitra',201);

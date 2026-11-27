@@ -17,8 +17,11 @@ const browser = await chromium.launch(process.env.BROWSER_CHANNEL ? { channel: p
 async function confirmAction(page) {
   const ok = page.locator('dialog[data-confirm-dialog][open] [data-confirm-ok]');
   await ok.waitFor();
-  await ok.click();
-  await page.locator('dialog[data-confirm-dialog]').and(page.locator(':not([open])')).waitFor({ state: 'attached' });
+  const [response] = await Promise.all([
+    page.waitForResponse(result => result.request().isNavigationRequest() && result.request().method() === 'POST'),
+    ok.click()
+  ]);
+  assert.equal(response.status(), 303, 'Confirmed form should save before the next browser reload.');
 }
 const customer = await browser.newPage({ ...pageOptions, viewport: { width: 360, height: 844 } });
 const tailor = await browser.newPage({ ...pageOptions, viewport: { width: 1366, height: 900 } });
@@ -181,6 +184,11 @@ try {
   await customer.getByLabel('Jawaban untuk admin').fill('Panjang akhir 90 cm.');
   await customer.getByRole('button', { name: 'Kirim jawaban' }).click();
   await admin.reload();
+  if (process.env.DISPATCH_WHATSAPP_MODE==='mock') {
+    await admin.getByRole('link',{name:'Tindak lanjut WhatsApp mitra',exact:true}).click();
+    assert.equal(new URL(admin.url()).hash,'#tindak-lanjut-whatsapp');
+    await admin.locator('[data-whatsapp-purpose="quote_request"]').getByText('Minta penawaran dari mitra',{exact:true}).waitFor();
+  }
   await admin.getByLabel(/Harga satuan/).first().fill('15000');
   await admin.getByRole('button', { name: 'Tambah rincian' }).click();
   await admin.getByLabel(/Rincian baris 2/).fill('Benang');
@@ -199,6 +207,18 @@ try {
   await admin.getByLabel('Rincian pengerjaan dan pengambilan').fill('Pendekkan celana. Kurir mengantar setelah pelanggan membayar.');
   await admin.getByRole('button', { name: 'Kirim penawaran' }).click(); await confirmAction(admin);
   await admin.getByRole('heading', { name: 'Penawaran harga' }).waitFor();
+
+  await admin.context().grantPermissions(['clipboard-read','clipboard-write'],{origin:base.origin});
+  await admin.getByRole('button',{name:'Salin tautan penawaran'}).click();
+  await admin.getByText('Tautan disalin.',{exact:true}).waitFor();
+  const quoteLink = await admin.evaluate(()=>navigator.clipboard.readText());
+  assert.equal(quoteLink, new URL(requestPath,base.origin).href);
+  const quoteRecipient = await browser.newPage(pageOptions);
+  await quoteRecipient.goto(quoteLink);
+  assert.equal(new URL(quoteRecipient.url()).searchParams.get('next'),requestPath);
+  await signIn(quoteRecipient,seedEmails.customer,'**'+requestPath);
+  await quoteRecipient.getByRole('button',{name:'Setujui penawaran',exact:true}).waitFor();
+  await quoteRecipient.close();
 
   await customer.goto('/workspace');
   const attention = customer.locator('.order-group').filter({ has: customer.getByRole('heading', { name: /Perlu tindakan Anda/ }) });

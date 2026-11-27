@@ -12,6 +12,16 @@
   </dl>
   <%- include('logistics',{proposal:latest}) %>
   <p class="preserve"><%= latest.terms %></p>
+  <% if (quoteReviewUrl) { %>
+    <div class="form-disclosure">
+      <p>Teruskan tautan ini agar pelanggan bisa masuk dan meninjau penawaran.</p>
+      <p class="preserve muted" id="quote-share-link"><%= quoteReviewUrl %></p>
+      <div class="actions">
+        <button type="button" class="secondary" data-copy="quote-share-link" data-copy-label="Tautan" hidden>Salin tautan penawaran</button>
+        <span class="muted" data-copy-status role="status"></span>
+      </div>
+    </div>
+  <% } %>
   <% if (isCustomer && journey.key==='QUOTED') { %>
     <p class="form-help muted">Dengan menyetujui penawaran, Anda memesan sesuai rincian di atas. Pembayaran dilakukan saat jahitan siap.</p>
     <form method="post" action="/api/v1/quotes/<%= latest.id %>/decisions">

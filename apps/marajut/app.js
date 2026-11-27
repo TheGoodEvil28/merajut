@@ -26,6 +26,10 @@ import { orderJourney, orderReference, milestones, fittingLabels, handoverLabels
 import { dispatchContacts, orderComplaint, reassign } from './dispatch.js';
 import { z } from 'zod';
 import * as input from './validation.js';
+import { dispatchSettings } from './whatsapp-config.js';
+import { dispatchPanel, dispatchLabels } from './whatsapp-dispatch.js';
+import { followupLabels } from './whatsapp-followup.js';
+import { verifyDispatchWebhook, recordDispatchWebhook } from './whatsapp-inbox.js';
 
 function cookie(req, name) {
   const entry = req.headers.cookie?.split(';').map(pair => pair.trim()).find(pair => pair.startsWith(name + '='));
@@ -64,15 +68,19 @@ const csrfCookie = 'marajut_csrf';
 function requestDestination(value, intakeEnabled) {
   if (intakeEnabled && value === '/workspace/intake') return value;
   if (typeof value !== 'string') return null;
-  const candidate = /^\/requests\/new\?service=([0-9a-f-]+)$/i.exec(value);
+  const candidate = /^\/requests\/(?:new\?service=)?([0-9a-f-]+)$/i.exec(value);
   return candidate && input.id.safeParse(candidate[1]).success ? value : null;
 }
 
-export function createApp(pool, { origin = 'http://localhost:3100', mode = messagingMode(), payments = paymentSettings(), gateway = midtrans(payments) } = {}) {
+export function createApp(pool, { origin = 'http://localhost:3100', mode = messagingMode(), payments = paymentSettings(), gateway = midtrans(payments), dispatch = dispatchSettings() } = {}) {
   const app = express();
   messagingMode(mode);
   const expectedOrigin = new URL(origin).origin;
   const requestOrigins = new Set([expectedOrigin]);
+  if (process.env.PREVIEW_LOOPBACK_ORIGIN) {
+    const preview = new URL(process.env.PREVIEW_LOOPBACK_ORIGIN);
+    if (preview.protocol === 'https:' && ['localhost','127.0.0.1'].includes(preview.hostname)) requestOrigins.add(preview.origin);
+  }
   const localUrl = new URL(expectedOrigin);
   if (localUrl.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(localUrl.hostname)) {
     localUrl.hostname = localUrl.hostname === 'localhost' ? '127.0.0.1' : 'localhost';
@@ -115,6 +123,8 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
   app.locals.eventLabel = eventLabel;
   app.locals.serviceCategories = serviceCategories;
   app.locals.mode = mode;
+  app.locals.dispatchLabels = dispatchLabels;
+  app.locals.followupLabels = followupLabels;
   app.locals.paymentMode = payments.mode;
   app.locals.partnerContact = input.phone.safeParse(process.env.ADMIN_WHATSAPP).data;
   app.locals.intakeEnabled = mode === 'simulated' && simulatedInbound();
@@ -146,6 +156,15 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
       });
   }
 
+  app.post('/webhooks/openwa', express.raw({type:'application/json',limit:'64kb',inflate:false}), async (req,res) => {
+    const event = verifyDispatchWebhook(req.body,req.get('x-openwa-signature'),dispatch);
+    try { await recordDispatchWebhook(pool,event,dispatch); }
+    catch (error) {
+      if (error instanceof AppError) throw error;
+      throw new AppError(503,'INBOX_UNAVAILABLE','The webhook could not be recorded.');
+    }
+    res.sendStatus(204);
+  });
   app.use(express.json({ limit: '16kb' }));
   app.post('/webhooks/midtrans', async (req,res) => {
     await paymentNotification(pool,req.body,payments,gateway);
@@ -345,6 +364,9 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
 
   async function renderRequest(req,res,id,options={}) {
     const detail = await requestPage(req.actor,id);
+    const whatsapp = req.actor.manager && detail.inquiry.dispatch_state ? await dispatchPanel(pool,req.actor,id,dispatch) : null;
+    const partnerReply = whatsapp?.replies.findLast(reply => reply.business_id===detail.inquiry.business_id && reply.body);
+    const quoteReviewUrl = req.actor.manager && detail.journey?.key==='QUOTED' ? expectedOrigin+'/requests/'+id : null;
     const template = detail.journey ? 'managed-request' : 'request-detail';
     const notices = {
       received:'Permintaan diterima. Pantau kabar selanjutnya dari halaman ini.',
@@ -356,7 +378,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
     const notice = Object.hasOwn(notices,req.query.updated) ? notices[req.query.updated] : null;
     return res.render(template, {
       title: detail.inquiry.service, ...detail, quoteDraft:null, quoteError:null, formError:null, fittingDraft:null,
-      paymentError:null,
+      paymentError:null,whatsapp,partnerReply,quoteReviewUrl,
       notice, ...options
     });
   }
@@ -489,7 +511,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
       authenticated, customer, finish, sessionValue: req => cookie(req, sessionCookie)
     }));
   }
-  app.use(operationsRouter(pool,{operator:requireUser('operator'),provider,finish}));
+  app.use(operationsRouter(pool,{operator:requireUser('operator'),provider,finish,dispatch}));
 
   app.use((req, res, next) => next(new AppError(404, 'NOT_FOUND', 'This page is unavailable.')));
   app.use((error, req, res, next) => {
@@ -503,7 +525,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
         problem = new AppError(500, 'INTERNAL_ERROR', 'Something went wrong. Try again later.');
       }
     }
-    if (wantsJson(req) || req.path==='/webhooks/midtrans' || req.path.startsWith('/simulated/webhooks/') || req.path.endsWith('/photos')
+    if (wantsJson(req) || req.path.startsWith('/webhooks/') || req.path.startsWith('/simulated/webhooks/') || req.path.endsWith('/photos')
       || (req.method === 'GET' && req.path.startsWith('/api/'))) {
       return res.status(problem.status).json({ error: { code: problem.code, message: problem.message } });
     }

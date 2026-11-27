@@ -1,0 +1,16 @@
+<details class="form-disclosure" <% if (preview.purpose==='contact') { %>data-whatsapp-channel="<%= preview.channel %>"<% } else { %>data-whatsapp-purpose="<%= preview.purpose %>"<% } %>>
+  <summary><%= preview.label %></summary>
+  <% if (preview.reason) { %><p class="muted"><%= preview.reason %></p><% } else { %>
+    <p>Tujuan <strong><%= preview.destination %></strong> <%= preview.masked %></p>
+    <p class="message-box preserve"><%= preview.text %></p>
+    <form method="post" action="<%= whatsappPath %>">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <input type="hidden" name="channel" value="<%= preview.channel %>">
+      <input type="hidden" name="purpose" value="<%= preview.purpose %>">
+      <input type="hidden" name="revision" value="<%= preview.revision %>">
+      <input type="hidden" name="requestKey" value="<%= preview.requestKey %>">
+      <input type="hidden" name="previewDigest" value="<%= preview.previewDigest %>">
+      <button>Konfirmasi kirim</button>
+    </form>
+  <% } %>
+</details>

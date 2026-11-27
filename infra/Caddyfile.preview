@@ -5,6 +5,8 @@
 }
 
 {$PREVIEW_ORIGIN} {
+	@private_dispatch path /webhooks/openwa /webhooks/openwa/*
+	respond @private_dispatch 404
 	basic_auth bcrypt "Marajut preview" {
 		import /run/secrets/preview_testers
 		import /run/secrets/preview_qa
