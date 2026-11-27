@@ -169,3 +169,62 @@ if (storefront) {
   addEventListener('resize', sync);
   sync();
 }
+
+// Shared confirmation modal (views/confirm-dialog.ejs). Any form with data-confirm opens it before submitting.
+const confirmDialog = document.querySelector('[data-confirm-dialog]');
+if (confirmDialog && typeof confirmDialog.showModal === 'function') {
+  const part = name => confirmDialog.querySelector(`[data-confirm-${name}]`);
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let pending = null;
+
+  const close = result => {
+    if (!confirmDialog.open || confirmDialog.classList.contains('is-closing')) return;
+    confirmDialog.classList.add('is-closing');
+    const done = () => {
+      confirmDialog.classList.remove('is-closing');
+      confirmDialog.close(result);
+    };
+    if (reduced.matches) done(); else setTimeout(done, 160);
+  };
+
+  document.addEventListener('submit', event => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement) || !form.dataset.confirm) return;
+    if (form.dataset.confirmed === 'yes') { delete form.dataset.confirmed; return; }
+    event.preventDefault();
+    pending = { form, submitter: event.submitter };
+    const d = form.dataset;
+    part('title').textContent = d.confirmTitle || 'Yakin?';
+    part('message').textContent = d.confirm;
+    part('ok').textContent = d.confirmAction || 'Lanjutkan';
+    part('cancel').textContent = d.confirmCancel || 'Batal';
+    part('ok').classList.toggle('danger', d.confirmTone === 'danger');
+    part('icon-use').setAttribute('href', `/assets/studio-icons.svg#${d.confirmIcon || 'door'}`);
+    confirmDialog.returnValue = '';
+    confirmDialog.showModal();
+    window.lenis?.stop();
+  });
+
+  // Both buttons are submit buttons of a method="dialog" form; animate out before closing.
+  confirmDialog.addEventListener('submit', event => {
+    event.preventDefault();
+    close(event.submitter?.value === 'confirm' ? 'confirm' : 'cancel');
+  });
+  confirmDialog.addEventListener('cancel', event => { event.preventDefault(); close('cancel'); }); // Esc
+  confirmDialog.addEventListener('click', event => { if (event.target === confirmDialog) close('cancel'); }); // backdrop
+  confirmDialog.addEventListener('close', () => {
+    window.lenis?.start();
+    const job = pending;
+    pending = null;
+    if (job && confirmDialog.returnValue === 'confirm') {
+      // Resubmit on the next task: during 'close' the page behind the modal can still be inert, and
+      // Chrome then drops a submission whose submitter is an inert button. Only pass the submitter
+      // when it carries a name/value the server needs.
+      const submitter = job.submitter?.name && job.submitter.form === job.form ? job.submitter : undefined;
+      setTimeout(() => {
+        job.form.dataset.confirmed = 'yes';
+        job.form.requestSubmit(submitter);
+      });
+    }
+  });
+}

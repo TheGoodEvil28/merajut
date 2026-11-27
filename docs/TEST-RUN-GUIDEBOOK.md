@@ -422,3 +422,37 @@ Roles affected are guest and customer (landing page `/`). Open `/` and look at *
 ### Cara memesan: more room around the arrows · 25 November 2026 WIB
 
 Roles affected are guest and customer (landing page `/`). The gap between steps is now `clamp(3.5rem, 7vw, 6rem)` (3.5 rem → 6 rem), and 4.2 rem on phones, so each arrow has clear space on both sides. Open `/` and check **Cara memesan di Marajut** at desktop width and at 375 px: arrows stay centred between the steps, text columns are narrower but do not wrap awkwardly, and there is no horizontal scroll. Checked: measured gap, arrow width and page overflow in the in-app browser at the pane's current width only. Not verified: 375 px after this change, 720–959 px, and long Indonesian text wrapping at 1024 px.
+
+### Logout confirmation modal and dashboard footer · 27 November 2026 WIB
+
+Roles affected are customer, tailor and operator (every signed-in page shows **Keluar**), plus the tailor and admin dashboards for the footer. Prerequisites: the dev-mode stack, demo seed, and synthetic accounts such as `tailor@marajut.test` and `customer@marajut.test` with the local `DEMO_PASSWORD`.
+
+The modal is a shared component. `views/confirm-dialog.ejs` is mounted once in the footer, and `public/forms.js` opens it for any form that has `data-confirm` (with optional `data-confirm-title`, `-action`, `-cancel`, `-tone="danger"` and `-icon`). Without JavaScript the form submits normally.
+
+1. Sign in as a tailor and open **Ringkasan**. There is no footer below the dashboard (the same applies to the admin area). Select **Keluar** in the sidebar. Expect the modal to pop in (scale and fade) over a blurred dark backdrop, with a door icon, **Keluar dari Marajut?**, a short message, **Batal** focused, and a clay **Ya, keluar** button. The page behind does not scroll.
+2. Select **Batal**, press Esc, or click the backdrop. Expect the modal to animate out and you to stay signed in on the same page.
+3. Open it again and select **Ya, keluar**. Expect to be signed out and returned to `/` with the footer visible.
+4. Repeat steps 2–3 as a customer from **Pesanan Saya** (storefront header, footer still shown there) and at 375 px.
+5. Turn on the OS **reduce motion** setting. The modal opens and closes with no animation.
+6. With JavaScript disabled, **Keluar** signs out immediately without a modal.
+
+Checks run in the in-app browser on the dev server: as the synthetic tailor, a real click on **Keluar** opened the modal (screenshot reviewed), **Batal** kept the session, and **Ya, keluar** signed out to `/`. On the landing page, with `data-confirm` added to the search form by script, cancel, Esc and backdrop never submitted the form, confirm submitted it exactly once, the danger tone, default texts and initial focus on **Batal** applied, and the modal reopened afterwards. The dashboard footer computed to `display: none`, and the storefront footer was visible after logout. `npm.cmd run check` passed. The only automated logout (`tests/workflow.test.js`) posts to the API directly and is unaffected.
+
+Bug found and fixed during the check: resubmitting from inside the dialog's `close` event with the inert **Keluar** button as submitter was silently dropped by Chrome. The resubmit now runs on the next task and passes a submitter only when it has a `name`.
+
+Not verified: the customer and operator paths, 375 px, keyboard-only use (Tab trapping, Enter), screen-reader announcement, reduce-motion, no-JS behaviour, Firefox and Safari, and `npm test` / browser smoke suites. The customer **Pesanan Saya** page still shows the footer, because it uses the storefront layout.
+
+### Signed-in storefront header: single "Buka Dasbor" button · 27 November 2026 WIB
+
+Roles affected are customer, tailor and operator when they open the storefront: the home page `/` and public shop pages `/penjahit/<slug>`. Signed-out visitors and every dashboard page are unchanged. Prerequisites: the dev-mode stack, demo seed and synthetic accounts.
+
+1. Sign in as `tailor@marajut.test` and open `/` and `/penjahit/jahit-rina`. Expect the header to show only the Marajut wordmark and a **Buka Dasbor** button at the right, with no Ringkasan, Layanan Saya, Profil Usaha, Chat simulasi or **Keluar**.
+2. Select **Buka Dasbor**. Expect **Ringkasan** at `/workspace` with the full sidebar and **Keluar** (logout confirmation still applies).
+3. Repeat as `customer@marajut.test`. **Buka Dasbor** opens **Pesanan Saya**, and that page keeps its usual links (Cari Penjahit, Pesanan Saya, Profil saya) and **Keluar**.
+4. As an admin operator, **Buka Dasbor** goes through `/workspace` to `/pengelola`.
+5. Sign out and open `/`. Expect the usual guest header (Cari Penjahit, Cara kerja, Admin, **Masuk**).
+6. At 375 px, signed in, the wordmark and button share one row with no horizontal scroll.
+
+Checks run in the in-app browser on the dev server, as the synthetic tailor: screenshot of `/penjahit/jahit-rina` with the lone button; fetched `/` (button to `/workspace`, no nav), `/workspace` and `/workspace/services` (full nav and **Keluar** unchanged); `/workspace` resolves for the tailor; at 375 px on `/` the header is one 61 px row, the button sits 16 px from the edge, and there is no overflow. `npm.cmd run check` passed.
+
+Not verified: customer and operator roles, the guest header after this change, tablet width, and the landing hero height on phones when signed in. That hero height subtracts a two-row (98 px) header, so it is about 37 px short of a full screen when the signed-in header is one row.

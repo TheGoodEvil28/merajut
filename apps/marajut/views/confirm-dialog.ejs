@@ -1,0 +1,19 @@
+<%# Shared confirmation modal. Any form opts in with data-confirm-* attributes (see public/forms.js):
+    data-confirm          message (required, turns the modal on)
+    data-confirm-title    heading            (default "Yakin?")
+    data-confirm-action   confirm button     (default "Lanjutkan")
+    data-confirm-cancel   cancel button      (default "Batal")
+    data-confirm-tone     "danger" for a clay confirm button
+    data-confirm-icon     icon name from studio-icons.svg (default "door")
+  Without JavaScript the form simply submits, so the modal never blocks an action. %>
+<dialog class="confirm-dialog" data-confirm-dialog aria-labelledby="confirm-title" aria-describedby="confirm-message">
+  <form method="dialog" class="confirm-panel">
+    <span class="confirm-icon" aria-hidden="true"><svg class="icon" aria-hidden="true" focusable="false"><use data-confirm-icon-use href="/assets/studio-icons.svg#door"></use></svg></span>
+    <h2 id="confirm-title" data-confirm-title>Yakin?</h2>
+    <p id="confirm-message" data-confirm-message></p>
+    <div class="confirm-actions">
+      <button type="submit" value="cancel" class="secondary" data-confirm-cancel autofocus>Batal</button>
+      <button type="submit" value="confirm" data-confirm-ok>Lanjutkan</button>
+    </div>
+  </form>
+</dialog>

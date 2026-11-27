@@ -13,7 +13,10 @@
 <% const here = typeof currentPath === 'string' ? currentPath : '';
 const admin = Boolean(user?.manager && (here.startsWith('/pengelola') || here.startsWith('/requests/') || here.startsWith('/api/')));
 const studio = admin || (user?.role==='provider' && here!=='/' && !here.startsWith('/penjahit/'));
-const links = user?.role === 'provider' ? [
+// Signed-in visitors on the storefront (home and public shop pages) get a single "Buka Dasbor" button.
+const storefront = !studio && (here === '/' || here.startsWith('/penjahit/'));
+const dashboard = user && storefront ? '/workspace' : null; // /workspace redirects each role to its own dashboard
+const links = dashboard ? [] : user?.role === 'provider' ? [
   ['/workspace', 'Ringkasan', 'grid', here === '/workspace' || here.startsWith('/requests/')],
   ['/workspace/services', 'Layanan Saya', 'scissors', here === '/workspace/services'],
   ['/workspace/profile', 'Profil Usaha', 'shop', here === '/workspace/profile'],
@@ -38,15 +41,16 @@ const links = user?.role === 'provider' ? [
     <div class="wrap nav">
       <a class="brand" href="<%= admin ? '/pengelola' : user?.role === 'provider' ? '/workspace' : '/' %>" aria-label="Beranda Marajut"><img src="/assets/marajut-mark.svg" alt="" width="36" height="36">Marajut</a>
       <% if (studio) { %><span class="rail-label"><%= admin?'Ruang admin':'Ruang usaha' %></span><% } %>
-      <nav aria-label="Navigasi utama">
+      <% if (links.length) { %><nav aria-label="Navigasi utama">
         <% for (const [url, label, icon, current] of links) { %>
           <a href="<%= url %>" <% if (current) { %>aria-current="page"<% } %>><%- include('icon', {name:icon}) %><span><%= label %></span></a>
         <% } %>
-      </nav>
+      </nav><% } %>
       <div class="nav-account">
-      <% if (user) { %>
+      <% if (dashboard) { %><a class="button" href="<%= dashboard %>">Buka Dasbor <%- include('icon', {name:'arrow'}) %></a>
+      <% } else if (user) { %>
         <% if (studio) { %><span class="account-name"><b aria-hidden="true"><%= Array.from(user.display_name)[0] %></b><%= user.display_name %></span><% } %>
-        <form action="/api/v1/session/logout" method="post">
+        <form action="/api/v1/session/logout" method="post" data-confirm="Anda perlu masuk lagi untuk melihat pesanan dan pesan" data-confirm-title="Keluar dari Marajut?" data-confirm-action="Ya, keluar" data-confirm-tone="danger" data-confirm-icon="door">
           <input type="hidden" name="_csrf" value="<%= csrf %>">
           <button class="quiet"><%- include('icon', {name:'door'}) %>Keluar</button>
         </form>
