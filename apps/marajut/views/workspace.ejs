@@ -12,7 +12,8 @@ for (const item of items) {
   const actions = { QUOTED:'Tinjau penawaran', NEEDS_DETAILS:'Lengkapi detail', READY:'Lihat pengambilan' };
   groups[group].push({item,journey:{label:statusLabel(state),action:actions[state]}});
 }
-const sections = [['action','Perlu tindakan Anda'],['ongoing','Sedang diproses'],['history','Riwayat']];
+const sections = [['action','Perlu tindakan Anda','Penawaran yang perlu disetujui, detail yang diminta, atau jahitan yang siap diambil.'],['ongoing','Sedang diproses','Permintaan baru, sedang ditinjau admin, atau sedang dikerjakan penjahit.'],['history','Riwayat','Pesanan yang selesai, dibatalkan, atau ditolak.']];
+const filledGroups = sections.filter(([key]) => groups[key].length).length;
 %>
 <section class="section orders-home customer-orders">
   <header class="page-heading orders-heading">
@@ -20,7 +21,7 @@ const sections = [['action','Perlu tindakan Anda'],['ongoing','Sedang diproses']
       <p>Pantau penawaran, pengerjaan, dan pembayaran jahitan Anda.</p></div>
     <a class="button" href="/requests/new">Buat permintaan <%- include('icon',{name:'arrow'}) %></a>
   </header>
-  <% if (items.length) { %><nav class="section-links" aria-label="Bagian pesanan Anda">
+  <% if (filledGroups > 1) { %><nav class="section-links" aria-label="Bagian pesanan Anda">
     <% for (const [key,title] of sections) { if (!groups[key].length) continue; %>
       <a href="#pesanan-<%= key %>"><%= title %> <span><%= groups[key].length %></span></a>
     <% } %>
@@ -28,9 +29,10 @@ const sections = [['action','Perlu tindakan Anda'],['ongoing','Sedang diproses']
   <% if (items.length===100) { %><p class="muted">Menampilkan 100 permintaan terbaru.</p><% } %>
   <% if (!items.length) { %><div class="queue-empty"><%- include('icon',{name:'bag'}) %>
     <strong>Belum ada permintaan.</strong><p><a href="/#services">Cari penjahit</a> dan pilih layanan untuk memulai.</p></div><% } %>
-  <% for (const [key,title] of sections) { if (!groups[key].length) continue; %>
+  <% for (const [key,title,blurb] of sections) { if (!groups[key].length) continue; %>
     <section class="card order-group order-group-<%= key %>" id="pesanan-<%= key %>">
       <h2><%= title %> <span class="group-count"><%= groups[key].length %></span></h2>
+      <p class="muted group-blurb"><%= blurb %></p>
       <ul class="record-list">
         <% for (const {item,journey} of groups[key]) { %>
           <li><a href="/requests/<%= item.id %>">

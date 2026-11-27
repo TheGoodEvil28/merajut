@@ -871,7 +871,7 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   assert.ok((await admin.request(prefix+'?filter=history')).queue.some(row=>row.id===id));
   assert.equal(Number(performance.test_revenue),6075);
   assert.equal(Number(performance.revenue),0);
-  assert.match(await page(guest,'/penjahit/'+shop.slug),/1 pesanan selesai/);
+  assert.match(await page(guest,'/penjahit/'+shop.slug),/1 pesanan selesai/i); // shown as the "1 Pesanan Selesai" pill
   const another=await post(customer,'/api/v1/inquiries',{key:randomUUID(),serviceId:service.id,description:'Permintaan kedua sintetis.'},201);
   await post(admin,action(another.id,'dispatch'),{revision:1,state:'UNAVAILABLE'});
   await post(admin,action(another.id,'reassign'),{serviceId:replacementService.id,revision:2},201);

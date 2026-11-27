@@ -767,3 +767,21 @@ button.danger-outline:hover { color: #fff; background: var(--clay); border-color
   .shop-identity { grid-template-columns: minmax(0, 1fr); }
   .shop-badge { justify-self: start; order: -1; }
 }
+
+/* Search pill: one focus state for the whole bar (plum border, soft glow, plum icon) instead of a ring on the inner input. */
+.market-search { transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease; }
+.market-search:hover { border-color: #a98a9c; }
+.market-search:focus-within { border-color: var(--plum); background: #fff; box-shadow: 0 0 0 4px rgb(81 39 70 / .13), 0 6px 18px rgb(49 39 46 / .08); }
+.market-search > .icon { transition: color .15s ease; }
+.market-search:focus-within > .icon { color: var(--plum); }
+.market-search input:focus-visible { outline: none; }
+.market-search input::placeholder { color: #8a7f85; }
+@media (prefers-reduced-motion: reduce) { .market-search, .market-search > .icon { transition: none; } }
+
+/* Home hero on phones: photo first and a little taller. */
+@media (max-width: 720px) {
+  .market-intro-photo { order: -1; height: clamp(11rem, 50vw, 18rem); }
+}
+
+/* Customer orders: one-line description under each group heading. */
+.order-group .group-blurb { margin: -.35rem 0 .5rem; font-size: .9rem; }

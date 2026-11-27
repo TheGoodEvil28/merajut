@@ -50,7 +50,7 @@ const links = dashboard ? [] : user?.role === 'provider' ? [
         <% } %>
       </nav><% } %>
       <div class="nav-account">
-      <% if (dashboard) { %><a class="button" href="<%= dashboard %>">Buka Dasbor <%- include('icon', {name:'arrow'}) %></a>
+      <% if (dashboard) { %><a class="button" href="<%= dashboard %>"><%= user.role === 'customer' ? 'Cek Pesanan' : 'Buka Dasbor' %> <%- include('icon', {name:'arrow'}) %></a>
       <% } else if (user) { %>
         <% if (studio) { %><span class="account-name"><b aria-hidden="true"><%= Array.from(user.display_name)[0] %></b><%= user.display_name %></span><% } %>
         <form action="/api/v1/session/logout" method="post" data-confirm="Anda perlu masuk lagi untuk melihat pesanan dan pesan" data-confirm-title="Keluar dari Marajut?" data-confirm-action="Ya, keluar" data-confirm-tone="danger" data-confirm-icon="door">

@@ -811,3 +811,29 @@ The shop banner now follows the mockup:
 Below 520 px the banner is one column and the pill moves above the location.
 
 Checks run with Playwright (Edge) on `/penjahit/jahit-rina`: at 1280 px the pill is at the top right and the watermark is cropped by the banner edge; at 375 px the layout stacks with the pill first and no horizontal overflow; screenshots at both widths were reviewed. The template compiles, and `npm.cmd run check` passed. No test refers to the old text. Not verified: a shop with a specialty line, long names and descriptions, and contrast measurement of the pill and the light text on the gradient.
+
+Test change: `tests/workflow.test.js` line 874 now matches "1 pesanan selesai" case-insensitively, because the banner pill reads "1 Pesanan Selesai". Not run (the suite needs a disposable database).
+
+### Catalog search: focus state on the whole bar · 27 November 2026 WIB
+
+Roles affected: guest, customer, and anyone on the home page. Prerequisites: the dev-mode stack. The catalog search bar (`.market-search`) no longer draws the global focus ring (3 px clay, offset) around the inner text field inside the pill. When the field is focused, the whole bar shows the focus state instead: plum border, white background, a soft 4 px plum glow with a light shadow, and a plum search icon. The bar darkens slightly on hover, the placeholder is a touch lighter, and transitions are off with reduce motion. The **Cari** button keeps its own keyboard focus ring.
+
+Checks run with Playwright (Edge) on `/`: clicking the field gives the input no outline, while the bar gets the plum border, glow and plum icon; Tab moves to **Cari**, which shows its solid focus outline; a focused screenshot was reviewed. `npm.cmd run check` passed. Not verified: keyboard focus arriving from the header links, phones, and the admin order search (it keeps the default field style).
+
+### Home hero on phones: photo first and taller · 27 November 2026 WIB
+
+Roles affected: guest, customer, and anyone on the home page below 720 px. Prerequisites: the dev-mode stack. The hero photo now appears above the location line, heading and search (CSS `order: -1`; the source order is unchanged, so screen readers still read the heading first). It is taller, `clamp(11rem, 50vw, 18rem)` (about 188 px at 375 px, from about 128 px). The hero still fills the first screen, and desktop is unchanged. Checked with Playwright (Edge): at 375 px the photo is above the copy, 188 px tall, the hero ends within the 812 px screen, and there is no horizontal overflow (screenshot reviewed); at 1280 px the two-column hero is unchanged. Not verified: 320 px and tablet widths.
+
+### Storefront header: "Cek Pesanan" for customers · 27 November 2026 WIB
+
+The role affected is the customer. Prerequisites: the dev-mode stack and synthetic accounts. On the home page and public shop pages, the single header button for a signed-in customer now reads **Cek Pesanan** (it still opens `/workspace`, the order list). Tailors and admins keep **Buka Dasbor**. Checked with Playwright (Edge), signed in on `/` in separate sessions: `customer2@marajut.test` saw **Cek Pesanan** linking to `/workspace`, `tailor@marajut.test` saw **Buka Dasbor** linking to `/workspace`, and `operator@marajut.test` saw **Buka Dasbor** linking to `/pengelola`. The header template compiles, and `npm.cmd run check` passed. No test refers to the label. Not verified: phone width.
+
+### Pesanan Saya: no redundant group link, group descriptions · 27 November 2026 WIB
+
+The role affected is the customer (**Pesanan Saya** at `/workspace`). Prerequisites: the dev-mode stack and a synthetic customer with orders. Orders are grouped as **Perlu tindakan Anda** (quote to approve, details requested, ready to pick up), **Sedang diproses** (new, under review, in progress) and **Riwayat** (completed, cancelled, declined). Empty groups are hidden.
+
+1. With orders in only one group, the shortcut bar of group links above the cards is no longer shown, because it only repeated the single heading.
+2. With orders in two or more groups, the shortcut bar still appears and jumps to each group.
+3. Each group heading now has a one-line muted description of which states it holds.
+
+Checks run with Playwright (Edge) as `customer2@marajut.test` (one request in **Sedang diproses**): no shortcut bar, and the group shows its description (screenshot reviewed). The template compiles, and `npm.cmd run check` passed. The smoke tests find groups by heading, which is unchanged. Not verified: step 2 (no synthetic customer currently has orders in two groups) and phones.
