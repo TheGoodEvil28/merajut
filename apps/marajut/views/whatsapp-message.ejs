@@ -1,0 +1,12 @@
+<% const blocks = text.split(/^```[ \t]*\r?\n([\s\S]*?)\r?\n```[ \t]*$/m); %>
+<div class="message-box whatsapp-message">
+  <% for (const [index, block] of blocks.entries()) {
+    const body = block.trim();
+    if (!body) continue;
+    if (index % 2) { %>
+      <pre><code><%= body %></code></pre>
+    <% } else { %>
+      <p class="preserve"><% for (const [part, value] of body.split(/\*([^*\n]+)\*/g).entries()) { %><% if (part % 2) { %><strong><%= value %></strong><% } else { %><%= value %><% } %><% } %></p>
+    <% } %>
+  <% } %>
+</div>

@@ -27,7 +27,7 @@ const groupNotice=whatsapp.followups.find(preview=>preview.purpose==='group_take
           <% if (job.mode==='mock') { %> · Simulasi WhatsApp<% } %>
         </summary>
         <p class="muted"><%= dateTime(job.created_at) %> · <%= job.attempts %> percobaan</p>
-        <% if (job.rendered_text) { %><p class="message-box preserve"><%= job.rendered_text %></p><% } %>
+        <% if (job.rendered_text) { %><%- include('whatsapp-message',{text:job.rendered_text}) %><% } %>
         <% if (job.state==='NEEDS_REVIEW' || job.late_evidence) { %>
           <p>Periksa percakapan WhatsApp sebelum mengirim ulang.</p>
           <form class="stack" method="post" action="<%= whatsappPath %>/<%= job.id %>/review">

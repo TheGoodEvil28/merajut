@@ -472,6 +472,10 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
 .contact-summary { display: grid; gap: .2rem; border-top: 1px solid var(--line); padding-top: .75rem; margin-top: .75rem; }
 .contact-summary > span { font-size: .85rem; }
 .message-box { background: #f7f1eb; border-left: 3px solid #a98370; border-radius: .35rem .6rem .6rem .35rem; padding: .8rem .95rem; }
+.whatsapp-message { display: grid; gap: .6rem; margin-bottom: 1rem; }
+.whatsapp-message :is(p,pre) { margin: 0; }
+.whatsapp-message p:has(+ pre) { margin-bottom: -.3rem; }
+.whatsapp-message pre { padding: .65rem .75rem; border: 1px solid var(--line); border-radius: .45rem; background: var(--surface); font-size: .875rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .dispatch-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin: .9rem 0; }
 .activity-line { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem .7rem; border-top: 1px solid var(--line); }
 .activity-line .quiet { padding-inline: .35rem; }

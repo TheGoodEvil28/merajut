@@ -2,7 +2,7 @@
   <summary><%= preview.label %></summary>
   <% if (preview.reason) { %><p class="muted"><%= preview.reason %></p><% } else { %>
     <p>Tujuan <strong><%= preview.destination %></strong> <%= preview.masked %></p>
-    <p class="message-box preserve"><%= preview.text %></p>
+    <%- include('whatsapp-message',{text:preview.text}) %>
     <form method="post" action="<%= whatsappPath %>">
       <input type="hidden" name="_csrf" value="<%= csrf %>">
       <input type="hidden" name="channel" value="<%= preview.channel %>">

@@ -36,13 +36,14 @@ export async function readDispatchWorkflow(db, inquiryId, lock) {
 export function followupDrafts(inquiry, fields, workflow) {
   const drafts = {};
   const reference = orderReference(inquiry.id);
-  const add = (purpose, contextKey, ...lines) => {
+  const service = `🪡 ${fields.service} · ${inquiry.quantity ?? 1} pakaian`;
+  const add = (purpose, contextKey, message, {title = followupLabels[purpose], details = [], replies = []} = {}) => {
     const text = [
-      `Marajut · ${followupLabels[purpose]} · ${reference}`,
-      `${fields.service} · ${inquiry.quantity ?? 1} pakaian.`,
-      ...lines,
-      `Mohon balas dengan referensi ${reference}.`
-    ].filter(Boolean).join('\n');
+      `🧵 *MARAJUT — ${title.toUpperCase()}*`,
+      [service,...details].join('\n'),
+      message,
+      ...replies.map(([label,...lines]) => [`*${label}*`,'```',reference,...lines,'```'].join('\n'))
+    ].join('\n\n');
     drafts[purpose] = {contextKey,text};
   };
   if (!workflow.order_id) {
@@ -54,53 +55,70 @@ export function followupDrafts(inquiry, fields, workflow) {
   }
   const {order_id:id,order_status:status,eta,fitting_state:fittingState,fitting_at:fittingAt} = workflow;
   if (['CONFIRMED','IN_PROGRESS'].includes(status)) {
+    const due = `📅 *Perkiraan selesai:* ${formatDate(eta)}`;
     if (eta < workflow.today) {
-      add('overdue',`${id}:${eta}`,`Perkiraan selesai ${formatDate(eta)} sudah terlewati. Mohon kabari progres dan tanggal selesai terbaru.`);
+      add('overdue',`${id}:${eta}`,'Perkiraan selesai sudah terlewati. Mohon kabari progres, kendala, dan perkiraan selesai terbaru.',{
+        title:'Pembaruan lewat tenggat',details:[due],
+        replies:[['Contoh balasan','Progres: [tahap saat ini]','Kendala: [jika ada]','Perkiraan selesai terbaru: DD/MM/YYYY']]
+      });
     } else if (status==='CONFIRMED') {
-      drafts.start_work = {contextKey:id,text:[
-        '🧵 *MARAJUT — KONFIRMASI MULAI PENGERJAAN*',
-        '',
-        `🪡 ${fields.service} · ${inquiry.quantity ?? 1} pakaian`,
-        `📅 *Perkiraan selesai:* ${formatDate(eta)}`,
-        '',
-        'Pelanggan telah menyetujui penawaran. Balas di chat ini dengan salah satu format di bawah dan isi tanggal mulai.',
-        '',
-        '*Jika siap mulai*',
-        '```',
-        reference,
-        'Siap mulai: DD/MM/YYYY',
-        '```',
-        '',
-        '*Jika perlu menyesuaikan jadwal*',
-        '```',
-        reference,
-        'Usulan mulai: DD/MM/YYYY',
-        'Catatan: [kendala atau perubahan jadwal]',
-        '```'
-      ].join('\n')};
+      add('start_work',id,'Pelanggan telah menyetujui penawaran. Balas di chat ini dengan salah satu format di bawah dan isi tanggal mulai.',{
+        details:[due],replies:[
+          ['Jika siap mulai','Siap mulai: DD/MM/YYYY'],
+          ['Jika perlu menyesuaikan jadwal','Usulan mulai: DD/MM/YYYY','Catatan: [kendala atau perubahan jadwal]']
+        ]
+      });
     } else {
-      add('work_update',id,`Mohon kabari progres pengerjaan sebelum perkiraan selesai ${formatDate(eta)} dan konfirmasi saat jahitan siap.`);
+      add('work_update',id,'Mohon kabari progres pengerjaan atau beri tahu admin jika jahitan sudah siap.',{
+        title:'Kabar pengerjaan',details:[due],replies:[
+          ['Jika masih dikerjakan','Progres: [tahap saat ini]','Perkiraan selesai: DD/MM/YYYY'],
+          ['Jika jahitan sudah siap','Jahitan sudah siap.']
+        ]
+      });
     }
     if (['REQUESTED','PROPOSED','SCHEDULED'].includes(fittingState)) {
-      const message = fittingState==='REQUESTED' ? 'Pelanggan meminta jadwal fitting lain. Mohon usulkan waktu yang tersedia.'
-        : fittingState==='PROPOSED' ? `Usulan fitting ${formatTime(fittingAt)} sedang menunggu konfirmasi pelanggan di Marajut.`
-        : `Fitting dijadwalkan ${formatTime(fittingAt)}. Mohon konfirmasi kesiapan dan kabari admin setelah fitting selesai.`;
-      add('fitting',`${id}:${fittingState}:${workflow.fitting_event || 'initial'}`,message);
+      const contextKey = `${id}:${fittingState}:${workflow.fitting_event || 'initial'}`;
+      const propose = ['Usulan jadwal lain','Usulan fitting: DD/MM/YYYY HH:mm WIB'];
+      if (fittingState==='REQUESTED') {
+        add('fitting',contextKey,'Pelanggan meminta jadwal fitting lain. Mohon usulkan tanggal dan jam yang tersedia.',{
+          title:'Jadwal fitting',replies:[propose]
+        });
+      } else {
+        const proposed = fittingState==='PROPOSED';
+        const message = proposed ? 'Jadwal ini menunggu konfirmasi pelanggan. Mohon kabari admin jika waktu tersebut berubah.'
+          : 'Mohon konfirmasi kesiapan. Setelah fitting dilakukan, kabari admin dengan kode pesanan dan pesan “Fitting selesai”.';
+        add('fitting',contextKey,message,{
+          title:'Jadwal fitting',details:[`📅 *${proposed ? 'Usulan fitting' : 'Jadwal fitting'}:* ${formatTime(fittingAt)}`],
+          replies:[['Jika waktu tersedia','Saya siap untuk jadwal fitting tersebut.'],propose]
+        });
+      }
     }
   }
   if (status==='READY' && workflow.payment_state!=='PAID') {
-    add('await_payment',id,'Jahitan sudah siap. Pembayaran pelanggan masih menunggu verifikasi di Marajut. Mohon tunggu konfirmasi admin sebelum serah terima.');
+    add('await_payment',id,'Jahitan sudah siap. Pembayaran pelanggan masih menunggu verifikasi. Mohon tunggu konfirmasi admin sebelum serah terima.',{
+      title:'Menunggu pembayaran',replies:[['Contoh balasan','Baik, saya tunggu konfirmasi admin.']]
+    });
   }
   if (['READY','COMPLETED'].includes(status) && workflow.payment_state==='PAID') {
-    const payment = workflow.payment_mode==='live' ? 'Pembayaran pelanggan telah diverifikasi lunas.'
+    const livePayment = workflow.payment_mode==='live';
+    const payment = livePayment ? 'Pembayaran pelanggan telah diverifikasi lunas.'
       : 'Pembayaran simulasi telah ditandai lunas untuk latihan.';
-    if (status==='READY' && !workflow.shipped_at) add('paid',workflow.payment_id,payment);
+    if (status==='READY' && !workflow.shipped_at) {
+      add('paid',workflow.payment_id,payment,{
+        title:livePayment ? 'Pembayaran lunas' : 'Pembayaran simulasi lunas',
+        replies:[['Contoh balasan','Baik, saya siap berkoordinasi untuk serah terima.']]
+      });
+    }
     const phase = status==='COMPLETED' ? 'completed' : workflow.shipped_at ? 'shipped' : 'ready';
     const method = workflow.handover==='delivery' ? 'pengiriman' : 'pengambilan';
-    const next = {ready:`Mohon koordinasikan ${method} dengan admin sesuai kesepakatan.`,
-      shipped:'Pengiriman sudah tercatat di Marajut. Mohon kabari admin jika ada kendala.',
-      completed:'Serah terima sudah dicatat selesai di Marajut. Terima kasih.'};
-    add('handover',`${id}:${phase}`,payment,next[phase]);
+    const next = {
+      ready:[`Mohon koordinasikan ${method} dengan admin sesuai kesepakatan.`,`Jadwal ${method}: DD/MM/YYYY HH:mm WIB`],
+      shipped:['Pengiriman sudah tercatat di Marajut. Mohon kabari admin jika ada kendala.','Kendala pengiriman: [jika ada]'],
+      completed:['Serah terima sudah dicatat selesai di Marajut. Terima kasih.','Serah terima selesai. Terima kasih.']
+    };
+    add('handover',`${id}:${phase}`,`${payment}\n${next[phase][0]}`,{
+      title:'Serah terima',replies:[['Contoh balasan',next[phase][1]]]
+    });
   }
   return drafts;
 }
