@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { one, transaction } from './db.js';
 import { AppError, conflict, found } from './errors.js';
 import { event, lockInquiry, orderIndex, persistInquiry } from './inquiries.js';
+import { queueGroupTaken } from './whatsapp-dispatch.js';
 
 const openStates = ['NEW','UNDER_REVIEW','NEEDS_DETAILS','QUOTED','EXPIRED'];
 
@@ -97,10 +98,11 @@ export function savePartner(pool,actor,id,input) {
   });
 }
 
-export function updateDispatch(pool,actor,id,{state,revision}) {
+export function updateDispatch(pool,actor,id,{state,revision},settings) {
   return transaction(pool,async db => {
     const i=await lockInquiry(db,actor,id);
     if (!i.dispatch_state || !openStates.includes(i.status) || i.revision!==revision) conflict('Permintaan telah berubah.');
+    if (state==='GROUP' && i.dispatch_state==='AVAILABLE') conflict('Pesanan ini sudah diambil oleh mitra.');
     if (['GROUP','CONTACTED'].includes(state)) {
       const pending=await one(db,`SELECT id FROM whatsapp_dispatches WHERE inquiry_id=$1 AND channel=$2
         AND (state IN ('QUEUED','SENDING','RETRY_WAIT','NEEDS_REVIEW') OR late_evidence) LIMIT 1`,
@@ -122,6 +124,9 @@ export function updateDispatch(pool,actor,id,{state,revision}) {
     const status=i.status==='NEEDS_DETAILS' && state!=='UNAVAILABLE' ? i.status : 'UNDER_REVIEW';
     await db.query('UPDATE inquiries SET dispatch_state=$2,status=$3,revision=revision+1 WHERE id=$1',[id,state,status]);
     await event(db,id,actor,'DISPATCH_'+state,i.status,status);
+    if (state==='AVAILABLE') {
+      await queueGroupTaken(db,actor,{...i,dispatch_state:state,status,revision:revision+1},settings);
+    }
     return {id};
   });
 }

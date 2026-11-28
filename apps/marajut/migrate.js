@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { createPool, one, transaction } from './db.js';
 
 const migrations = new URL('../../db/migrations/', import.meta.url);
-export const schemaVersion = '010_whatsapp_dispatch_followups.sql';
+export const schemaVersion = '011_whatsapp_group_taken.sql';
 
 // Both versions rename the same demo accounts. Keep successful earlier migration records valid.
 const demoAccountMigration = {

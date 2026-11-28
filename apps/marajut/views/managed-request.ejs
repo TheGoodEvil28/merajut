@@ -17,7 +17,7 @@ const showClarification = open && clarification &&
 const shownEvents = events.filter(item=>user.manager || item.kind!=='GROUP_POSTED').toReversed();
 const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey.key);
 const awaitingReplyDecision = user.manager && open && ['NEW','CONTACTED'].includes(journey.key) && whatsapp?.replies.length > 0;
-const showWhatsAppFollowups = whatsapp && whatsapp.mode!=='disabled' && whatsapp.followups.length>0;
+const showWhatsAppFollowups = whatsapp && whatsapp.mode!=='disabled' && whatsapp.followups.some(preview=>preview.channel==='partner');
 %>
 <section class="section workflow-page">
   <a class="back" href="<%= user.manager?'/pengelola':'/workspace' %>"><%= user.manager?'Pesanan':'Pesanan Saya' %></a>

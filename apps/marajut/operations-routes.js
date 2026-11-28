@@ -96,7 +96,7 @@ export function operationsRouter(pool,{operator,provider,finish,dispatch}) {
   });
   router.post('/api/v1/management/inquiries/:id/dispatch',async(req,res)=>{
     const result=await updateDispatch(pool,req.actor,parse(id,req.params.id),
-      parse(z.object({revision,state:z.enum(['GROUP','CONTACTED','AVAILABLE','UNAVAILABLE'])}),req.body));
+      parse(z.object({revision,state:z.enum(['GROUP','CONTACTED','AVAILABLE','UNAVAILABLE'])}),req.body),dispatch);
     finish(req,res,result,'/requests/'+result.id+'?updated=saved');
   });
   router.post('/api/v1/management/inquiries/:id/reassign',async(req,res)=>{

@@ -4,6 +4,7 @@ import { formatDate, formatTime } from './ui-copy.js';
 import { partnerQuoteForm } from './whatsapp-quote.js';
 
 export const followupLabels = {
+  group_taken:'Kabari grup pesanan sudah diambil',
   quote_request:'Minta penawaran dari mitra',
   start_work:'Konfirmasi mulai pengerjaan',
   fitting:'Koordinasikan fitting',

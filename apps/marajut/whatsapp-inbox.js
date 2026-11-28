@@ -112,7 +112,7 @@ export async function processDispatchInbox(pool) {
           AND d.state IN ('SENDING','SENT','NEEDS_REVIEW','CONFIRMED_MANUALLY')
           AND d.attempt_started_at IS NOT NULL AND date_trunc('second',d.attempt_started_at)<=$6
           AND ((d.channel='partner' AND d.business_id=$1 AND d.recipient=$2 AND $7=$2)
-            OR (d.channel='group' AND d.recipient=p.verified_group AND ($7=$2 OR $7=p.verified_group)
+            OR (d.channel='group' AND d.purpose='contact' AND d.recipient=p.verified_group AND ($7=$2 OR $7=p.verified_group)
               AND EXISTS(SELECT 1 FROM whatsapp_dispatch_permissions g WHERE g.mode=d.mode AND g.session_id=d.session_id
                 AND g.channel='group' AND g.chat_id=d.recipient AND g.version=p.verified_group_version AND g.revoked_at IS NULL)))
         ORDER BY d.inquiry_id,(d.channel='partner') DESC,(d.purpose='quote_request' AND $8::boolean) DESC,d.created_at DESC`,

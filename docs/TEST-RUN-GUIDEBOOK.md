@@ -2,6 +2,20 @@
 
 Update this guide with every change. Record the affected roles, prerequisites, steps, expected results, verification method, and any unverified behavior.
 
+## Pemberitahuan pesanan sudah diambil · 28 November 2026 UTC
+
+Use a disposable preview with `DISPATCH_WHATSAPP_MODE=mock`, migration `011_whatsapp_group_taken.sql`, the dispatch worker, an approved test group, and an opted-in assigned tailor. Use a synthetic managed request and separate admin, customer, and tailor sessions. The fixture in **RFC-0004 dispatch authorization, queue recovery and signed replies** exercises the group and private replies.
+
+| Role | Reproduce | Expected result |
+| --- | --- | --- |
+| Admin and tailor | Send **Kirim ke grup**. Reply with the same order code from the assigned account in a private chat, wait for the linked reply, then click **Penjahit bersedia**. | **Riwayat WhatsApp** shows **Kabari grup pesanan sudah diambil**. The worker sends the code and private-chat instruction to the original group. The notice contains no partner identity, price, or customer details. |
+| Admin | Repeat the availability action and check the group share controls. Use a separate request for an approved reply posted only in the group. | Retrying the same action leaves one notice. The initial group announcement controls are hidden once the partner is confirmed. Replying only in the group does not queue a notice on availability confirmation. |
+| Admin, customer, and tailor | Review the quote and continue through fitting, work, demo payment, and handover. Try to open the management dispatch route from each non-admin session. | The assigned tailor uses private chat for follow-ups. The customer and tailor sessions cannot read group dispatch details on the management route. |
+
+If the original group was recorded manually, the system has no verified destination for an automatic notice. If sending is paused during availability confirmation or an earlier notice requires attention, inspect **Kabari grup pesanan sudah diambil** and **Riwayat WhatsApp** before approving an available send or resolving the outcome. Confirming availability adds the automatic job inline. Saved availability decisions from before this release can be reviewed through the explicit group notice preview.
+
+**Checks run.** JavaScript checks, all 24 integration tests, and all three loopback Chromium scripts passed. The fixture verified one queue job to the same group, no additional job on repeated confirmation, the published status in admin history, and no notice for a group-only reply. Saved an encrypted database backup, applied migration 011 to the private preview, and checked authenticated readiness. Hosted Chromium at 390 px verified the destination and preview on an eligible request and the absence of an available send on a cancelled order. No historical notice was queued during deployment. Delivery of the new notice to the actual group remains to be verified.
+
 ## Formulir penawaran WhatsApp · 28 November 2026 UTC
 
 Use separate admin, customer, and tailor sessions and a synthetic managed request. In the isolated Compose preview, enable the dispatch worker with `DISPATCH_WHATSAPP_MODE=mock` and approve the assigned partner. Run `preview run --rm test` for the signed reply fixture in **RFC-0004 dispatch authorization, queue recovery and signed replies**, then the three loopback browser smoke scripts. The mock queue accepts outgoing messages locally. For hands-on verification with OpenWA, use the already linked chat of an approved test partner. [Demo dari permintaan sampai serah terima](DEMO-RUNBOOK.md)
@@ -18,7 +32,7 @@ The parser accepts short keys such as `REF`, `HARGA`, and `SELESAI` with ISO dat
 
 ## WhatsApp follow-ups across the order · 27 November 2026 UTC
 
-Use an admin, a customer and an existing tailor session with disposable QA data in `DISPATCH_WHATSAPP_MODE=mock`. Record consent for the assigned business in **Kelola mitra** and use a managed request. In the request, open **Tindak lanjut WhatsApp mitra** and confirm the preview for the current stage. All messages in this panel address the assigned tailor directly. The customer reviews the quote, confirms fitting and checks or completes payments in the website.
+Use an admin, a customer and an existing tailor session with disposable QA data in `DISPATCH_WHATSAPP_MODE=mock`. Record consent for the assigned business in **Kelola mitra** and use a managed request. In the request, open **Tindak lanjut WhatsApp mitra** and confirm the preview for the current stage. That panel addresses the assigned tailor directly. The group availability notice appears under **Koordinasi penjahit**. The customer reviews the quote, confirms fitting and checks or completes payments in the website.
 
 | Stage | Reproduce | Expected WhatsApp action |
 | --- | --- | --- |
@@ -28,7 +42,7 @@ Use an admin, a customer and an existing tailor session with disposable QA data 
 | Payment | Mark work ready after fitting, then open and verify a demo payment. | **Kabari pembayaran masih ditunggu** appears before verification. **Kabari pembayaran lunas** and **Koordinasikan serah terima** appear once the stored payment is **PAID**. Demo text identifies the payment as a simulation. |
 | Handover | Record shipment for a delivery order, then complete handover. Reply from the approved tailor with the request reference. | The handover draft reflects the recorded milestone and the reply links to the corresponding order. |
 
-Each send requires admin confirmation. The queue rechecks the current milestone and recipient consent before sending. Approving a draft twice creates one job for that milestone, and stale work goes to the existing cancellation or review paths. Messages carry the service, quantity, reference and relevant timing or status. Customer contact details, measurements, photos, free-text order notes and payment numbers stay on the website. Use **WhatsApp pribadi mitra** for the current prewritten message when coordinating manually.
+The admin confirms direct follow-ups individually. **Penjahit bersedia** authorizes the group notice after a linked private reply and a verified original group announcement. The queue rechecks the current milestone and recipient consent before sending. Approving a draft twice creates one job for that milestone, and stale work goes to the existing cancellation or review paths. Customer contact details, measurements, photos, free-text order notes and payment numbers stay on the website. Use **WhatsApp pribadi mitra** for the current prewritten message when coordinating manually.
 
 **Checks run.** All 24 integration tests and three browser smoke scripts passed. The mock workflow verified quote requests, fitting, in-progress and overdue messages, cancellation of a queued message when work moved on, gating of payment and handover, and a signed reference reply after completion. Saved an encrypted preview backup and applied `010_whatsapp_dispatch_followups.sql`. The five existing dispatches retained their contact purpose and sent state. Hosted Chromium at 390 px verified the start-work and completed-handover previews and the customer's order view without admin messaging controls. The new sends used the mock gateway in testing. Actual follow-up delivery can be checked when an admin confirms a preview for an approved partner.
 

@@ -1,7 +1,8 @@
 <% const dispatchPath='/api/v1/management/inquiries/'+inquiry.id+'/dispatch';
 const group = whatsapp.previews.find(preview=>preview.channel==='group').text;
-const direct = whatsapp.followups[0]?.text || whatsapp.previews.find(preview=>preview.channel==='partner').text;
+const direct = whatsapp.followups.find(preview=>preview.channel==='partner')?.text || whatsapp.previews.find(preview=>preview.channel==='partner').text;
 const isWaiting = ['NEW','CONTACTED','UNAVAILABLE'].includes(journey.key);
+const canAnnounce = open && inquiry.dispatch_state!=='AVAILABLE';
 const lastPost=events.findLast(item => item.kind==='GROUP_POSTED');
 %>
 <section class="card workflow-card" id="koordinasi" tabindex="-1">
@@ -28,10 +29,12 @@ const lastPost=events.findLast(item => item.kind==='GROUP_POSTED');
       </details>
     <% } %>
     <div class="activity-line">
-      <form method="post" action="<%= dispatchPath %>">
-        <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
-        <button class="quiet" name="state" value="GROUP">Catat sudah dibagikan ke grup</button>
-      </form>
+      <% if (canAnnounce) { %>
+        <form method="post" action="<%= dispatchPath %>">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= inquiry.revision %>">
+          <button class="quiet" name="state" value="GROUP">Catat sudah dibagikan ke grup</button>
+        </form>
+      <% } %>
       <% if (lastPost) { %><small class="muted">Terakhir dibagikan <%= dateTime(lastPost.created_at) %></small><% } %>
     </div>
   <% } %>
@@ -41,7 +44,7 @@ const lastPost=events.findLast(item => item.kind==='GROUP_POSTED');
     <% } else { %>
       <a class="button secondary" href="/pengelola/mitra/<%= inquiry.business_id %>">Lengkapi WhatsApp mitra</a>
     <% } %>
-    <% if (open) { %>
+    <% if (canAnnounce) { %>
       <a class="button secondary" target="_blank" rel="noreferrer" href="https://wa.me/?text=<%= encodeURIComponent(group) %>">Bagikan ke grup WhatsApp <span class="sr-only">(tab baru)</span></a>
     <% } %>
   </div>

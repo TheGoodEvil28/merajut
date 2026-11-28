@@ -1,17 +1,22 @@
-<% const whatsappPath='/api/v1/management/inquiries/'+inquiry.id+'/whatsapp-dispatches'; %>
+<% const whatsappPath='/api/v1/management/inquiries/'+inquiry.id+'/whatsapp-dispatches';
+const partnerFollowups=whatsapp.followups.filter(preview=>preview.channel==='partner');
+const groupNotice=whatsapp.followups.find(preview=>preview.purpose==='group_taken'); %>
 <% if (open && whatsapp.mode!=='disabled') { %>
   <% if (whatsapp.mode==='mock') { %><p class="muted">Simulasi WhatsApp</p><% } %>
   <% for (const preview of whatsapp.previews) { %>
-    <%- include('whatsapp-preview',{preview,whatsappPath}) %>
+    <% if (preview.channel!=='group' || inquiry.dispatch_state!=='AVAILABLE') { %>
+      <%- include('whatsapp-preview',{preview,whatsappPath}) %>
+    <% } %>
   <% } %>
 <% } %>
-<% if (whatsapp.mode!=='disabled' && whatsapp.followups.length) { %>
+<% if (whatsapp.mode!=='disabled' && partnerFollowups.length) { %>
   <section class="workflow-card" id="tindak-lanjut-whatsapp" tabindex="-1">
     <h3>Tindak lanjut WhatsApp mitra</h3>
     <% if (!open && whatsapp.mode==='mock') { %><p class="muted">Simulasi WhatsApp</p><% } %>
-    <% for (const preview of whatsapp.followups) { %><%- include('whatsapp-preview',{preview,whatsappPath}) %><% } %>
+    <% for (const preview of partnerFollowups) { %><%- include('whatsapp-preview',{preview,whatsappPath}) %><% } %>
   </section>
 <% } %>
+<% if (groupNotice) { %><%- include('whatsapp-preview',{preview:groupNotice,whatsappPath}) %><% } %>
 <% if (whatsapp.history.length || whatsapp.replies.length) { %>
   <div class="stack">
     <h3>Riwayat WhatsApp</h3>

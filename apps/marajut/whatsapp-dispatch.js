@@ -80,13 +80,41 @@ export function pauseDispatch(pool, actor, settings, paused, reason) {
   });
 }
 
+async function groupTakenDraft(db, inquiry, settings, fields, workflow) {
+  if (settings.mode==='disabled' || !settings.groupChatId || inquiry.dispatch_state!=='AVAILABLE' ||
+      ['DECLINED','CANCELLED'].includes(inquiry.status) || ['COMPLETED','CANCELLED'].includes(workflow.order_status)) return null;
+  const announcement = await one(db, `SELECT d.id FROM whatsapp_dispatches d
+    WHERE d.inquiry_id=$1 AND d.business_id=$2 AND d.mode=$3 AND d.session_id=$4 AND d.recipient=$5
+      AND d.channel='group' AND d.purpose='contact' AND d.state IN ('SENT','CONFIRMED_MANUALLY')
+      AND EXISTS (SELECT 1 FROM whatsapp_dispatch_inbox n WHERE n.inquiry_id=d.inquiry_id AND n.business_id=d.business_id
+        AND n.mode=d.mode AND n.session_id=d.session_id AND n.state='LINKED' AND n.event_kind='message.received'
+        AND n.chat_id=$6 AND n.sender_chat=n.chat_id)
+    ORDER BY d.created_at,d.id LIMIT 1`, [inquiry.id,inquiry.business_id,settings.mode,settings.sessionId,
+    settings.groupChatId,canonicalChat(fields.whatsapp+'@c.us')]);
+  if (!announcement) return null;
+  return {channel:'group',contextKey:announcement.id,text:[
+    '🧵 *MARAJUT — PESANAN SUDAH DIAMBIL*',
+    '',
+    '*Kode pesanan*',
+    '```',
+    orderReference(inquiry.id),
+    '```',
+    '',
+    'Admin sudah mengonfirmasi mitra untuk pesanan ini. Mohon hentikan pengajuan untuk kode ini.',
+    'Mitra yang menangani pesanan, lanjutkan koordinasi dengan admin lewat chat pribadi.'
+  ].join('\n')};
+}
+
 async function dispatchInputs(db, inquiry, settings, lock) {
   const paused = settings.mode !== 'disabled' && await dispatchPaused(db,settings,lock);
   const fields = found(await one(db, `SELECT b.name AS business,b.whatsapp,s.name AS service,i.desired_date::text AS desired_date
     FROM inquiries i JOIN businesses b ON b.id=i.business_id JOIN services s ON s.id=i.service_id
     WHERE i.id=$1 ${lock ? 'FOR SHARE OF b,s' : ''}`, [inquiry.id]));
   const workflow = await readDispatchWorkflow(db,inquiry.id,lock);
-  return {paused,fields,workflow,followups:followupDrafts(inquiry,fields,workflow)};
+  const followups = followupDrafts(inquiry,fields,workflow);
+  const taken = await groupTakenDraft(db,inquiry,settings,fields,workflow);
+  if (taken) followups.group_taken = taken;
+  return {paused,fields,workflow,followups};
 }
 
 export async function dispatchSnapshot(db, inquiry, channel, settings, {
@@ -102,7 +130,9 @@ export async function dispatchSnapshot(db, inquiry, channel, settings, {
   const allowed = channel === 'group' ? ['OPEN','CONTACTED','UNAVAILABLE'] : ['OPEN','AVAILABLE'];
   const contactEligible = ['NEW','UNDER_REVIEW','NEEDS_DETAILS','QUOTED','EXPIRED'].includes(inquiry.status) &&
     allowed.includes(inquiry.dispatch_state) && !workflow.quote_active && !workflow.order_id;
-  if (contact ? !contactEligible : !followup || channel!=='partner') reason ||= 'Status permintaan belum mengizinkan pengiriman ini.';
+  if (contact ? !contactEligible : !followup || channel!==(followup.channel || 'partner')) {
+    reason ||= 'Status permintaan belum mengizinkan pengiriman ini.';
+  }
   const permission = await permissionFor(db, settings, channel === 'partner' ? inquiry.business_id : null, lock);
   const recipient = channel === 'partner' ? canonicalChat(fields.whatsapp+'@c.us') : settings.groupChatId;
   if (!recipient || !permission || permission.revoked_at || permission.chat_id !== recipient) {
@@ -148,6 +178,25 @@ export async function dispatchSnapshot(db, inquiry, channel, settings, {
     text,reason,permission,snapshotDigest,previewDigest,revision:inquiry.revision,requestKey:randomUUID()};
 }
 
+async function insertDispatch(db, actor, inquiry, preview, settings, requestKey, reason = null) {
+  const job = await one(db, `INSERT INTO whatsapp_dispatches
+    (inquiry_id,business_id,actor_id,channel,approved_revision,request_key,preview_digest,snapshot_digest,
+     mode,session_id,recipient,permission_id,permission_version,rendered_text,purpose,context_key)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
+    [inquiry.id,inquiry.business_id,actor.id,preview.channel,inquiry.revision,requestKey,preview.previewDigest,
+    preview.snapshotDigest,settings.mode,settings.sessionId,preview.recipient,preview.permission.id,
+    preview.permission.version,preview.text,preview.purpose,preview.contextKey]);
+  await dispatchAudit(db,actor,'WHATSAPP_DISPATCH_APPROVED',job.id,reason);
+  return job;
+}
+
+export async function queueGroupTaken(db, actor, inquiry, settings) {
+  if (!settings?.groupChatId || settings.mode==='disabled') return;
+  const preview = await dispatchSnapshot(db,inquiry,'group',settings,{lock:true,purpose:'group_taken'});
+  if (preview.reason) return;
+  await insertDispatch(db,actor,inquiry,preview,settings,preview.requestKey,'Penjahit bersedia');
+}
+
 export function approveDispatch(pool, actor, inquiryId, input, settings) {
   requireDispatchManager(actor);
   return transaction(pool, async db => {
@@ -164,14 +213,8 @@ export function approveDispatch(pool, actor, inquiryId, input, settings) {
     const preview = await dispatchSnapshot(db,inquiry,input.channel,settings,{lock:true,purpose});
     if (preview.reason) conflict(preview.reason);
     if (preview.previewDigest !== input.previewDigest) conflict('Pesan atau tujuan telah berubah. Muat ulang pratinjau.');
-    const job = await one(db, `INSERT INTO whatsapp_dispatches
-      (inquiry_id,business_id,actor_id,channel,approved_revision,request_key,preview_digest,snapshot_digest,
-       mode,session_id,recipient,permission_id,permission_version,rendered_text,purpose,context_key)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
-      [inquiryId,inquiry.business_id,actor.id,input.channel,input.revision,input.requestKey,input.previewDigest,
-      preview.snapshotDigest,settings.mode,settings.sessionId,preview.recipient,preview.permission.id,preview.permission.version,preview.text,purpose,preview.contextKey]);
+    const job = await insertDispatch(db,actor,inquiry,preview,settings,input.requestKey);
     await db.query('UPDATE inquiries SET revision=revision+1 WHERE id=$1',[inquiryId]);
-    await dispatchAudit(db, actor, 'WHATSAPP_DISPATCH_APPROVED', job.id);
     return {id:job.id,inquiryId,replayed:false};
   });
 }
@@ -200,7 +243,9 @@ export async function dispatchPanel(pool, actor, inquiryId, settings) {
   const previews = [];
   for (const channel of ['group','partner']) previews.push(await dispatchSnapshot(pool,inquiry,channel,settings,{inputs}));
   const followups = [];
-  for (const purpose of Object.keys(inputs.followups)) followups.push(await dispatchSnapshot(pool,inquiry,'partner',settings,{inputs,purpose}));
+  for (const [purpose,draft] of Object.entries(inputs.followups)) {
+    followups.push(await dispatchSnapshot(pool,inquiry,draft.channel || 'partner',settings,{inputs,purpose}));
+  }
   const history = (await pool.query('SELECT * FROM whatsapp_dispatches WHERE inquiry_id=$1 ORDER BY created_at,id',[inquiryId])).rows;
   const replies = (await pool.query(`SELECT n.*,b.name AS business FROM whatsapp_dispatch_inbox n
     LEFT JOIN businesses b ON b.id=n.business_id WHERE n.inquiry_id=$1 AND n.event_kind='message.received'
