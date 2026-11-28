@@ -56,8 +56,27 @@ export function followupDrafts(inquiry, fields, workflow) {
     if (eta < workflow.today) {
       add('overdue',`${id}:${eta}`,`Perkiraan selesai ${formatDate(eta)} sudah terlewati. Mohon kabari progres dan tanggal selesai terbaru.`);
     } else if (status==='CONFIRMED') {
-      add('start_work',id,'Pelanggan telah menyetujui penawaran di Marajut. Mohon konfirmasi kapan pekerjaan bisa dimulai.',
-        `Perkiraan selesai ${formatDate(eta)}.`);
+      drafts.start_work = {contextKey:id,text:[
+        '🧵 *MARAJUT — KONFIRMASI MULAI PENGERJAAN*',
+        '',
+        `🪡 ${fields.service} · ${inquiry.quantity ?? 1} pakaian`,
+        `📅 *Perkiraan selesai:* ${formatDate(eta)}`,
+        '',
+        'Pelanggan telah menyetujui penawaran. Balas di chat ini dengan salah satu format di bawah dan isi tanggal mulai.',
+        '',
+        '*Jika siap mulai*',
+        '```',
+        reference,
+        'Siap mulai: DD/MM/YYYY',
+        '```',
+        '',
+        '*Jika perlu menyesuaikan jadwal*',
+        '```',
+        reference,
+        'Usulan mulai: DD/MM/YYYY',
+        'Catatan: [kendala atau perubahan jadwal]',
+        '```'
+      ].join('\n')};
     } else {
       add('work_update',id,`Mohon kabari progres pengerjaan sebelum perkiraan selesai ${formatDate(eta)} dan konfirmasi saat jahitan siap.`);
     }
