@@ -2,6 +2,18 @@
 
 Update this guide with every change. Record the affected roles, prerequisites, steps, expected results, verification method, and any unverified behavior.
 
+## Formulir penawaran WhatsApp · 28 November 2026 UTC
+
+Use separate admin, customer, and tailor sessions and a synthetic managed request. In the isolated Compose preview, enable the dispatch worker with `DISPATCH_WHATSAPP_MODE=mock` and approve the assigned partner. Run `preview run --rm test` for the signed reply fixture in **RFC-0004 dispatch authorization, queue recovery and signed replies**, then the three loopback browser smoke scripts. The mock queue accepts outgoing messages locally. For hands-on verification with OpenWA, use the already linked chat of an approved test partner. [Demo dari permintaan sampai serah terima](DEMO-RUNBOOK.md)
+
+| Role | Reproduce | Expected result |
+| --- | --- | --- |
+| Admin | Record **Penjahit bersedia**. Open **Tindak lanjut WhatsApp mitra → Minta penawaran dari mitra** and check the destination before **Konfirmasi kirim**. | The direct preview contains a fillable text block with the request code and no customer details. The same form can be sent once for the current quote cycle even if the earlier plain-text quote request was sent. |
+| Tailor and admin | Reply privately with the completed block beginning with `KODE`. Repeat `ITEM` for multiple lines and use digits for IDR prices. Try a code-only message, a group reply, and a price containing a thousands separator. | Only a matching, valid private reply from the assigned partner fills the draft on reload. A malformed form stays visible for correction. Code-only and group replies can still appear in history. |
+| Admin and customer | Check the editor's line items, estimated completion, validity, fitting, handover, and notes. Check **Pesanan Saya** before and after clicking **Kirim penawaran** as admin. Continue through fitting, demo payment, and handover. | The draft stays accessible to the admin. After publishing, the customer reviews and accepts the agreed offer and can complete the established order flow. An old reply does not fill a new quote cycle. |
+
+**Checks run.** `npm run check`, all 24 integration tests, and all three loopback Chromium smoke scripts passed. The pilot smoke timed out once at a work-status confirmation and passed on retry. The signed fixtures exercised two items, a form with no fitting, a malformed price, a wrong code, a group reply, and a full-message copy with a fitting. The test submitted the filled HTML form as admin and continued as the customer through acceptance, fitting, demo payment, and handover. On the hosted preview, authenticated readiness returned 200 and mobile Chromium showed the form and enabled send control on the existing request. Sending the new form and importing a reply from a real WhatsApp handset remains to be verified.
+
 ## WhatsApp follow-ups across the order · 27 November 2026 UTC
 
 Use an admin, a customer and an existing tailor session with disposable QA data in `DISPATCH_WHATSAPP_MODE=mock`. Record consent for the assigned business in **Kelola mitra** and use a managed request. In the request, open **Tindak lanjut WhatsApp mitra** and confirm the preview for the current stage. All messages in this panel address the assigned tailor directly. The customer reviews the quote, confirms fitting and checks or completes payments in the website.
@@ -34,7 +46,7 @@ Use a private preview with synthetic accounts and a disposable QA database. Keep
 
 ### Record and forward the tailor's quote
 
-The tailor proposes the price, estimated completion and fitting availability in WhatsApp using the request reference. The admin records the agreed price and schedule in **Susun penawaran**, where the latest matched reply from the assigned tailor appears. Select **Kirim penawaran** to publish the quote in the customer's account. Use **Salin tautan penawaran** and forward the link to the customer through the chosen channel. Open it in a signed-out browser and sign in as the request owner. The quote opens on the same request and the customer can accept, decline or request a revision. An unrelated customer receives 404. The private reply stays on the admin side.
+The tailor proposes the price, estimated completion and fitting availability by replying to the WhatsApp form. The admin reviews the imported draft in **Susun penawaran** and can also enter a manually agreed quote. Select **Kirim penawaran** to publish the quote in the customer's account. Use **Salin tautan penawaran** and forward the link to the customer through the chosen channel. Open it in a signed-out browser and sign in as the request owner. The quote opens on the same request and the customer can accept, decline or request a revision. An unrelated customer receives 404. The private reply stays on the admin side.
 
 After the customer accepts, the admin asks the tailor for progress updates through **WhatsApp pribadi mitra** and records the fitting and work milestones. The customer starts payment once the work is ready. In the preview, the admin uses **Verifikasi simulasi lunas**. With a configured live payment channel, **Periksa status pembayaran** checks settlement with the provider. Record handover once Marajut shows **Lunas**.
 

@@ -365,7 +365,8 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
   async function renderRequest(req,res,id,options={}) {
     const detail = await requestPage(req.actor,id);
     const whatsapp = req.actor.manager && detail.inquiry.dispatch_state ? await dispatchPanel(pool,req.actor,id,dispatch) : null;
-    const partnerReply = whatsapp?.replies.findLast(reply => reply.business_id===detail.inquiry.business_id && reply.body);
+    const quoteReply = whatsapp?.quoteReply;
+    const partnerReply = quoteReply?.reply ?? whatsapp?.replies.findLast(reply => reply.business_id===detail.inquiry.business_id && reply.body);
     const quoteReviewUrl = req.actor.manager && detail.journey?.key==='QUOTED' ? expectedOrigin+'/requests/'+id : null;
     const template = detail.journey ? 'managed-request' : 'request-detail';
     const notices = {
@@ -377,8 +378,8 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
     };
     const notice = Object.hasOwn(notices,req.query.updated) ? notices[req.query.updated] : null;
     return res.render(template, {
-      title: detail.inquiry.service, ...detail, quoteDraft:null, quoteError:null, formError:null, fittingDraft:null,
-      paymentError:null,whatsapp,partnerReply,quoteReviewUrl,
+      title: detail.inquiry.service, ...detail, quoteDraft:quoteReply?.draft ?? null, quoteError:null, formError:null, fittingDraft:null,
+      paymentError:null,whatsapp,partnerReply,quoteReply,quoteReviewUrl,
       notice, ...options
     });
   }

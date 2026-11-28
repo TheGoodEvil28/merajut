@@ -1092,15 +1092,70 @@ test('RFC-0004 dispatch authorization, queue recovery and signed replies', async
   };
   const quoteRequest = await draft('quote_request');
   assert.match(quoteRequest.text,/usulan harga, perkiraan selesai, dan jadwal fitting/);
+  const reference = requestId.slice(0,8).toUpperCase();
+  assert.ok(quoteRequest.text.includes(`KODE: ${reference}\nITEM:`));
   await approve(requestId,{...quoteRequest,channel:'group'},409);
   const requested = await sendFollowup('quote_request');
   assert.match((await draft('quote_request')).reason,/sudah tercatat/);
-  const outgoingQuote = await admin.request('/api/v1/management/inquiries/'+requestId+'/quotes',{status:201,body:{
-    revision:(await draft('quote_request')).revision,amount:50000,eta:'2099-12-11',validHours:48,
-    fittingAt:'2099-12-10T10:00',fittingPlace:'Studio uji',handover:'delivery',terms:'Harga disepakati dari balasan uji.'
-  }});
-  assert.equal(await draft('quote_request'),undefined);
   const customerPath = '/requests/'+requestId;
+  const form = `KODE: ${reference}
+ITEM: Permak dua celana | 2 | 20000
+ITEM: Penyesuaian pola | 1 | 10000
+SELESAI: 2099-12-11
+BERLAKU: 36
+SERAH_TERIMA: KIRIM
+FITTING: 2099-12-10 10:00
+LOKASI_FITTING: Studio uji
+CATATAN: Jahitan dikirim setelah pembayaran terverifikasi.`;
+  const receive = async (id,body,chatId=alias) => {
+    await callback('message.received',{...reply,id,body,chatId,author:alias,timestamp:Math.floor(Date.now()/1000)});
+    assert.equal(await processDispatchInbox(pool),true);
+  };
+  await receive('quote-code-only',reference);
+  assert.equal((await readPanel()).quoteReply,null);
+  await receive('quote-group',form,groupChat);
+  assert.equal((await readPanel()).quoteReply,null);
+  await receive('quote-wrong-reference',form.replace(reference,reference==='00000000' ? 'FFFFFFFF' : '00000000'));
+  assert.equal((await readPanel()).quoteReply,null);
+  await receive('quote-invalid',form.replace('20000','20.000'));
+  assert.match(await admin.request(customerPath,{raw:true}),/Balasan formulir WhatsApp belum bisa diisikan/);
+  assert.equal((await readPanel()).quoteReply.draft,null);
+  await receive('quote-no-fitting',form.replace('2099-12-10 10:00','TIDAK').replace('Studio uji','-'));
+  const withoutFitting = (await readPanel()).quoteReply.draft;
+  assert.equal(withoutFitting.fittingAt,'');
+  assert.equal(withoutFitting.fittingPlace,'');
+  const instructions = quoteRequest.text.split(`KODE: ${reference}`)[0];
+  await receive('quote-complete',instructions+form);
+  await receive('quote-regular-message',`Terima kasih ${reference}`);
+  const imported = (await readPanel()).quoteReply;
+  assert.equal(imported.reply.dispatch_id,requested);
+  const fields = imported.draft;
+  assert.deepEqual(fields.items,[{name:'Permak dua celana',quantity:2,unitPrice:20000},
+    {name:'Penyesuaian pola',quantity:1,unitPrice:10000}]);
+  const filledPage = await admin.request(customerPath,{raw:true});
+  assert.match(filledPage,/Formulir terisi dari balasan WhatsApp mitra/);
+  assert.match(filledPage,/name="itemPrice"[^>]*value="20000"/);
+  assert.match(filledPage,/name="itemPrice"[^>]*value="10000"/);
+  assert.match(filledPage,/name="eta" value="2099-12-11"/);
+  assert.match(filledPage,/name="validHours" value="36"/);
+  assert.match(filledPage,/<option value="delivery" selected>/);
+  assert.match(filledPage,/name="fittingAt" value="2099-12-10T10:00"/);
+  assert.match(filledPage,/name="fittingPlace"[^>]*value="Studio uji"/);
+  assert.match(filledPage,/name="terms"[^>]*>Jahitan dikirim setelah pembayaran terverifikasi\./);
+  assert.doesNotMatch(await customer.request(customerPath,{raw:true}),/Studio uji|Penyesuaian pola|Formulir terisi/);
+  assert.equal((await customer.request('/api/v1/inquiries/'+requestId)).quotes.length,0);
+  const post = new URLSearchParams({revision:fields.revision,eta:fields.eta,validHours:fields.validHours,
+    handover:fields.handover,fittingAt:fields.fittingAt,fittingPlace:fields.fittingPlace,terms:fields.terms});
+  for (const item of fields.items) {
+    post.append('itemName',item.name);
+    post.append('itemQuantity',item.quantity);
+    post.append('itemPrice',item.unitPrice);
+  }
+  await admin.request('/api/v1/management/inquiries/'+requestId+'/quotes',{status:303,raw:true,
+    body:Buffer.from(post.toString()),headers:{'content-type':'application/x-www-form-urlencoded'}});
+  const {rows:[outgoingQuote]} = await pool.query('SELECT id,version,amount FROM quotes WHERE inquiry_id=$1',[requestId]);
+  assert.equal(outgoingQuote.amount,50000);
+  assert.equal(await draft('quote_request'),undefined);
   const sharedPage = await admin.request(customerPath,{raw:true});
   assert.ok(sharedPage.includes('id="quote-share-link">'+base+customerPath));
   assert.match(sharedPage,/Salin tautan penawaran/);

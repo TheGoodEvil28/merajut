@@ -5,6 +5,7 @@ import { lockInquiry } from './inquiries.js';
 import { orderReference } from './order-flow.js';
 import { canonicalChat } from './whatsapp-config.js';
 import { followupDrafts, followupLabels, readDispatchWorkflow } from './whatsapp-followup.js';
+import { quoteReplyDraft } from './whatsapp-quote.js';
 
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const blockingStates = ['QUEUED','SENDING','RETRY_WAIT','SENT','NEEDS_REVIEW','CONFIRMED_MANUALLY'];
@@ -201,8 +202,10 @@ export async function dispatchPanel(pool, actor, inquiryId, settings) {
   const history = (await pool.query('SELECT * FROM whatsapp_dispatches WHERE inquiry_id=$1 ORDER BY created_at,id',[inquiryId])).rows;
   const replies = (await pool.query(`SELECT n.*,b.name AS business FROM whatsapp_dispatch_inbox n
     LEFT JOIN businesses b ON b.id=n.business_id WHERE n.inquiry_id=$1 AND n.event_kind='message.received'
-    ORDER BY n.message_at,n.received_at`,[inquiryId])).rows;
-  return {previews,followups,history,replies,mode:settings.mode};
+    ORDER BY n.message_at,n.received_at,n.id`,[inquiryId])).rows;
+  const quotePreview = followups.find(item => item.purpose==='quote_request');
+  const quoteReply = quoteReplyDraft(inquiry,quotePreview,history,replies,settings,inputs.workflow.today);
+  return {previews,followups,history,replies,quoteReply,mode:settings.mode};
 }
 
 export async function dispatchOperations(pool, settings) {

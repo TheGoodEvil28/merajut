@@ -52,6 +52,8 @@ Use catalog search and categories to find a service. Admins can set category, es
 3. Use the demo accounts above and the same `DEMO_PASSWORD`. The customer opens **Pesanan Saya**, the admin opens **Pengelolaan platform**, and the existing tailor opens **Ruang usaha**. Use separate browser profiles to keep the sessions independent.
 4. To refresh the demo passwords, rerun `docker compose -p <project> run --rm seed npm run db:seed -- --workday`. Use the app URL and password for that project. The seed preserves the existing workday orders.
 
+For the admin, tailor and customer walkthrough from WhatsApp dispatch to completed handover, use the [end-to-end demo runbook](docs/DEMO-RUNBOOK.md).
+
 ### Run a private HTTPS preview
 
 Use Docker with Compose v2 and a dedicated synthetic database. On first setup, copy `.env.preview.example` to `.env.preview` and set fresh `POSTGRES_PASSWORD` and `DEMO_PASSWORD` values. Use a `PREVIEW_IMAGE` tag for the revision under test. The example binds to loopback. The web and worker use the same HTTPS origin. [Preview Compose override](compose.preview.yaml)

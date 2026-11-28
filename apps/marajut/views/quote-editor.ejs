@@ -7,7 +7,15 @@ const handover = quoteDraft?.handover ?? latest?.handover ?? inquiry.requested_h
 <section class="card" id="editor-penawaran" tabindex="-1">
   <h2><%= latest ? 'Buat revisi penawaran' : 'Buat penawaran' %></h2>
   <% if (inquiry.dispatch_state) { %>
-    <p class="muted">Catat harga yang disepakati dengan penjahit, perkiraan selesai, dan jadwal fitting jika diperlukan. Pelanggan akan meninjau rincian ini sebelum menyetujui.</p>
+    <% if (quoteReply?.draft && !quoteError) { %>
+      <p class="save-feedback" role="status">Formulir terisi dari balasan WhatsApp mitra. Periksa dan ubah bila perlu sebelum mengirim ke pelanggan.</p>
+    <% } else if (quoteReply && !quoteReply.draft) { %>
+      <p class="notice">Balasan formulir WhatsApp belum bisa diisikan. Minta mitra memeriksa format atau isi penawaran secara manual.</p>
+    <% } else if (whatsapp?.mode !== 'disabled' && whatsapp?.followups.some(item => item.purpose==='quote_request')) { %>
+      <p class="muted"><a href="#tindak-lanjut-whatsapp">Buka formulir WhatsApp</a> untuk meminta penawaran dari mitra, atau catat kesepakatan secara manual.</p>
+    <% } else { %>
+      <p class="muted">Catat harga, perkiraan selesai, dan jadwal fitting yang disepakati dengan penjahit.</p>
+    <% } %>
     <% if (partnerReply) { %>
       <div class="message-box">
         <strong>Balasan WhatsApp dari <%= partnerReply.business %></strong>

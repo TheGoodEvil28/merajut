@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { one, transaction } from './db.js';
 import { AppError } from './errors.js';
 import { canonicalChat, providerMessageId } from './whatsapp-config.js';
+import { quoteFormReference } from './whatsapp-quote.js';
 
 const envelopeSchema = z.object({event:z.string().max(100),sessionId:z.string().min(1).max(100),
   idempotencyKey:z.string().min(1).max(512),timestamp:z.iso.datetime({offset:true}),data:z.record(z.string(),z.unknown())});
@@ -102,7 +103,8 @@ export async function processDispatchInbox(pool) {
     let job = null;
     let correlation = 'UNMATCHED_RECEIPT';
     if (item.event_kind === 'message.received') {
-      const references = [...new Set((item.body || '').toUpperCase().match(/\b[A-F\d]{8}\b/g) || [])];
+      const formReference = quoteFormReference(item.body);
+      const references = formReference ? [formReference] : [...new Set((item.body || '').toUpperCase().match(/\b[A-F\d]{8}\b/g) || [])];
       const candidates = (await db.query(`SELECT DISTINCT ON (d.inquiry_id) d.* FROM whatsapp_dispatches d
         JOIN whatsapp_dispatch_permissions p ON p.business_id=$1 AND p.mode=d.mode AND p.session_id=d.session_id
         WHERE p.channel='partner' AND p.revoked_at IS NULL AND p.chat_id=$2 AND d.mode=$3 AND d.session_id=$4
@@ -113,8 +115,8 @@ export async function processDispatchInbox(pool) {
             OR (d.channel='group' AND d.recipient=p.verified_group AND ($7=$2 OR $7=p.verified_group)
               AND EXISTS(SELECT 1 FROM whatsapp_dispatch_permissions g WHERE g.mode=d.mode AND g.session_id=d.session_id
                 AND g.channel='group' AND g.chat_id=d.recipient AND g.version=p.verified_group_version AND g.revoked_at IS NULL)))
-        ORDER BY d.inquiry_id,(d.channel='partner') DESC,d.created_at DESC`,
-        [item.business_id,item.sender_chat,item.mode,item.session_id,references,item.message_at,item.chat_id])).rows;
+        ORDER BY d.inquiry_id,(d.channel='partner') DESC,(d.purpose='quote_request' AND $8::boolean) DESC,d.created_at DESC`,
+        [item.business_id,item.sender_chat,item.mode,item.session_id,references,item.message_at,item.chat_id,Boolean(formReference)])).rows;
       if (candidates.length === 1) job = candidates[0];
       correlation = job ? 'REFERENCE_MATCHED' : 'REFERENCE_REVIEW_REQUIRED';
     } else {
