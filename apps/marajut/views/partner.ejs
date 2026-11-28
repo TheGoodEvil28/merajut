@@ -4,12 +4,38 @@
   <a class="back" href="/pengelola/mitra">Mitra penjahit</a>
   <header class="page-heading admin-heading">
     <div><h1><%= business?.name ?? 'Tambah mitra' %></h1>
-      <p><%= business?.area ?? 'Simpan profil untuk menambahkan layanan penjahit.' %></p></div>
+      <p><%= business?.area ?? 'Minta data calon mitra, lalu simpan profil dan layanan untuk ditinjau.' %></p></div>
     <% if (business?.published) { %><a class="button secondary" href="/penjahit/<%= business.slug %>">Lihat profil publik <%- include('icon',{name:'external'}) %></a><% } %>
   </header>
   <% if (saved) { %><p class="save-feedback" role="status"><%- include('icon',{name:'check'}) %> Perubahan tercatat.</p><% } %>
   <div class="workflow-layout">
     <div class="stack">
+      <% if (!business) { %>
+        <section class="card stack" aria-labelledby="onboarding-title">
+          <h2 id="onboarding-title">Minta data lewat WhatsApp</h2>
+          <form class="stack" action="/pengelola/mitra/baru/whatsapp" method="post">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <label><span class="field-label">Nomor WhatsApp calon mitra<span class="req" aria-hidden="true"></span></span>
+              <input name="number" type="tel" required maxlength="32" placeholder="0812 3456 7890" value="<%= contactInput %>"
+                <% if (contactError) { %>aria-invalid="true" aria-describedby="onboarding-error"<% } %>></label>
+            <% if (contactError) { %><p class="notice error-message" role="alert" id="onboarding-error"><%= contactError %></p><% } %>
+            <button type="submit" class="secondary">Siapkan formulir WhatsApp</button>
+          </form>
+          <% if (onboarding) { %>
+            <details class="form-disclosure" open>
+              <summary>Pratinjau formulir untuk +<%= onboarding.number %></summary>
+              <%- include('whatsapp-message',{text:onboarding.text}) %>
+              <a class="button" target="_blank" rel="noreferrer" href="https://wa.me/<%= onboarding.number %>?text=<%= encodeURIComponent(onboarding.text) %>">Buka WhatsApp <%- include('icon',{name:'external'}) %><span class="sr-only"> (tab baru)</span></a>
+            </details>
+            <% if (onboarding.existing.length) { %>
+              <div class="notice">
+                <p>Nomor ini sudah tercatat. Buka profil yang sesuai untuk memperbarui datanya.</p>
+                <ul><% for (const match of onboarding.existing) { %><li><a href="/pengelola/mitra/<%= match.id %>"><%= match.name %></a></li><% } %></ul>
+              </div>
+            <% } %>
+          <% } %>
+        </section>
+      <% } %>
       <form class="card stack" method="post" action="/api/v1/management/partners<%= business?'/'+business.id:'' %>">
         <h2>Profil mitra</h2>
         <input type="hidden" name="_csrf" value="<%= csrf %>">
@@ -20,9 +46,9 @@
         </div>
         <label><span class="field-label">Spesialisasi<span class="req" aria-hidden="true"></span></span><input name="specialty" required minlength="2" maxlength="160" value="<%= business?.specialty ?? '' %>"></label>
         <label><span class="field-label">Tentang penjahit<span class="req" aria-hidden="true"></span></span><textarea name="description" required minlength="10" maxlength="600" rows="3"><%= business?.description ?? '' %></textarea></label>
-        <label><span class="field-label">WhatsApp pribadi mitra<span class="req" aria-hidden="true"></span></span><input name="whatsapp" type="tel" required maxlength="32" placeholder="0812 3456 7890" value="<%= business?.whatsapp ?? '' %>"></label>
-        <p class="muted form-help">Kontak WhatsApp digunakan admin untuk koordinasi pesanan.</p>
-        <button>Simpan mitra</button>
+        <label><span class="field-label">WhatsApp pribadi mitra<span class="req" aria-hidden="true"></span></span><input name="whatsapp" type="tel" required maxlength="32" placeholder="0812 3456 7890" value="<%= business ? business.whatsapp ?? '' : (onboarding ? '+'+onboarding.number : '') %>"></label>
+        <p class="muted form-help"><%= business ? 'Kontak WhatsApp digunakan admin untuk koordinasi pesanan.' : 'Periksa nomor dan persetujuan dari balasan mitra. Setelah menyimpan draf, tambahkan layanan dan publikasikan profil saat siap.' %></p>
+        <button><%= business ? 'Simpan mitra' : 'Simpan mitra sebagai draf' %></button>
       </form>
       <% if (business) { const serviceBase='/api/v1/management/partners/'+business.id+'/services'; %>
         <% if (dispatchMode!=='disabled' && business.whatsapp) { %>

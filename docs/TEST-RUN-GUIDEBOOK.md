@@ -2,6 +2,18 @@
 
 Update this guide with every change. Record the affected roles, prerequisites, steps, expected results, verification method, and any unverified behavior.
 
+## Data calon mitra lewat WhatsApp · 28 November 2026 UTC
+
+Use an admin session and separate customer and existing tailor sessions on an isolated preview. Use only a synthetic phone number and service. The WhatsApp link opens a prefilled chat for the admin to send. The prospect replies in WhatsApp with profile data, one block per service, the WhatsApp number to use for orders, and separate decisions about marketplace publication and coordination messages.
+
+| Role | Reproduce | Expected result |
+| --- | --- | --- |
+| Admin | Open **Mitra penjahit → Tambah mitra → Minta data lewat WhatsApp**. Enter a malformed number, then a synthetic `08…` or `+62…` number and select **Siapkan formulir WhatsApp**. | An invalid number shows an error. A valid number prepares **Buka WhatsApp** for the normalized recipient and pre-fills the manual profile field. The message contains the profile, repeatable service block, permissions, and a filled service example. Preparing the message creates no partner record. |
+| Admin | After reviewing the reply and confirming the number, use **Simpan mitra sebagai draf** and add a service. Enter the same number in **Tambah mitra** again. | The new profile remains a draft. Reusing a number in the preview links to existing profiles so the admin can update the right one. |
+| Admin and customer | Review the service and publication decision. Record WhatsApp coordination permission in **Persetujuan WhatsApp mitra** when applicable. Use **Publikasikan profil**, then view the catalog as customer. | The customer sees the profile and active services after publication. The private phone stays on the admin side. The customer and existing tailor cannot prepare admin invitations. |
+
+**Checks run.** JavaScript checks, all 25 integration tests, and all three loopback Chromium smoke scripts passed. Integration checked number normalization, invalid input, role access, the prefilled message, and the existing-profile link. In a separate 390 px Chromium run with synthetic data, the admin prepared the WhatsApp form, saved a draft and service, recorded consent, and published. The customer could find the service after publication and the public profile kept the phone private. Hosted Chromium verified authenticated readiness and the admin preview at 390 px. Sending the form and receiving a reply on a real WhatsApp handset remain to be verified.
+
 ## Pembaruan pesanan otomatis dari WhatsApp · 28 November 2026 UTC
 
 Use migration `012_whatsapp_order_progress.sql`, the dispatch worker, `DISPATCH_WHATSAPP_MODE=mock`, `PAYMENT_MODE=demo`, and an isolated test database. Sign in as the admin, customer, and a separate tailor. Approve a synthetic dispatch to a verified assigned partner and accept the quote on the website. To exercise inbound delivery, use the signed callback fixtures in **verified WhatsApp replies advance only eligible order stages and update the customer view**. [Demo](DEMO-RUNBOOK.md)

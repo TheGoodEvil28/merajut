@@ -717,8 +717,29 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   const prefix='/api/v1/management';
   await post(guest,'/mitra/daftar',profile,202);
   await post(guest,'/mitra/daftar',profile,202);
+
+  const invitePath='/pengelola/mitra/baru/whatsapp';
+  assert.match(await page(admin,'/pengelola/mitra/baru'),/Minta data lewat WhatsApp/);
+  await submit(customer,invitePath,{number:'0812 3456 7892'},403);
+  await submit(tailor,invitePath,{number:'0812 3456 7892'},403);
+  const invalidInvite=await submit(admin,invitePath,{number:'0812-invalid'},422);
+  assert.match(invalidInvite,/Masukkan nomor WhatsApp yang valid/);
+  assert.doesNotMatch(invalidInvite,/href="https:\/\/wa.me\//);
+  const preview=await submit(admin,invitePath,{number:'0812 3456 7892'},200);
+  const link=new URL(preview.match(/href="(https:\/\/wa\.me\/[^"\s]+)"/)[1]);
+  assert.equal(link.pathname,'/6281234567892');
+  const formText=link.searchParams.get('text');
+  assert.match(formText,/Nomor WhatsApp untuk pesanan: \+6281234567892/);
+  assert.match(formText,/\*2\. LAYANAN\*[\s\S]*Harga awal[\s\S]*Perkiraan durasi/);
+  assert.match(formText,/Setuju profil dan layanan ditampilkan[\s\S]*Setuju menerima pesan koordinasi pesanan/);
+  assert.match(formText,/Contoh pengisian layanan/);
+  assert.match(preview,/name="whatsapp"[^>]*value="\+6281234567892"/);
+  assert.equal((await pool.query('SELECT id FROM businesses WHERE whatsapp=$1',['6281234567892'])).rowCount,0);
+
   const manual=await post(admin,prefix+'/partners',{...profile,name:'Mitra tambahan',whatsapp:'081234567892'},201);
-  assert.match(await page(admin,'/pengelola/mitra/'+manual.id),/Mitra tambahan/);
+  assert.match(await page(admin,'/pengelola/mitra/'+manual.id),/Mitra tambahan[\s\S]*Marketplace[\s\S]*Draf/);
+  const existingInvite=await submit(admin,invitePath,{number:'+62 812 3456 7892'},200);
+  assert.ok(existingInvite.includes(`href="/pengelola/mitra/${manual.id}">Mitra tambahan</a>`));
   const pending=(await admin.request(prefix)).shops.filter(b=>b.whatsapp==='6281234567890');
   assert.equal(pending.length,1);
   const shop=pending[0];

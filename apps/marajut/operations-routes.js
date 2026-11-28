@@ -10,6 +10,7 @@ import { saveService } from './catalog.js';
 import { approveDispatch, reviewDispatch, dispatchPanel, dispatchOperations, dispatchInbox,
   permissionFor, saveDispatchPermission, pauseDispatch, resolveDispatchInbox } from './whatsapp-dispatch.js';
 import { followupLabels } from './whatsapp-followup.js';
+import { serviceCategories } from './service-categories.js';
 
 const partner = businessProfile.extend({whatsapp:phone,specialty:z.string().trim().min(2).max(160)});
 const password=z.string().min(1).max(128);
@@ -19,6 +20,49 @@ const invite=z.union([
   z.object({businessId:id,revision,email,password}),
   businessProfile.extend({email,password})
 ]);
+
+const newPartnerPage = {title:'Tambah mitra',business:null,services:[],saved:false,onboarding:null,contactError:null,contactInput:''};
+
+function partnerOnboardingMessage(number) {
+  return [
+    '🧵 *MARAJUT — DATA CALON MITRA PENJAHIT*',
+    '',
+    'Halo, saya admin Marajut. Jika berkenan bergabung, salin formulir ini, isi setelah titik dua, lalu balas di chat ini.',
+    '',
+    '*1. PROFIL USAHA*',
+    'Nama usaha:',
+    'Area layanan (kecamatan/kota):',
+    'Spesialisasi:',
+    'Tentang penjahit (singkat):',
+    `Nomor WhatsApp untuk pesanan: +${number}`,
+    'Periksa nomor di atas dan koreksi jika nomor untuk pesanan berbeda.',
+    '',
+    '*2. LAYANAN*',
+    `Salin bagian ini untuk setiap layanan. Kategori tersedia ${Object.values(serviceCategories).join(', ')}.`,
+    'Nama layanan:',
+    'Kategori layanan:',
+    'Deskripsi layanan:',
+    'Harga awal (Rp atau sesuai penawaran):',
+    'Perkiraan durasi (hari, opsional):',
+    'Panduan untuk pelanggan (opsional):',
+    '',
+    '*3. PERSETUJUAN*',
+    'Setuju profil dan layanan ditampilkan di Marajut: YA / TIDAK',
+    'Setuju menerima pesan koordinasi pesanan di nomor WhatsApp ini: YA / TIDAK',
+    '',
+    '*Contoh pengisian layanan*',
+    '```',
+    'Nama layanan: Pendekkan celana',
+    'Kategori layanan: Permak & ukuran',
+    'Deskripsi layanan: Pendekkan panjang celana sesuai ukuran.',
+    'Harga awal: Rp25.000',
+    'Perkiraan durasi: 2 hari',
+    'Panduan untuk pelanggan: Sebutkan panjang akhir yang diinginkan.',
+    '```',
+    'Admin akan memeriksa data dan persetujuan sebelum mengaktifkan profil.'
+  ].join('\n');
+}
+
 export function operationsRouter(pool,{operator,provider,finish,dispatch}) {
   const router=Router();
   const access=(req,res,next) => {
@@ -44,7 +88,18 @@ export function operationsRouter(pool,{operator,provider,finish,dispatch}) {
     ]);
     res.json({...board,...desk,performance});
   });
-  router.get('/pengelola/mitra/baru',(req,res)=>res.render('partner',{title:'Tambah mitra',business:null,services:[],saved:false,whatsappPermission:null,dispatchMode:dispatch.mode}));
+  router.get('/pengelola/mitra/baru',(req,res)=>res.render('partner',{...newPartnerPage}));
+  router.post('/pengelola/mitra/baru/whatsapp',async(req,res) => {
+    const number = phone.safeParse(req.body?.number);
+    if (!number.success) {
+      const contactInput = typeof req.body?.number==='string' ? req.body.number.slice(0,32) : '';
+      return res.status(422).render('partner',{...newPartnerPage,contactInput,
+        contactError:'Masukkan nomor WhatsApp yang valid, misalnya 0812 3456 7890.'});
+    }
+    const {rows:existing} = await pool.query('SELECT id,name FROM businesses WHERE whatsapp=$1 ORDER BY name,id',[number.data]);
+    res.render('partner',{...newPartnerPage,contactInput:'+'+number.data,
+      onboarding:{number:number.data,text:partnerOnboardingMessage(number.data),existing}});
+  });
   router.get('/pengelola/mitra/:id',async(req,res)=>res.render('partner',{title:'Kelola mitra',...await partnerDetails(pool,parse(id,req.params.id)),
     whatsappPermission:await permissionFor(pool,dispatch,parse(id,req.params.id)),dispatchMode:dispatch.mode,saved:req.query.saved==='1'}));
   router.get('/pengelola/whatsapp',async(req,res)=>res.render('whatsapp-inbox',{
