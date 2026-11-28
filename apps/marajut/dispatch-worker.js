@@ -4,8 +4,10 @@ import { dispatchSettings } from './whatsapp-config.js';
 import { mockDispatchGateway, openwaGateway } from './whatsapp-gateway.js';
 import { processDispatch } from './whatsapp-worker.js';
 import { processDispatchInbox } from './whatsapp-inbox.js';
+import { messagingMode } from './outbox.js';
 
 const settings = dispatchSettings(process.env,{worker:true});
+const mode = messagingMode();
 const gateway = settings.mode === 'openwa' ? openwaGateway(settings) : mockDispatchGateway();
 const pool = createPool();
 pool.on('error',() => console.error('Dispatch database connection failed.'));
@@ -22,7 +24,7 @@ while (!stopping) {
         [settings.mode,settings.sessionId,health.outcome]);
       nextHealth = Date.now()+10_000;
     }
-    const inboxHandled = await processDispatchInbox(pool);
+    const inboxHandled = await processDispatchInbox(pool,{settings,mode});
     const sent = await processDispatch(pool,settings,gateway);
     if (!inboxHandled && !sent) await delay(1000);
   } catch (error) {

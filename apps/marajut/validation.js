@@ -65,7 +65,7 @@ export function quoteForm(body) {
 }
 export const decision = z.object({ version: revision, decision: z.enum(['ACCEPTED', 'REJECTED']) });
 export const transition = z.object({
-  action: z.enum(['start', 'ready', 'ship', 'complete', 'cancel']), revision, detail
+  action: z.enum(['start', 'ready', 'ship', 'complete', 'cancel', 'resume']), revision, detail
 }).refine(value => !['cancel','ship'].includes(value.action) || value.detail, { message: 'Isi catatan untuk tindakan ini.' });
 
 export const fitting = z.discriminatedUnion('action', [

@@ -792,7 +792,7 @@ test('admin dispatch, reassignment, fitting and verified website payment', async
   const change=(action,revision,status=200,detail)=>post(admin,prefix+'/orders/'+orderId+'/transitions',{action,revision,detail},status);
   await post(customer,checkout,{},409);
   assert.match(await submit(customer,checkout,{},409),
-    /id="pembayaran"[\s\S]*Harga disepakati[\s\S]*Tagihan tersedia setelah admin menandai jahitan siap/);
+    /id="pembayaran"[\s\S]*Harga disepakati[\s\S]*Tagihan tersedia setelah jahitan ditandai siap/);
   await post(other,fitting,{action:'request',revision:1,note:'Sabtu pagi.'},404);
   assert.equal((await post(customer,fitting,{action:'request',revision:1,note:'Sabtu pagi.'})).fittingState,'REQUESTED');
   await post(admin,fitting,{action:'propose',revision:1,fittingAt:'2099-02-09T09:00',fittingPlace:'Studio uji'},409);
@@ -1323,6 +1323,118 @@ CATATAN: Jahitan dikirim setelah pembayaran terverifikasi.`;
   await admin.request('/api/v1/management/whatsapp/pause',{body:{action:'resume',reason:'Resume synthetic approvals'}});
   await processDispatch(pool,settings,{...sender,send:async()=>assert.fail('Revoked destination cannot be sent')});
   assert.equal((await admin.request(path(revokedRequest))).history[0].state,'CANCELLED');
+});
+
+test('verified WhatsApp replies advance only eligible order stages and update the customer view', async t => {
+  const {pool} = await isolatedDatabase(t);
+  await migrate(pool);
+  const password = randomBytes(20).toString('hex');
+  await seed(pool,password);
+  const secret = randomBytes(32).toString('hex');
+  const groupChat = '120363000000000002@g.us';
+  const phone = '6281200000002';
+  const directChat = phone+'@c.us';
+  const settings = dispatchSettings({MARAJUT_ENV:'test',DISPATCH_WHATSAPP_MODE:'mock',
+    OPENWA_GROUP_CHAT_ID:groupChat,OPENWA_WEBHOOK_SECRET:secret});
+  const base = await serve(t,pool,{dispatch:settings});
+  const [admin,customer,other,tailor] = [browserClient(base),browserClient(base),browserClient(base),browserClient(base)];
+  for (const [client,email] of [[admin,seedEmails.operator],[customer,seedEmails.customer],
+    [other,seedEmails.otherCustomer],[tailor,seedEmails.provider]]) {
+    await client.request('/api/v1/session');
+    await client.request('/api/v1/session',{body:{email,password}});
+  }
+  const {rows:[service]} = await pool.query(`SELECT s.id,s.business_id FROM services s
+    JOIN businesses b ON b.id=s.business_id WHERE b.slug='jahit-rina' ORDER BY s.name LIMIT 1`);
+  await pool.query('UPDATE businesses SET whatsapp=$2 WHERE id=$1',[service.business_id,phone]);
+  const permission = {action:'grant',version:0,evidence:'Synthetic consent fixture',confirmed:'yes'};
+  await admin.request('/api/v1/management/whatsapp/group-permission',{body:permission});
+  await admin.request('/api/v1/management/partners/'+service.business_id+'/whatsapp-permission',{body:{...permission,groupMember:'yes'}});
+  const inquiry = await customer.request('/api/v1/inquiries',{status:201,body:{
+    key:randomUUID(),serviceId:service.id,description:'Permak pakaian untuk pengujian.',requestedHandover:'delivery'
+  }});
+  const path = '/api/v1/management/inquiries/'+inquiry.id;
+  const versionPath = '/api/v1/inquiries/'+inquiry.id+'/order-version';
+  const panel = () => admin.request(path+'/whatsapp-dispatches');
+  for (const channel of ['group','partner']) {
+    const preview = (await panel()).previews.find(item=>item.channel===channel);
+    await admin.request(path+'/whatsapp-dispatches',{status:202,body:preview});
+    assert.equal(await processDispatch(pool,settings,mockDispatchGateway()),true);
+  }
+  const revision = (await panel()).previews[0].revision;
+  await admin.request(path+'/dispatch',{body:{revision,state:'AVAILABLE'}});
+  const quote = await admin.request(path+'/quotes',{status:201,body:{revision:revision+1,amount:50000,
+    eta:'2099-12-11',validHours:48,handover:'delivery',fittingAt:'2099-12-10T10:00',fittingPlace:'Studio uji',
+    terms:'Pakaian dikirim setelah proses selesai.'}});
+  const {orderId} = await customer.request('/api/v1/quotes/'+quote.id+'/decisions',{body:{version:quote.version,decision:'ACCEPTED'}});
+  const customerPath = '/requests/'+inquiry.id;
+  const detail = () => customer.request('/api/v1/inquiries/'+inquiry.id);
+  const reference = inquiry.id.slice(0,8).toUpperCase();
+  const initial = await customer.request(versionPath);
+  await other.request(versionPath,{status:404});
+  await tailor.request(versionPath,{status:403});
+  assert.ok((await customer.request(customerPath,{raw:true})).includes(`data-order-version="${initial.version}"`));
+
+  const timestamp = Math.floor(Date.now()/1000)+10;
+  async function reply(message, {id=randomUUID(),chatId=directChat,at=timestamp,handled=true} = {}) {
+    const body=Buffer.from(JSON.stringify({event:'message.received',sessionId:settings.sessionId,
+      timestamp:new Date().toISOString(),idempotencyKey:randomUUID(),data:{id,chatId,from:directChat,author:directChat,
+        type:'text',fromMe:false,timestamp:at,body:reference+'\n'+message}}));
+    await admin.request('/webhooks/openwa',{body,status:204,raw:true,headers:{
+      'x-openwa-signature':'sha256='+createHmac('sha256',secret).update(body).digest('hex')}});
+    assert.equal(await processDispatchInbox(pool,{settings}),handled);
+  }
+  await reply('Sudah mulai.',{chatId:groupChat});
+  await reply('Belum sudah mulai.');
+  assert.deepEqual(await customer.request(versionPath),initial);
+  await reply('Siap mulai: 01/12/2099');
+  assert.equal((await detail()).order.status,'CONFIRMED');
+  assert.match(await customer.request(customerPath,{raw:true}),/Rencana mulai dari mitra[\s\S]*1 Des 2099/);
+  const startId = randomUUID();
+  await reply('Sudah mulai.',{id:startId});
+  await reply('Sudah mulai.',{id:startId,handled:false});
+  assert.equal((await detail()).order.status,'IN_PROGRESS');
+  await reply('Tidak bisa lanjut.',{at:timestamp-1});
+  assert.equal((await detail()).order.tailor_blocked,false);
+  await reply('Progres: jahit\nPerkiraan selesai: 12/12/2099');
+  assert.match(await customer.request(customerPath,{raw:true}),/Penjahitan · Perkiraan terbaru dari mitra 12 Des 2099/);
+  await reply('Tidak bisa lanjut.\nCatatan: INFORMASI-PRIBADI-MITRA');
+  await reply('Jahitan sudah siap.');
+  let current = await detail();
+  assert.equal(current.order.status,'IN_PROGRESS');
+  assert.equal(current.order.tailor_blocked,true);
+  const blockedPage = await customer.request(customerPath,{raw:true});
+  assert.match(blockedPage,/Pesanan tertunda/);
+  assert.doesNotMatch(blockedPage,/INFORMASI-PRIBADI-MITRA/);
+  assert.match(await admin.request('/pengelola?filter=follow-up',{raw:true}),/Tindak lanjuti kendala mitra/);
+  await admin.request('/api/v1/management/orders/'+orderId+'/transitions',{
+    body:{action:'resume',revision:current.order.revision}
+  });
+  await reply('Usulan fitting: 09/12/2099 11:30 WIB');
+  assert.equal((await detail()).order.fitting_state,'PROPOSED');
+  await reply('Fitting selesai.');
+  await reply('Jahitan sudah siap.');
+  current = await detail();
+  assert.equal(current.order.fitting_state,'PROPOSED');
+  assert.equal(current.order.status,'IN_PROGRESS');
+  await customer.request('/api/v1/orders/'+orderId+'/fitting',{body:{action:'confirm',revision:current.order.revision}});
+  await reply('Fitting selesai.');
+  assert.equal((await detail()).order.fitting_state,'DONE');
+  await reply('Jahitan sudah siap.');
+  assert.equal((await detail()).order.status,'READY');
+  await reply('Paket sudah dikirim.');
+  assert.equal((await detail()).order.shipped_at,null);
+  await customer.request('/api/v1/orders/'+orderId+'/checkout',{body:{}});
+  await admin.request('/api/v1/payments/'+(await detail()).order.payment.id+'/check',{body:{action:'confirm'}});
+  await reply('Pelanggan sudah menerima pesanan.');
+  assert.equal((await detail()).order.status,'READY');
+  await reply('Paket sudah dikirim.');
+  assert.ok((await detail()).order.shipped_at);
+  await reply('Pelanggan sudah menerima pesanan.');
+  current = await detail();
+  assert.equal(current.order.status,'COMPLETED');
+  assert.equal(current.events.filter(item=>item.kind==='ORDER_UPDATED' && item.new_status==='IN_PROGRESS').length,1);
+  assert.notEqual((await customer.request(versionPath)).version,initial.version);
+  assert.ok((await panel()).replies.some(item=>item.correlation==='ORDER_UPDATE_REVIEW_REQUIRED'));
 });
 
 test('OpenWA adapter uses the scoped session, idempotency header, and conservative outcomes', async t => {

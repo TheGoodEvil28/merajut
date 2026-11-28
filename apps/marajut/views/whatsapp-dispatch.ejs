@@ -42,6 +42,8 @@ const groupNotice=whatsapp.followups.find(preview=>preview.purpose==='group_take
     <% for (const [index,reply] of whatsapp.replies.entries()) { %>
       <article class="ops-entry" <% if (index===whatsapp.replies.length-1) { %>id="balasan-whatsapp" tabindex="-1"<% } %>>
         <p class="muted"><%= reply.business %> · <%= dateTime(reply.message_at) %><%= reply.mode==='mock'?' · Simulasi WhatsApp':'' %></p>
+        <% if (reply.correlation==='ORDER_UPDATE_APPLIED') { %><p>Pesanan diperbarui otomatis.</p><% } %>
+        <% if (reply.correlation==='ORDER_UPDATE_REVIEW_REQUIRED') { %><p>Perlu ditinjau sebelum pesanan dapat dilanjutkan.</p><% } %>
         <% if (reply.body) { %><p class="preserve"><%= reply.body %></p><% } %>
       </article>
     <% } %>

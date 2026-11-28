@@ -279,3 +279,38 @@ document.addEventListener('click', event => {
 for (const dialog of document.querySelectorAll('dialog.form-dialog')) {
   dialog.addEventListener('cancel', event => { event.preventDefault(); closeFormDialog(dialog); });
 }
+
+const liveOrder = document.querySelector('[data-order-updates]');
+if (liveOrder) {
+  let editing = false;
+  let submitting = false;
+  for (const type of ['input','change']) {
+    liveOrder.addEventListener(type,event => { if (event.target.closest('form')) editing = true; });
+  }
+  liveOrder.addEventListener('submit',event => queueMicrotask(() => {
+    if (!event.defaultPrevented) submitting = true;
+  }));
+
+  async function pollOrder() {
+    if (!document.hidden) {
+      try {
+        const response = await fetch(liveOrder.dataset.orderUpdates,{headers:{accept:'application/json'},cache:'no-store'});
+        if ([401,403,404].includes(response.status)) return;
+        if (response.ok) {
+          const {version} = await response.json();
+          if (version !== liveOrder.dataset.orderVersion) {
+            if (!editing && !submitting && !document.querySelector('dialog[open]')) {
+              location.reload();
+              return;
+            }
+            liveOrder.querySelector('[data-order-update-pending]').hidden = false;
+          }
+        }
+      } catch {
+        // Retry transient failures while this order page remains open.
+      }
+    }
+    setTimeout(pollOrder,5000);
+  }
+  setTimeout(pollOrder,5000);
+}

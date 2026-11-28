@@ -5,7 +5,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { one, transaction } from './db.js';
 import { schemaVersion } from './migrate.js';
-import { AppError } from './errors.js';
+import { AppError, found } from './errors.js';
 import { authenticate, endSession, sessionUser, startSession, token } from './identity.js';
 import { activeBusiness, publicCatalog, publicProvider, saveService, updateProfile, workspaceServices } from './catalog.js';
 import { providerWorkspace } from './provider-workspace.js';
@@ -348,7 +348,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
     const journey = orderJourney({
       ...inquiry, quote_status:quotes[0]?.status, order_status:order?.status, handover:order?.handover,
       fitting_state:order?.fitting_state, fitting_at:order?.fitting_at, shipped_at:order?.shipped_at,
-      payment_state:order?.payment?.state, payment_mode:order?.payment?.mode
+      payment_state:order?.payment?.state, payment_mode:order?.payment?.mode, tailor_blocked:order?.tailor_blocked
     }, actor.manager ? 'admin' : 'customer', payments.mode);
     const open = !order && !['DECLINED','CANCELLED'].includes(inquiry.status);
     const canChoose = open && (actor.manager || ['UNAVAILABLE','REJECTED'].includes(journey.key));
@@ -388,6 +388,14 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
   });
   app.get('/api/v1/inquiries/:id', workReader, async (req, res) =>
     res.json(await inquiryDetail(pool, req.actor, input.parse(input.id, req.params.id))));
+  app.get('/api/v1/inquiries/:id/order-version', customer, async (req, res) => {
+    const id = input.parse(input.id,req.params.id);
+    const latest = found(await one(pool, `SELECT COALESCE((SELECT max(e.sequence)::text FROM domain_events e
+      WHERE e.inquiry_id=i.id),'0') AS version
+      FROM inquiries i JOIN orders o ON o.inquiry_id=i.id
+      WHERE i.id=$1 AND i.customer_id=$2 AND i.dispatch_state IS NOT NULL`,[id,req.actor.id]));
+    res.json(latest);
+  });
   app.post('/api/v1/inquiries/:id/actions', workReader, async (req, res) => {
     const updated = await actOnInquiry(pool, req.actor, input.parse(input.id, req.params.id),
       input.parse(input.inquiryAction, req.body));

@@ -4,6 +4,7 @@ import { one, transaction } from './db.js';
 import { AppError } from './errors.js';
 import { canonicalChat, providerMessageId } from './whatsapp-config.js';
 import { quoteFormReference } from './whatsapp-quote.js';
+import { applyWhatsAppOrderReply, parseOrderReply } from './whatsapp-order-reply.js';
 
 const envelopeSchema = z.object({event:z.string().max(100),sessionId:z.string().min(1).max(100),
   idempotencyKey:z.string().min(1).max(512),timestamp:z.iso.datetime({offset:true}),data:z.record(z.string(),z.unknown())});
@@ -91,7 +92,7 @@ export async function recordDispatchWebhook(pool, event, settings) {
   });
 }
 
-export async function processDispatchInbox(pool) {
+export async function processDispatchInbox(pool, {settings, mode = 'simulated'} = {}) {
   return transaction(pool,async db => {
     // Revisit early receipts after the send response has stored its provider ID.
     const item = await one(db, `SELECT n.* FROM whatsapp_dispatch_inbox n WHERE state='PENDING'
@@ -103,8 +104,10 @@ export async function processDispatchInbox(pool) {
     let job = null;
     let correlation = 'UNMATCHED_RECEIPT';
     if (item.event_kind === 'message.received') {
+      const orderReply = parseOrderReply(item.body);
       const formReference = quoteFormReference(item.body);
-      const references = formReference ? [formReference] : [...new Set((item.body || '').toUpperCase().match(/\b[A-F\d]{8}\b/g) || [])];
+      const explicitReference = orderReply?.reference || formReference;
+      const references = explicitReference ? [explicitReference] : [...new Set((item.body || '').toUpperCase().match(/\b[A-F\d]{8}\b/g) || [])];
       const candidates = (await db.query(`SELECT DISTINCT ON (d.inquiry_id) d.* FROM whatsapp_dispatches d
         JOIN whatsapp_dispatch_permissions p ON p.business_id=$1 AND p.mode=d.mode AND p.session_id=d.session_id
         WHERE p.channel='partner' AND p.revoked_at IS NULL AND p.chat_id=$2 AND d.mode=$3 AND d.session_id=$4
@@ -119,6 +122,9 @@ export async function processDispatchInbox(pool) {
         [item.business_id,item.sender_chat,item.mode,item.session_id,references,item.message_at,item.chat_id,Boolean(formReference)])).rows;
       if (candidates.length === 1) job = candidates[0];
       correlation = job ? 'REFERENCE_MATCHED' : 'REFERENCE_REVIEW_REQUIRED';
+      if (job && orderReply && item.chat_id===item.sender_chat && item.mode===settings?.mode && item.session_id===settings.sessionId) {
+        correlation = await applyWhatsAppOrderReply(db,item,job,orderReply,mode) ? 'ORDER_UPDATE_APPLIED' : 'ORDER_UPDATE_REVIEW_REQUIRED';
+      }
     } else {
       job = await one(db, `SELECT * FROM whatsapp_dispatches WHERE mode=$1 AND session_id=$2
         AND provider_message_id=$3 AND recipient=$4 FOR UPDATE`,[item.mode,item.session_id,item.provider_message_id,item.chat_id]);
@@ -137,7 +143,7 @@ export async function processDispatchInbox(pool) {
       }
     }
     await db.query(`UPDATE whatsapp_dispatch_inbox SET state=$2,dispatch_id=$3,inquiry_id=$4,correlation=$5,processed_at=now() WHERE id=$1`,
-      [item.id,job ? 'LINKED' : 'REVIEW',job?.id || null,job?.inquiry_id || null,correlation]);
+      [item.id,job && correlation!=='ORDER_UPDATE_REVIEW_REQUIRED' ? 'LINKED' : 'REVIEW',job?.id || null,job?.inquiry_id || null,correlation]);
     return true;
   });
 }

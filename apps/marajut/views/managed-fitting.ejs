@@ -1,6 +1,6 @@
 <% const path = '/api/v1/orders/'+order.id+'/fitting';
 const upcoming = new Date(order.fitting_at) > new Date();
-const active = ['CONFIRMED','IN_PROGRESS'].includes(order.status) && order.fitting_state!=='DONE';
+const active = !order.tailor_blocked && ['CONFIRMED','IN_PROGRESS'].includes(order.status) && order.fitting_state!=='DONE';
 const requested = events.findLast(item=>item.kind==='FITTING_CHANGE_REQUESTED');
 const fitForm = fittingDraft?.action === 'propose' ? fittingDraft : {};
 %>

@@ -54,7 +54,7 @@ export async function lockInquiry(db, actor, id) {
 
 export const orderIndex = `SELECT i.id, i.customer_id, i.status, i.dispatch_state, i.created_at, i.estimate,
   s.name AS service, b.name AS business, o.status AS order_status, accepted.handover, o.fitting_state, o.fitting_at,
-  o.shipped_at, o.amount, COALESCE(o.eta,CASE WHEN latest.status='SENT' AND latest.expires_at > now() THEN latest.eta END,i.desired_date)::text AS due_date, payment.state AS payment_state,
+  o.shipped_at, o.amount, o.tailor_blocked, COALESCE(o.eta,CASE WHEN latest.status='SENT' AND latest.expires_at > now() THEN latest.eta END,i.desired_date)::text AS due_date, payment.state AS payment_state,
   payment.mode AS payment_mode, o.complaint IS NOT NULL AND o.resolution IS NULL AS complaint_open,
   (SELECT id FROM inquiries replacement WHERE replacement.previous_inquiry_id=i.id) AS replacement_id,
   CASE WHEN latest.status='SENT' AND latest.expires_at <= now() THEN 'EXPIRED' ELSE latest.status END AS quote_status,
@@ -92,13 +92,13 @@ export async function inquiryDetail(pool, actor, id) {
       (SELECT jsonb_agg(jsonb_build_object('id',r.id,'amount',r.amount,'at',r.recorded_at,'actor',u.display_name,
         'voidAt',r.voided_at,'reason',r.void_reason) ORDER BY r.recorded_at DESC)
         FROM cash_receipts r JOIN users u ON u.id=r.recorded_by WHERE r.order_id=o.id) AS cash_receipts,
-      o.fee_bps, o.complaint, o.resolution, COALESCE(o.fitting_at,q.fitting_at) AS fitting_at,
+      o.fee_bps, o.complaint, o.resolution, o.tailor_blocked, COALESCE(o.fitting_at,q.fitting_at) AS fitting_at,
       COALESCE(o.fitting_place,q.fitting_place) AS fitting_place, o.fitting_state, o.shipped_at, o.shipping_note, q.handover,
       (SELECT jsonb_build_object('id',p.id,'amount',p.amount,'fee',p.fee,'mode',p.mode,'state',p.state,'va_number',p.va_number,'checked_at',p.checked_at)
         FROM order_payments p WHERE p.order_id=o.id ORDER BY p.created_at DESC,p.id DESC LIMIT 1) AS payment,
       q.version AS quote_version, q.line_items
       FROM orders o JOIN quotes q ON q.id = o.quote_id WHERE o.inquiry_id = $1`, [id]),
-    pool.query(`SELECT e.kind, e.old_status, e.new_status, e.detail, e.created_at, COALESCE(u.display_name,'Sistem Marajut') AS actor
+    pool.query(`SELECT e.sequence::text, e.kind, e.old_status, e.new_status, e.detail, e.created_at, COALESCE(u.display_name,'Sistem Marajut') AS actor
       FROM domain_events e LEFT JOIN users u ON u.id = e.actor_id
       WHERE e.inquiry_id = $1 ORDER BY e.sequence`, [id]),
     one(pool, `SELECT t.id, t.state, CASE WHEN i.request_key = t.id THEN 'whatsapp' ELSE 'web' END AS source,

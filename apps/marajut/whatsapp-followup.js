@@ -37,6 +37,7 @@ export function followupDrafts(inquiry, fields, workflow) {
   const drafts = {};
   const reference = orderReference(inquiry.id);
   const service = `🪡 ${fields.service} · ${inquiry.quantity ?? 1} pakaian`;
+  const blockedReply = ['Jika tidak bisa lanjut','Tidak bisa lanjut.','Catatan: [kendala untuk admin]'];
   const add = (purpose, contextKey, message, {title = followupLabels[purpose], details = [], replies = []} = {}) => {
     const text = [
       `🧵 *MARAJUT — ${title.toUpperCase()}*`,
@@ -59,20 +60,21 @@ export function followupDrafts(inquiry, fields, workflow) {
     if (eta < workflow.today) {
       add('overdue',`${id}:${eta}`,'Perkiraan selesai sudah terlewati. Mohon kabari progres, kendala, dan perkiraan selesai terbaru.',{
         title:'Pembaruan lewat tenggat',details:[due],
-        replies:[['Contoh balasan','Progres: [tahap saat ini]','Kendala: [jika ada]','Perkiraan selesai terbaru: DD/MM/YYYY']]
+        replies:[['Contoh balasan','Progres: [potong, jahit, atau finishing]','Perkiraan selesai terbaru: DD/MM/YYYY'],blockedReply]
       });
     } else if (status==='CONFIRMED') {
       add('start_work',id,'Pelanggan telah menyetujui penawaran. Balas di chat ini dengan salah satu format di bawah dan isi tanggal mulai.',{
         details:[due],replies:[
           ['Jika siap mulai','Siap mulai: DD/MM/YYYY'],
-          ['Jika perlu menyesuaikan jadwal','Usulan mulai: DD/MM/YYYY','Catatan: [kendala atau perubahan jadwal]']
+          ['Jika perlu menyesuaikan jadwal','Usulan mulai: DD/MM/YYYY','Catatan: [kendala atau perubahan jadwal]'],
+          ['Jika pengerjaan sudah dimulai','Sudah mulai.'],blockedReply
         ]
       });
     } else {
       add('work_update',id,'Mohon kabari progres pengerjaan atau beri tahu admin jika jahitan sudah siap.',{
         title:'Kabar pengerjaan',details:[due],replies:[
-          ['Jika masih dikerjakan','Progres: [tahap saat ini]','Perkiraan selesai: DD/MM/YYYY'],
-          ['Jika jahitan sudah siap','Jahitan sudah siap.']
+          ['Jika masih dikerjakan','Progres: [potong, jahit, atau finishing]','Perkiraan selesai: DD/MM/YYYY'],
+          ['Jika jahitan sudah siap','Jahitan sudah siap.'],blockedReply
         ]
       });
     }
@@ -81,7 +83,7 @@ export function followupDrafts(inquiry, fields, workflow) {
       const propose = ['Usulan jadwal lain','Usulan fitting: DD/MM/YYYY HH:mm WIB'];
       if (fittingState==='REQUESTED') {
         add('fitting',contextKey,'Pelanggan meminta jadwal fitting lain. Mohon usulkan tanggal dan jam yang tersedia.',{
-          title:'Jadwal fitting',replies:[propose]
+          title:'Jadwal fitting',replies:[propose,blockedReply]
         });
       } else {
         const proposed = fittingState==='PROPOSED';
@@ -89,14 +91,15 @@ export function followupDrafts(inquiry, fields, workflow) {
           : 'Mohon konfirmasi kesiapan. Setelah fitting dilakukan, kabari admin dengan kode pesanan dan pesan “Fitting selesai”.';
         add('fitting',contextKey,message,{
           title:'Jadwal fitting',details:[`📅 *${proposed ? 'Usulan fitting' : 'Jadwal fitting'}:* ${formatTime(fittingAt)}`],
-          replies:[['Jika waktu tersedia','Saya siap untuk jadwal fitting tersebut.'],propose]
+          replies:[['Jika waktu tersedia','Saya siap untuk jadwal fitting tersebut.'],propose,
+            ...(!proposed ? [['Jika fitting sudah dilakukan','Fitting selesai.']] : []),blockedReply]
         });
       }
     }
   }
   if (status==='READY' && workflow.payment_state!=='PAID') {
     add('await_payment',id,'Jahitan sudah siap. Pembayaran pelanggan masih menunggu verifikasi. Mohon tunggu konfirmasi admin sebelum serah terima.',{
-      title:'Menunggu pembayaran',replies:[['Contoh balasan','Baik, saya tunggu konfirmasi admin.']]
+      title:'Menunggu pembayaran',replies:[['Contoh balasan','Baik, saya tunggu konfirmasi admin.'],blockedReply]
     });
   }
   if (['READY','COMPLETED'].includes(status) && workflow.payment_state==='PAID') {
@@ -116,8 +119,15 @@ export function followupDrafts(inquiry, fields, workflow) {
       shipped:['Pengiriman sudah tercatat di Marajut. Mohon kabari admin jika ada kendala.','Kendala pengiriman: [jika ada]'],
       completed:['Serah terima sudah dicatat selesai di Marajut. Terima kasih.','Serah terima selesai. Terima kasih.']
     };
+    const replies = [['Contoh balasan',next[phase][1]]];
+    if (phase==='ready') {
+      replies.push(workflow.handover==='delivery' ? ['Jika paket sudah diserahkan ke kurir','Paket sudah dikirim.']
+        : ['Jika pakaian sudah diambil pelanggan','Pelanggan sudah mengambil pesanan.']);
+    }
+    if (phase==='shipped') replies.push(['Jika pelanggan sudah menerima paket','Pelanggan sudah menerima pesanan.']);
+    if (phase!=='completed') replies.push(blockedReply);
     add('handover',`${id}:${phase}`,`${payment}\n${next[phase][0]}`,{
-      title:'Serah terima',replies:[['Contoh balasan',next[phase][1]]]
+      title:'Serah terima',replies
     });
   }
   return drafts;

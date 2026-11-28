@@ -42,7 +42,7 @@ const metrics = [
   <% if (!queue.length) { %>
     <div class="queue-empty"><strong><%= search?'Pesanan tidak ditemukan.':'Antrean ini kosong.' %></strong>
       <p><%= search ? 'Coba kode pesanan, nama pelanggan, atau nama penjahit lain.'
-        : filter==='follow-up' ? 'Keluhan terbuka, fitting yang perlu ditangani, dan pengerjaan yang melewati perkiraan selesai muncul di sini.'
+        : filter==='follow-up' ? 'Keluhan, kendala mitra, fitting yang perlu ditangani, dan pengerjaan lewat tenggat muncul di sini.'
         : 'Pesanan akan muncul di sini sesuai tahap pengerjaannya.' %></p></div>
   <% } else { %>
     <div class="desk-row desk-columns" aria-hidden="true"><span>Pesanan</span><span>Pelanggan</span><span>Tahap berikutnya</span><span></span></div>
@@ -51,7 +51,7 @@ const metrics = [
       const status = item.order_status ?? (item.quote_expired?'EXPIRED':item.status);
       const complaint = item.complaint_open;
       const followUp = item.follow_up_priority;
-      const anchor = complaint ? '#keluhan' : followUp===2 ? '#fitting' : '';
+      const anchor = complaint ? '#keluhan' : journey?.key==='TAILOR_BLOCKED' ? '#balasan-whatsapp' : followUp===2 ? '#fitting' : '';
       const due = item.fitting_state==='SCHEDULED' ? null : item.due_date;
       %><li><a class="desk-row" href="/requests/<%= item.id %><%= anchor %>">
         <span class="order-record">

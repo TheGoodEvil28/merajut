@@ -2,6 +2,25 @@
 
 Update this guide with every change. Record the affected roles, prerequisites, steps, expected results, verification method, and any unverified behavior.
 
+## Pembaruan pesanan otomatis dari WhatsApp · 28 November 2026 UTC
+
+Use migration `012_whatsapp_order_progress.sql`, the dispatch worker, `DISPATCH_WHATSAPP_MODE=mock`, `PAYMENT_MODE=demo`, and an isolated test database. Sign in as the admin, customer, and a separate tailor. Approve a synthetic dispatch to a verified assigned partner and accept the quote on the website. To exercise inbound delivery, use the signed callback fixtures in **verified WhatsApp replies advance only eligible order stages and update the customer view**. [Demo](DEMO-RUNBOOK.md)
+
+Each example starts with the order code on its own line, followed by one of these replies. Send it from the assigned partner's private chat after a Marajut dispatch for that request.
+
+| Reply and check | Expected result |
+| --- | --- |
+| `Siap mulai: DD/MM/YYYY`, then `Sudah mulai.` and `Progres: jahit` | The first reply records the planned date. The second moves the order to pengerjaan. Progress appears in the customer view. Text in a private `Catatan` or an unrecognized free-text progress description stays with the admin. |
+| `Usulan fitting: DD/MM/YYYY HH:mm WIB`, then `Fitting selesai.` | The proposed time uses the existing fitting location and requires the customer's website approval. Before confirmation, a finish reply goes to review. After confirmation, the finish reply records completion. |
+| `Tidak bisa lanjut.`, then a separate `Jahitan sudah siap.` | The order shows **Pesanan tertunda** for the customer and appears in **Perlu tindak lanjut** for the admin. The ready reply goes to review while the hold is active. Resume with `Lanjut pengerjaan.` or **Catat kendala selesai**. |
+| `Jahitan sudah siap.`, `Paket sudah dikirim.`, then `Pelanggan sudah menerima pesanan.` | Ready opens checkout once fitting is complete or optional. Shipping needs verified payment. Completion of delivery also needs a recorded shipment. For pickup, use `Pelanggan sudah mengambil pesanan.` after verified payment. |
+| A group reply, duplicate signed delivery, an older confirmation, or a message containing a negation | An ineligible or ambiguous reply stays available to the admin. Duplicate delivery cannot repeat an update. A prior reply cannot supersede a newer accepted update. |
+| Leave the customer's detail page open. Apply a valid reply. Repeat while entering a form or with a dialog open. Try the version endpoint from a different account. | The visible page checks for updates every five seconds. While editing, it preserves the form and shows a refresh prompt. The lightweight endpoint only exposes a revision marker to the owner. |
+
+Payment remains a website action. Already issued payments may still be checked while an order is paused. For a fresh invoice or the next fulfillment milestone, resolve the hold first.
+
+**Checks run.** JavaScript checks, all 25 integration tests, and all three loopback Chromium smoke scripts passed. The signed fixture exercised start planning, hold and resume, fitting confirmation, verified payment, delivery, duplicate and older callbacks, and customer privacy. A mobile browser left open on a synthetic order picked up signed mock callbacks for start, hold, resume, and ready. When the customer edited an unsent complaint, the update prompt appeared and the form value remained intact. Saved an encrypted pre-upgrade database backup and applied migration 012 on the private preview. Hosted Chromium verified authenticated readiness and customer-only polling at 390 px. A reply from an actual linked WhatsApp handset is pending verification.
+
 ## Pemberitahuan pesanan sudah diambil · 28 November 2026 UTC
 
 Use a disposable preview with `DISPATCH_WHATSAPP_MODE=mock`, migration `011_whatsapp_group_taken.sql`, the dispatch worker, an approved test group, and an opted-in assigned tailor. Use a synthetic managed request and separate admin, customer, and tailor sessions. The fixture in **RFC-0004 dispatch authorization, queue recovery and signed replies** exercises the group and private replies.

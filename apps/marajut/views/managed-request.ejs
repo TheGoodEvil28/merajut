@@ -5,7 +5,11 @@ const staffBase = '/api/v1/management';
 const editQuote = user.manager && open && inquiry.dispatch_state==='AVAILABLE' &&
   ['NEW','UNDER_REVIEW','QUOTED','EXPIRED'].includes(inquiry.status);
 const orderPath = '/api/v1/management/orders/'+order?.id+'/transitions';
-const progressAction = { CONFIRMED:['start','Mulai pengerjaan'], IN_PROGRESS:['ready','Tandai jahitan siap'] }[order?.status];
+const progressAction = order?.tailor_blocked ? null : { CONFIRMED:['start','Mulai pengerjaan'], IN_PROGRESS:['ready','Tandai jahitan siap'] }[order?.status];
+const liveOrder = isCustomer && ['CONFIRMED','IN_PROGRESS','READY'].includes(order?.status);
+const tailorUpdateKinds = ['TAILOR_START_PLANNED','TAILOR_PROGRESS','TAILOR_FITTING_ACK','TAILOR_RESUMED'];
+const latestWorkEvent = liveOrder && !order.tailor_blocked && events.findLast(item =>
+  tailorUpdateKinds.includes(item.kind) || ['ORDER_UPDATED','ORDER_SHIPPED'].includes(item.kind) || item.kind.startsWith('FITTING_'));
 const fittingOutstanding = Boolean(order?.fitting_state && order.fitting_state!=='DONE');
 const hasPayment = Boolean(order && order.status!=='CANCELLED');
 const showHandover = order?.status==='COMPLETED' || (order?.status==='READY' && order.payment?.state==='PAID');
@@ -19,7 +23,7 @@ const dispatchFirst = open && ['NEW','CONTACTED','UNAVAILABLE'].includes(journey
 const awaitingReplyDecision = user.manager && open && ['NEW','CONTACTED'].includes(journey.key) && whatsapp?.replies.length > 0;
 const showWhatsAppFollowups = whatsapp && whatsapp.mode!=='disabled' && whatsapp.followups.some(preview=>preview.channel==='partner');
 %>
-<section class="section workflow-page">
+<section class="section workflow-page" <% if (liveOrder) { %>data-order-version="<%= events.at(-1)?.sequence ?? '0' %>" data-order-updates="/api/v1/inquiries/<%= inquiry.id %>/order-version"<% } %>>
   <a class="back" href="<%= user.manager?'/pengelola':'/workspace' %>"><%= user.manager?'Pesanan':'Pesanan Saya' %></a>
   <header class="page-heading workflow-heading">
     <div>
@@ -40,6 +44,7 @@ const showWhatsAppFollowups = whatsapp && whatsapp.mode!=='disabled' && whatsapp
   <% } %>
   <% if (formError) { %><p class="notice error-message" role="alert"><%= formError %></p>
   <% } else if (notice) { %><p class="save-feedback" role="status"><%- include('icon',{name:'check'}) %> <%= notice %></p><% } %>
+  <% if (liveOrder) { %><p class="notice" data-order-update-pending role="status" hidden>Ada pembaruan pesanan. Muat ulang halaman setelah selesai mengisi.</p><% } %>
   <div class="workflow-layout">
     <div class="stack">
       <section class="next-action <%= isCustomer?'customer-action':'' %>" aria-labelledby="next-title">
@@ -57,6 +62,19 @@ const showWhatsAppFollowups = whatsapp && whatsapp.mode!=='disabled' && whatsapp
           <a class="button" href="<%= journey.href %>"><%= journey.action %> <%- include('icon',{name:'arrow'}) %></a>
         <% } %>
       </section>
+      <% if (tailorUpdateKinds.includes(latestWorkEvent?.kind)) { %>
+        <div class="card workflow-card" aria-label="Kabar terbaru dari mitra">
+          <strong><%= eventLabel(latestWorkEvent.kind) %></strong>
+          <% if (latestWorkEvent.detail) { %><p><%= latestWorkEvent.detail %></p><% } %>
+          <p class="muted"><%= dateTime(latestWorkEvent.created_at) %></p>
+        </div>
+      <% } %>
+      <% if (journey.key==='TAILOR_BLOCKED' && user.manager) { %>
+        <form method="post" action="<%= orderPath %>">
+          <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
+          <button name="action" value="resume">Catat kendala selesai</button>
+        </form>
+      <% } %>
       <% if (showWhatsAppFollowups) { %><a class="button secondary" href="#tindak-lanjut-whatsapp">Tindak lanjut WhatsApp mitra</a><% } %>
       <% if (showClarification) { %>
         <section class="card workflow-card" id="klarifikasi" tabindex="-1">

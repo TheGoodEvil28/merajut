@@ -30,6 +30,7 @@ export async function deskOverview(pool, query) {
       END AS queue_stage,
       CASE
         WHEN complaint_open THEN 1
+        WHEN tailor_blocked AND order_status IN ('CONFIRMED','IN_PROGRESS','READY') THEN 1
         WHEN order_status IN ('CONFIRMED','IN_PROGRESS') AND (
           fitting_state='REQUESTED' OR (fitting_state IN ('SCHEDULED','PROPOSED') AND fitting_at<=now())
         ) THEN 2

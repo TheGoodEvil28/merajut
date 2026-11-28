@@ -85,6 +85,11 @@ const stages = {
     customer:['Penjahit sedang mengerjakan pesanan', 'Anda dapat melihat perkiraan selesai di rincian pesanan.'],
     admin:['Catat saat jahitan siap', 'Setelah penjahit memberi kabar bahwa pekerjaan selesai, buka tagihan untuk pelanggan.', 'Perbarui pengerjaan', '#pengerjaan']
   },
+  TAILOR_BLOCKED: {
+    label:'Pesanan tertunda', tone:'attention',
+    customer:['Admin sedang meninjau kendala', 'Mitra melaporkan bahwa pesanan belum bisa dilanjutkan. Pembaruan berikutnya akan muncul di sini.'],
+    admin:['Tindak lanjuti kendala mitra', 'Periksa balasan WhatsApp. Catat kendala selesai setelah pesanan siap dilanjutkan.', 'Lihat balasan', '#balasan-whatsapp']
+  },
   DUE: {
     label:'Siap dibayar', step:3, tone:'attention',
     customer:['Jahitan sudah siap', 'Bayar sesuai total yang Anda setujui agar admin bisa mengatur serah terima.', 'Buka pembayaran', '#pembayaran'],
@@ -142,6 +147,7 @@ function stageKey(item, paymentMode) {
   const status = item.order_status ?? item.status;
   if (status === 'COMPLETED') return 'COMPLETE';
   if (['CANCELLED','DECLINED'].includes(status)) return 'CLOSED';
+  if (item.tailor_blocked) return 'TAILOR_BLOCKED';
   if (status === 'READY') {
     if (item.shipped_at) return 'SHIPPED';
     if (item.payment_state === 'PAID') return item.handover === 'delivery' ? 'DELIVERY' : 'PICKUP';
@@ -172,5 +178,6 @@ export function orderJourney(item, role, paymentMode) {
   const group = ['COMPLETE','REASSIGNED','CLOSED'].includes(key) ? 'history'
     : ['NEEDS_DETAILS','UNAVAILABLE','REJECTED','QUOTED','FITTING_PROPOSED','FITTING_PAST','DUE','PAYMENT_FAILED'].includes(key)
       || (key === 'PENDING' && item.payment_mode !== 'demo') ? 'action' : 'ongoing';
-  return { key, label:stage.label, step:stage.step, tone:stage.tone, title, description, action, href, group };
+  const step = key==='TAILOR_BLOCKED' ? (item.order_status==='READY' ? (item.payment_state==='PAID' ? 4 : 3) : 2) : stage.step;
+  return { key, label:stage.label, step, tone:stage.tone, title, description, action, href, group };
 }

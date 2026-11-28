@@ -9,7 +9,7 @@
   <% if (order.status==='READY' && isCustomer && order.handover==='delivery' && !order.shipped_at) { %>
     <p><a href="/akun/profil">Periksa alamat pengiriman di profil</a></p>
   <% } %>
-  <% if (order.status==='READY' && user.manager) { %>
+  <% if (order.status==='READY' && user.manager && !order.tailor_blocked) { %>
     <form class="stack" method="post" action="<%= path %>">
       <input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="revision" value="<%= order.revision %>">
       <% if (order.handover==='delivery' && !order.shipped_at) { %>

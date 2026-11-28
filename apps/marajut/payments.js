@@ -68,6 +68,7 @@ export async function startPayment(pool,actor,id,settings,gateway) {
     const order=found(await one(db,`SELECT o.* FROM orders o JOIN inquiries i ON i.id=o.inquiry_id
       WHERE o.id=$1 AND i.customer_id=$2 FOR UPDATE OF o`,[id,actor.id]));
     if (order.status!=='READY' || order.fee_bps===null) conflict('Selesaikan pengerjaan terlebih dahulu.');
+    if (order.tailor_blocked) conflict('Tagihan baru tersedia setelah kendala pesanan selesai.');
     const existing=await one(db,"SELECT * FROM order_payments WHERE order_id=$1 AND state<>'FAILED'",[id]);
     if (existing) return {...existing,inquiry_id:order.inquiry_id};
     const fee=Math.round(order.amount*order.fee_bps/10000);

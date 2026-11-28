@@ -6,7 +6,7 @@ const beforeReady = ['CONFIRMED','IN_PROGRESS'].includes(order.status);
 const modeUsed = pending || payment?.state==='PAID' ? payment.mode : paymentMode;
 const blocked = ready && (paymentMode==='disabled' || (pending && payment.mode!==paymentMode));
 const visibleMethod = { demo:'Simulasi lokal', sandbox:'Sandbox Midtrans', live:'Virtual account BNI', disabled:'Pembayaran belum tersedia' };
-const canStart = ready && user.role==='customer' && !blocked &&
+const canStart = ready && user.role==='customer' && !blocked && !order.tailor_blocked &&
   (!payment || failed || (pending && !payment.va_number && modeUsed!=='demo'));
 const canCheck = ready && pending && !blocked && (user.manager || (user.role==='customer' && modeUsed!=='demo' && payment.va_number));
 const startLabel = modeUsed==='demo' ? (failed ? 'Ulangi pembayaran simulasi' : 'Mulai pembayaran simulasi')
@@ -22,10 +22,11 @@ const startLabel = modeUsed==='demo' ? (failed ? 'Ulangi pembayaran simulasi' : 
   <% } %>
   <% if (paymentError) { %><p class="notice error-message" role="alert"><%= paymentError %></p><% } %>
   <% if (beforeReady) { %>
-    <p>Tagihan tersedia setelah admin menandai jahitan siap.</p>
+    <p>Tagihan tersedia setelah jahitan ditandai siap.</p>
   <% } else { %>
     <% if (payment?.checked_at) { %><p class="muted form-help">Diperiksa <%= dateTime(payment.checked_at) %></p><% } %>
     <% if (blocked && payment?.state!=='PAID') { %><p class="notice">Pembayaran sedang tidak tersedia. Silakan periksa kembali nanti.</p><% } %>
+    <% if (order.tailor_blocked && (!payment || failed)) { %><p class="notice">Tagihan baru tersedia setelah kendala pesanan selesai.</p><% } %>
     <% if (ready && !blocked && failed) { %>
       <p>Tagihan sebelumnya sudah ditutup.
         <% if (user.role==='customer') { %>Pilih <strong><%= startLabel %></strong> untuk melanjutkan.
