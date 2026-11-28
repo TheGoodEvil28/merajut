@@ -1,4 +1,4 @@
-name: marajut-openwa
+name: merajut-openwa
 
 # Start explicitly with --env-file .env.openwa -f compose.openwa.yaml.
 services:
@@ -23,7 +23,7 @@ services:
       # The dashboard is reached through a localhost SSH forward.
       CSP_UPGRADE_INSECURE_REQUESTS: "false"
       WEBHOOK_SSRF_PROTECT: "true"
-      SSRF_ALLOWED_HOSTS: marajut-dispatch-callback
+      SSRF_ALLOWED_HOSTS: ${OPENWA_CALLBACK_HOST:-merajut-dispatch-callback}
       WEBHOOK_MAX_PAYLOAD_BYTES: "65536"
       WEBHOOK_MEDIA_INLINE_MAX_BYTES: "0"
     volumes:

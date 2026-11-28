@@ -28,8 +28,8 @@ async function confirmAction(page) {
 const screenshots=process.env.BROWSER_SCREENSHOTS;
 const metric=[];
 const tag=randomBytes(4).toString('hex');
-const guestEmail='guest-'+tag+'@marajut.test';
-const providerEmail='tailor-'+tag+'@marajut.test';
+const guestEmail='guest-'+tag+'@merajut.test';
+const providerEmail='tailor-'+tag+'@merajut.test';
 const guest=await browser.newPage({...pageOptions,viewport:{width:360,height:844}});
 const staff=await browser.newPage({...pageOptions,viewport:{width:1366,height:900}});
 const provider=await browser.newPage({...pageOptions,viewport:{width:1024,height:900}});
@@ -96,7 +96,7 @@ try {
     await checkScreen(guest,name);
   }
   await staff.goto('/login');
-  await signIn(staff,'operator@marajut.test');
+  await signIn(staff,'operator@merajut.test');
   await checkScreen(staff,'management');
   await staff.getByRole('link',{name:'Operasional',exact:true}).click();
   await staff.getByRole('button',{name:'Undang pengguna',exact:true}).click(); // opens the invite modal
@@ -192,7 +192,7 @@ try {
   await reset.getByLabel('Email').fill(guestEmail);
   await reset.getByRole('button',{name:'Kirim tautan'}).click();
   await reset.getByRole('heading',{name:'Periksa email Anda'}).waitFor();
-  await openProof(reset,guestEmail,'Atur ulang kata sandi Marajut');
+  await openProof(reset,guestEmail,'Atur ulang kata sandi Merajut');
   await reset.getByLabel('Kata sandi baru').fill(password+'-baru');
   await reset.getByRole('button',{name:'Simpan kata sandi baru'}).click();
   await reset.getByText('Kata sandi diperbarui.',{exact:false}).waitFor();
@@ -203,7 +203,7 @@ try {
   await signIn(reset,guestEmail,password+'-baru');
 
   const signup=await browser.newPage({...pageOptions,viewport:{width:360,height:844}});
-  const signupEmail='signup-'+tag+'@marajut.test';
+  const signupEmail='signup-'+tag+'@merajut.test';
   await signup.goto('/akun/daftar');
   await signup.getByLabel('Email').fill(signupEmail);
   await signup.getByRole('button',{name:'Kirim tautan'}).click();

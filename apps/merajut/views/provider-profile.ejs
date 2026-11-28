@@ -1,0 +1,27 @@
+<%- include('header') %>
+<section class="section">
+  <div class="page-heading"><h1>Profil Usaha</h1>
+    <% if (business.published) { %><a class="button secondary" href="/penjahit/<%= business.slug %>">Lihat profil publik <%- include('icon', {name:'external'}) %></a><% } %>
+  </div>
+  <% if (saved) { %><p class="notice" role="status">Profil usaha berhasil disimpan.</p><% } %>
+  <div class="stack profile-layout">
+    <aside class="card profile-info" aria-labelledby="profile-info-title">
+      <h2 id="profile-info-title">Tampilan untuk pelanggan</h2>
+      <p>Pelanggan melihat nama usaha, area layanan, cerita usaha, dan layanan yang Anda tampilkan.</p>
+      <p>Gunakan keterangan publik. Hindari mencantumkan alamat rumah atau kontak pribadi.</p>
+      <% if (!business.published) { %><p class="notice">Profil belum dipublikasikan oleh pengelola Merajut.</p><% } %>
+    </aside>
+    <form class="card stack" method="post" action="/api/v1/provider/profile">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <label><span class="field-label">Nama usaha<span class="req" aria-hidden="true"></span></span><input name="name" value="<%= business.name %>" minlength="3" maxlength="80" required></label>
+      <label><span class="field-label">Area layanan<span class="req" aria-hidden="true"></span></span><input name="area" value="<%= business.area %>" minlength="3" maxlength="100" required
+        aria-describedby="area-help"></label>
+      <p class="muted form-help" id="area-help">Isi nama wilayah yang Anda layani, misalnya Semarang Tengah.</p>
+      <label><span class="field-label">Cerita usaha<span class="req" aria-hidden="true"></span></span><textarea name="description" rows="6" minlength="10" maxlength="600" required
+        aria-describedby="description-help"><%= business.description %></textarea></label>
+      <p class="muted form-help" id="description-help">Jelaskan jenis jahitan dan cara pelanggan dapat menyiapkan permintaan.</p>
+      <button>Simpan profil</button>
+    </form>
+  </div>
+</section>
+<%- include('footer') %>

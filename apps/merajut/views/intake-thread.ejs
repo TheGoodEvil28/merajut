@@ -1,0 +1,84 @@
+<%- include('header') %>
+<% const labels = {
+  AUTOMATED: 'Pengisian otomatis', AWAITING_CUSTOMER: 'Menunggu informasi pelanggan',
+  AWAITING_HUMAN: 'Perlu ditangani', HUMAN: 'Sedang ditangani', RESOLVED: 'Percakapan selesai'
+};
+const customer = user.role === 'customer';
+const canAct = !customer && thread.handler && thread.state === 'HUMAN';
+const actionPath = '/api/v1/intake/threads/' + thread.id + '/actions'; %>
+<section class="section">
+  <a class="back" href="/workspace/intake">Percakapan</a>
+  <div class="page-heading">
+    <h1><%= thread.service ?? 'Percakapan belum diarahkan' %></h1>
+    <span class="status"><%= labels[thread.state] %></span>
+  </div>
+  <p class="notice">Simulasi WhatsApp. Pesan hanya muncul di Merajut. <a href="/workspace/intake/<%= thread.id %>">Muat ulang</a></p>
+  <div class="split">
+    <section class="card timeline">
+      <h2>Percakapan</h2>
+      <ol>
+        <% for (const message of messages) { %>
+          <li>
+            <strong><%= { INBOUND: 'Pelanggan', OUTBOUND: 'Balasan simulasi', SYSTEM: 'Aktivitas' }[message.direction] %></strong>
+            <time datetime="<%= message.created_at.toISOString() %>"><%= dateTime(message.created_at) %></time>
+            <p class="preserve"><%= message.body %></p>
+          </li>
+        <% } %>
+      </ol>
+    </section>
+    <div class="stack">
+      <section class="card">
+        <h2>Permintaan layanan</h2>
+        <% if (thread.details) { %><p class="preserve"><%= thread.details %></p><% } %>
+        <% if (thread.inquiry_id) { %><a class="button secondary" href="/requests/<%= thread.inquiry_id %>">Buka permintaan layanan</a>
+        <% } else if (thread.draft_at && thread.state !== 'RESOLVED') { %>
+          <p>Draf siap dijadikan permintaan untuk penawaran.</p>
+          <% if (customer || canAct) { %>
+            <form method="post" action="<%= actionPath %>">
+              <input type="hidden" name="_csrf" value="<%= csrf %>">
+              <button name="kind" value="convert">Buat permintaan layanan</button>
+            </form>
+            <% if (canAct) { %>
+              <details class="action-details">
+                <summary>Tautkan permintaan yang sudah ada</summary>
+                <form class="stack" method="post" action="<%= actionPath %>">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <label><span class="field-label">ID permintaan<span class="req" aria-hidden="true"></span></span><input name="inquiryId" maxlength="36" required></label>
+                  <button class="secondary" name="kind" value="link">Tautkan permintaan</button>
+                </form>
+              </details>
+            <% } %>
+          <% } %>
+        <% } else { %><p class="muted">Pilih layanan, isi detail, dan tautkan pengirim agar draf siap.</p><% } %>
+        <% if (customer && !thread.inquiry_id && ['AUTOMATED', 'AWAITING_CUSTOMER'].includes(thread.state)) { %>
+          <form class="action-details" method="post" action="<%= actionPath %>">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <button class="secondary" name="kind" value="close" data-confirm="Draf permintaan dari percakapan ini ditutup." data-confirm-title="Tutup draf?" data-confirm-action="Ya, tutup" data-confirm-icon="cancel" data-confirm-tone="danger">Tutup draf ini</button>
+          </form>
+        <% } %>
+      </section>
+      <% if (!customer && thread.state === 'AWAITING_HUMAN') { %>
+        <form class="card" method="post" action="<%= actionPath %>">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <button name="kind" value="claim">Tangani percakapan</button>
+        </form>
+      <% } %>
+      <% if (canAct) { %>
+        <section class="card stack">
+          <h2>Tanggapi percakapan</h2>
+          <form class="stack" method="post" action="<%= actionPath %>">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <label><span class="field-label">Balasan<span class="req" aria-hidden="true"></span></span><textarea name="text" maxlength="1500" rows="4" required></textarea></label>
+            <button name="kind" value="reply">Kirim balasan simulasi</button>
+          </form>
+          <form class="actions" method="post" action="<%= actionPath %>">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <button class="secondary" name="kind" value="return">Kembalikan ke pengisian otomatis</button>
+            <button class="secondary" name="kind" value="resolve" data-confirm="Percakapan ditandai selesai." data-confirm-title="Selesaikan percakapan?" data-confirm-action="Ya, selesaikan" data-confirm-icon="check">Selesaikan percakapan</button>
+          </form>
+        </section>
+      <% } %>
+    </div>
+  </div>
+</section>
+<%- include('footer') %>

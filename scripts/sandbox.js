@@ -6,7 +6,7 @@ const valid=port=>/^\d{4,5}$/.test(port??'') && Number(port)>3101 && Number(port
 if (!valid(appPort) || !valid(mailPort) || appPort===mailPort) {
   throw new Error('Pass two unused ports above 3101 for the sandbox app and mailbox.');
 }
-const project='marajut-sandbox-'+randomBytes(5).toString('hex');
+const project='merajut-sandbox-'+randomBytes(5).toString('hex');
 const options={
   stdio:'inherit',
   env:{...process.env,APP_PORT:appPort,MAIL_PORT:mailPort,PAYMENT_MODE:'demo',MESSAGING_MODE:'simulated'}

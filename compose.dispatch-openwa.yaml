@@ -3,7 +3,8 @@ services:
     networks:
       default:
       dispatch:
-        aliases: [marajut-dispatch-callback]
+        # Existing linked gateways may still use the original callback alias.
+        aliases: [merajut-dispatch-callback, marajut-dispatch-callback]
   dispatch-worker:
     networks: [default, dispatch]
     environment:
@@ -13,4 +14,4 @@ services:
 networks:
   dispatch:
     external: true
-    name: ${OPENWA_DISPATCH_NETWORK:-marajut-openwa_dispatch}
+    name: ${OPENWA_DISPATCH_NETWORK:-merajut-openwa_dispatch}

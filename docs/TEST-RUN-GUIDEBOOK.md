@@ -1,6 +1,18 @@
-# Marajut test run guidebook
+# Merajut test run guidebook
 
 Update this guide with every change. Record the affected roles, prerequisites, steps, expected results, verification method, and any unverified behavior.
+
+## Merajut brand correction · 28 November 2026 UTC
+
+Use Docker Compose, Node 22 or later, Chromium, and separate guest, customer, tailor, and admin sessions on a synthetic preview. Build and run the integration suite and the three loopback browser scripts. For an existing preview use its Compose project name, PostgreSQL settings and mounted volumes. For OpenWA reuse the registered callback hostname and network with `OPENWA_CALLBACK_HOST` and `OPENWA_DISPATCH_NETWORK`.
+
+| Step | Reproduce | Expected result |
+| --- | --- | --- |
+| Guest, customer, tailor, admin | Open the marketplace, sign in with the seeded `@merajut.test` addresses, and check order and partner pages, account email and an outbound WhatsApp preview. | Website labels, logo links, email, and new message templates show **Merajut**. |
+| Maintainer | Apply migration 013 to an existing synthetic account, open password proof and session. Verify an address collision and try the previous cookie in the same session. | Account identities, password digests, proof links and active sessions stay valid. The previous migration checksums still match. |
+| Maintainer | Check readiness and both DNS aliases from the linked OpenWA container after updating the private preview. Review the four fresh marketplace, order and workspace screenshots under `docs/product/evidence`. | The existing linked gateway can still reach its callback host. Current screenshots use **Merajut**. Older historical captures document earlier versions. |
+
+**Checks run.** Compose validation, JavaScript checks, all 26 integration tests, and all three loopback Chromium smoke scripts passed. Captured four replacement screenshots from isolated QA and verified links to renamed files. Saved an encrypted database backup, deployed `merajut-preview:dispatch-rfc4` on the existing preview, and applied migration 013. Nine synthetic addresses and two pilot profile labels were corrected. Hosted Chromium verified the original customer session across the restart and sign-ins with the updated admin and tailor addresses. The new WhatsApp template and Caddy realm use **Merajut**, and both callback aliases returned readiness from the linked gateway container. Live delivery of a newly branded WhatsApp message remains to be verified.
 
 ## Data calon mitra lewat WhatsApp · 28 November 2026 UTC
 
@@ -18,7 +30,7 @@ Use an admin session and separate customer and existing tailor sessions on an is
 
 Use migration `012_whatsapp_order_progress.sql`, the dispatch worker, `DISPATCH_WHATSAPP_MODE=mock`, `PAYMENT_MODE=demo`, and an isolated test database. Sign in as the admin, customer, and a separate tailor. Approve a synthetic dispatch to a verified assigned partner and accept the quote on the website. To exercise inbound delivery, use the signed callback fixtures in **verified WhatsApp replies advance only eligible order stages and update the customer view**. [Demo](DEMO-RUNBOOK.md)
 
-Each example starts with the order code on its own line, followed by one of these replies. Send it from the assigned partner's private chat after a Marajut dispatch for that request.
+Each example starts with the order code on its own line, followed by one of these replies. Send it from the assigned partner's private chat after a Merajut dispatch for that request.
 
 | Reply and check | Expected result |
 | --- | --- |
@@ -102,7 +114,7 @@ Use a private preview with synthetic accounts and a disposable QA database. Keep
 
 The tailor proposes the price, estimated completion and fitting availability by replying to the WhatsApp form. The admin reviews the imported draft in **Susun penawaran** and can also enter a manually agreed quote. Select **Kirim penawaran** to publish the quote in the customer's account. Use **Salin tautan penawaran** and forward the link to the customer through the chosen channel. Open it in a signed-out browser and sign in as the request owner. The quote opens on the same request and the customer can accept, decline or request a revision. An unrelated customer receives 404. The private reply stays on the admin side.
 
-After the customer accepts, the admin asks the tailor for progress updates through **WhatsApp pribadi mitra** and records the fitting and work milestones. The customer starts payment once the work is ready. In the preview, the admin uses **Verifikasi simulasi lunas**. With a configured live payment channel, **Periksa status pembayaran** checks settlement with the provider. Record handover once Marajut shows **Lunas**.
+After the customer accepts, the admin asks the tailor for progress updates through **WhatsApp pribadi mitra** and records the fitting and work milestones. The customer starts payment once the work is ready. In the preview, the admin uses **Verifikasi simulasi lunas**. With a configured live payment channel, **Periksa status pembayaran** checks settlement with the provider. Record handover once Merajut shows **Lunas**.
 
 All 24 integration tests and three browser smoke scripts passed. The browser copied the published quote link, opened it in a fresh session, signed in and returned to the pending quote. The integration case denied another customer and kept the tailor's reply out of the customer page. Hosted Chromium at 390 px showed the matched reply inside the quote form. The hosted customer could sign in from the order link and return to the same order. The hosted test left the quote ready for the admin to enter the agreed terms.
 
@@ -110,7 +122,7 @@ All 24 integration tests and three browser smoke scripts passed. The browser cop
 
 ## RFC-0004 WhatsApp dispatch · 27 November 2026 UTC
 
-Use a Marajut platform admin to approve messages and review replies. Use separate customer and tailor sessions to verify access and the order workflow. The platform admin records group consent in **Operasional → Pengiriman WhatsApp** and direct consent in **Kelola mitra**. Record the evidence reference for the current number. If group membership changes, pause the group, reverify membership and consent, and update the partner membership records after recording the new group permission. For a Baileys `@lid` address, verify its phone through OpenWA's session contact phone endpoint before recording the alias. [RFC-0004 dispatch plan](rfc/RFC-0004-MARAJUT-PILOT-REPORTING.md#5-admin-and-tailor-workflow)
+Use a Merajut platform admin to approve messages and review replies. Use separate customer and tailor sessions to verify access and the order workflow. The platform admin records group consent in **Operasional → Pengiriman WhatsApp** and direct consent in **Kelola mitra**. Record the evidence reference for the current number. If group membership changes, pause the group, reverify membership and consent, and update the partner membership records after recording the new group permission. For a Baileys `@lid` address, verify its phone through OpenWA's session contact phone endpoint before recording the alias. [RFC-0004 dispatch plan](rfc/RFC-0004-MERAJUT-PILOT-REPORTING.md#5-admin-and-tailor-workflow)
 
 ### Simulated rehearsal
 
@@ -134,7 +146,7 @@ preview_dispatch up -d --wait --no-build
 preview_dispatch exec -T proxy caddy reload --config /etc/caddy/Caddyfile
 ```
 
-Use the owner's gateway key to register two subscriptions at `http://marajut-dispatch-callback:3100/webhooks/openwa`. Use the same webhook secret for both. Filter the first subscription to `message.ack` and `message.failed` for approved chats. Filter the second to `message.received`, the same chats, `type=text`, and `fromMe=false`. Run the gateway's webhook test for both, expect 204, and check that the public callback path is blocked. Update the scoped key and subscription filters when the approved chats change. [OpenWA subscriptions and filters](https://docs.open-wa.org/guides/webhooks)
+Use the owner's gateway key to register two subscriptions at `http://merajut-dispatch-callback:3100/webhooks/openwa`. Use the same webhook secret for both. Filter the first subscription to `message.ack` and `message.failed` for approved chats. Filter the second to `message.received`, the same chats, `type=text`, and `fromMe=false`. Run the gateway's webhook test for both, expect 204, and check that the public callback path is blocked. Update the scoped key and subscription filters when the approved chats change. [OpenWA subscriptions and filters](https://docs.open-wa.org/guides/webhooks)
 
 For new messages select **Konfirmasi kirim** on the relevant request. On **Operasional**, confirm the dispatch worker's latest heartbeat and gateway readiness. If an attempt shows **Perlu diperiksa**, inspect WhatsApp before recording the outcome from the request page. Use **Jeda pengiriman** to stop new approvals and worker claims while leaving reply and receipt processing active. To stop the worker as well, run `preview_dispatch stop dispatch-worker`. Check the session and recipient permissions before resuming. Set dispatch to `disabled` and keep callback session and secret settings when restoring a database for reconciliation. Protect gateway backups as credentials. Dispatch message and audit retention periods are pending privacy approval.
 
@@ -143,13 +155,13 @@ For new messages select **Konfirmasi kirim** on the relevant request. On **Opera
 | Mock and roles | All 24 integration tests passed. The dispatch checks exercised exact previews, concurrent approval replay, stale input, consent withdrawal, pause, worker retries, expired leases, scoped signed webhooks, verified aliases, receipt ordering, reply deduplication, and customer and tailor denial. |
 | Browser regression | Customer checkout and payment retry, fitting changes, order history, simulated chat handoff, legacy tailor access, and verified guest pickup passed on a separate QA database. The browser scripts now wait for confirmed form saves before switching sessions. |
 | Pilot deployment | Saved an encrypted pre-upgrade database backup, applied migration `009_whatsapp_dispatch.sql`, and kept the existing preview data. Chromium verified public HTTPS readiness, admin sign-in, private callback exclusion, and both confirmation forms at 390 px. A plain HTTP client received Cloudflare Error 1010. Both private subscription tests returned 204. |
-| Approved WhatsApp tests | Approved one synthetic request per channel from the website. The approved group and direct partner reached gateway acceptance in one attempt. Verified the direct-chat alias through OpenWA, recorded it on the partner permission, and recovered verified delivery for the outbound message through the chat-scoped OpenWA message API. Marajut showed **Terkirim** for the direct request. |
+| Approved WhatsApp tests | Approved one synthetic request per channel from the website. The approved group and direct partner reached gateway acceptance in one attempt. Verified the direct-chat alias through OpenWA, recorded it on the partner permission, and recovered verified delivery for the outbound message through the chat-scoped OpenWA message API. Merajut showed **Terkirim** for the direct request. |
 
 The initial two-message test concluded with outbound work paused and a pending live partner reply. Keep the current recipient, permissions, private preview hostname and live reply status in the private QA runbook. The preview accepts form submissions from its configured loopback origin.
 
 ## RFC-0004 pilot reporting and OpenWA dispatch plan · 26 November 2026 WIB
 
-**Roles and setup.** Use separate admin, customer, and existing tailor sessions, plus a synthetic partner who replies through a fixture chat. Maintainers need Node 22, Docker Compose, Playwright Chromium, and a disposable database. After implementation, start a fresh sandbox with `DISPATCH_WHATSAPP_MODE=mock` and seed one opted-in group and partner, a partner without opt-in, and managed requests for both. Use the sandbox and browser commands from the pilot readiness check. [Sandbox setup](../README.md#rehearse-in-a-fresh-demo) · [Roadmap](roadmap/MARAJUT-IMPLEMENTATION-ROADMAP.md#next-update--26-november-2026-wib) · [RFC-0004](rfc/RFC-0004-MARAJUT-PILOT-REPORTING.md)
+**Roles and setup.** Use separate admin, customer, and existing tailor sessions, plus a synthetic partner who replies through a fixture chat. Maintainers need Node 22, Docker Compose, Playwright Chromium, and a disposable database. After implementation, start a fresh sandbox with `DISPATCH_WHATSAPP_MODE=mock` and seed one opted-in group and partner, a partner without opt-in, and managed requests for both. Use the sandbox and browser commands from the pilot readiness check. [Sandbox setup](../README.md#rehearse-in-a-fresh-demo) · [Roadmap](roadmap/MERAJUT-IMPLEMENTATION-ROADMAP.md#next-update--26-november-2026-wib) · [RFC-0004](rfc/RFC-0004-MERAJUT-PILOT-REPORTING.md)
 
 | Check | Steps | Expected result |
 | --- | --- | --- |
@@ -165,16 +177,16 @@ The initial two-message test concluded with outbound work paused and a pending l
 
 ## RFC-0003 private preview and pilot · 26 November 2026 WIB
 
-Use Docker Compose with Linux containers, Node 22, Playwright Chromium, and an isolated synthetic database. Prepare separate tester and QA gate credentials and three Marajut demo sessions for the customer, admin, and existing tailor. The maintainer uses the `preview` command and project name from the README. [Preview setup](../README.md#run-a-private-https-preview) · [RFC-0003](rfc/RFC-0003-MARAJUT-PRIVATE-PREVIEW-AND-PILOT.md)
+Use Docker Compose with Linux containers, Node 22, Playwright Chromium, and an isolated synthetic database. Prepare separate tester and QA gate credentials and three Merajut demo sessions for the customer, admin, and existing tailor. The maintainer uses the `preview` command and project name from the README. [Preview setup](../README.md#run-a-private-https-preview) · [RFC-0003](rfc/RFC-0003-MERAJUT-PRIVATE-PREVIEW-AND-PILOT.md)
 
 | Check | Steps | Expected result |
 | --- | --- | --- |
-| Preview access | Run `preview config --quiet`, build, start, and seed a fresh preview. Open the HTTP app URL, then the HTTPS app and mailbox in fresh sessions. Try the tester login at both gates and the QA login at the mailbox. | HTTP redirects to HTTPS. A fresh session receives a login challenge. Testers can reach Marajut, and QA can reach its test mailbox. The proxy is the only published service. |
+| Preview access | Run `preview config --quiet`, build, start, and seed a fresh preview. Open the HTTP app URL, then the HTTPS app and mailbox in fresh sessions. Try the tester login at both gates and the QA login at the mailbox. | HTTP redirects to HTTPS. A fresh session receives a login challenge. Testers can reach Merajut, and QA can reach its test mailbox. The proxy is the only published service. |
 | VM access for invited testers | Set both DNS names and allow TCP 80 and 443 on the VM. From another network, open the app over HTTP, follow the redirect, and sign in with a tester gate account. Open the mail hostname with the same login, then with the QA login. Complete a synthetic customer signup and have QA relay its verification code. | Both hostnames use trusted certificates. The app opens for a tester. The mailbox returns an authentication challenge for the tester and opens for QA. The customer can sign in with the verified signup. |
-| Sessions and client limits | Sign in to Marajut from two clients on different networks or addresses and compare their login rate-limit headers. Sign in as the second demo customer and open a known order owned by the first. | The HTTPS session cookie is Secure and HttpOnly. Each client has its own allowance. The order is available only to authorized roles. |
+| Sessions and client limits | Sign in to Merajut from two clients on different networks or addresses and compare their login rate-limit headers. Sign in as the second demo customer and open a known order owned by the first. | The HTTPS session cookie is Secure and HttpOnly. Each client has its own allowance. The order is available only to authorized roles. |
 | Order journeys | Run the three loopback smoke commands below. On a hosted preview, repeat the tasks manually from an invited session. | Customer, admin, and existing tailor sign-ins work. Delivery with fitting and payment retry, simulated chat handoff, and verified guest pickup complete. Account verification and recovery email links open at the canonical HTTPS origin. |
 | Restart recovery | Check readiness and the admin's **Operasional** heartbeat, run `preview restart web worker`, then check both again. | The authenticated readiness route returns 200 and the worker heartbeat advances after restart. Existing requests and order history remain readable. |
-| Encrypted restore | With `MARAJUT_BACKUP_PASSPHRASE` in the process environment, run `node --env-file=.env.preview scripts/db-backup.js save marajut-preview-qa <backup-file>`. Then run `node --env-file=.env.preview scripts/db-backup.js rehearse marajut-preview-qa <backup-file> <request-uuid>`. Use the project name for the running preview and the full UUID from a known completed order's request URL. | Counts match the preview. The order read model opens the restored request and reports its status and event types. The rehearsal database is removed afterward. |
+| Encrypted restore | With `MERAJUT_BACKUP_PASSPHRASE` in the process environment, run `node --env-file=.env.preview scripts/db-backup.js save merajut-preview-qa <backup-file>`. Then run `node --env-file=.env.preview scripts/db-backup.js rehearse merajut-preview-qa <backup-file> <request-uuid>`. Use the project name for the running preview and the full UUID from a known completed order's request URL. | Counts match the preview. The order read model opens the restored request and reports its status and event types. The rehearsal database is removed afterward. |
 
 For the loopback smoke, run `preview cp proxy:/data/caddy/pki/authorities/local/root.crt .preview-secrets/preview-root.crt` and set `NODE_EXTRA_CA_CERTS` to that file's absolute path. Set `APP_ORIGIN=https://localhost:3170` and `MAIL_ORIGIN=https://127.0.0.1:3170` for the example ports. Supply the tester's `PREVIEW_APP_USER` and `PREVIEW_APP_PASSWORD`, and the QA mailbox's `PREVIEW_MAIL_USER` and `PREVIEW_MAIL_PASSWORD` from the private configuration. The smoke scripts accept loopback origins.
 
@@ -199,7 +211,7 @@ Restarted the HTTPS web service and worker. Readiness returned 200 and the heart
 
 ## RFC-0002 pilot readiness · 26 November 2026 WIB
 
-Use separate customer, admin, and existing tailor sessions. The maintainer needs Node 22, Docker Compose, Playwright Chromium, two unused loopback ports, and synthetic `POSTGRES_PASSWORD` and `DEMO_PASSWORD` values. Start from an isolated checkout containing the RFC implementation. [RFC-0002](rfc/RFC-0002-MARAJUT-PILOT-READINESS.md) · [Sandbox setup](../README.md#rehearse-in-a-fresh-demo)
+Use separate customer, admin, and existing tailor sessions. The maintainer needs Node 22, Docker Compose, Playwright Chromium, two unused loopback ports, and synthetic `POSTGRES_PASSWORD` and `DEMO_PASSWORD` values. Start from an isolated checkout containing the RFC implementation. [RFC-0002](rfc/RFC-0002-MERAJUT-PILOT-READINESS.md) · [Sandbox setup](../README.md#rehearse-in-a-fresh-demo)
 
 | Step | Reproduce | Expected result |
 | --- | --- | --- |
@@ -215,22 +227,22 @@ Use separate customer, admin, and existing tailor sessions. The maintainer needs
 
 **Pending verification.** A private HTTPS preview needs a host and an isolated database. A merchant sandbox transfer, official WhatsApp delivery, and a field pilot remain external checks. Competition submission follows the separate eligibility decision. [Competition requirements](adr/ADR-0009-competition-eligibility.md)
 
-## Marajut naming and SEVENT X verification · 26 November 2026 WIB
+## Earlier naming and SEVENT X verification · 26 November 2026 WIB
 
-**Roles and setup.** Use a guest, customer, tailor and platform admin against a disposable Marajut database. Maintainers can repeat the upgrade and restore checks. Copy `.env.example`, set synthetic passwords and choose unused loopback ports. Build once with `docker compose -p marajut-naming-qa build web`, start with `docker compose -p marajut-naming-qa up -d --wait --no-build` and run `docker compose -p marajut-naming-qa run --rm seed npm run db:seed -- --workday`. Use `docker-compose` where that is the installed command.
+**Roles and setup.** Use a guest, customer, tailor and platform admin against a disposable Merajut database. Maintainers can repeat the upgrade and restore checks. Copy `.env.example`, set synthetic passwords and choose unused loopback ports. Build once with `docker compose -p merajut-naming-qa build web`, start with `docker compose -p merajut-naming-qa up -d --wait --no-build` and run `docker compose -p merajut-naming-qa run --rm seed npm run db:seed -- --workday`. Use `docker-compose` where that is the installed command.
 
 | Step | Action | Expected result |
 | --- | --- | --- |
-| Repository and screenshots | Search current filenames and file contents for the former branding, including hidden files. Inspect the archived screenshots and storefront images with OCR and check local image links in Markdown. | Current files use Marajut. Archived images with the previous wordmark are gone, and all retained image links resolve. The competition record gives the earlier entry and archive checksum in neutral terms. |
-| Branding and sign-in | Open the local marketplace and `/health/ready`. Sign in separately with `customer@marajut.test`, `operator@marajut.test` and `tailor@marajut.test` and the stack's demo password. | Readiness is 200. Marajut is used in the app, package, worker output, account mail and demo addresses. The customer, admin and tailor each reach their own workspace. |
-| Role regressions | Set `APP_ORIGIN`, `MAIL_ORIGIN`, `DEMO_PASSWORD` and `BROWSER_CHANNEL=chrome` for the disposable stack. Run `node scripts/browser-smoke.js`, `node scripts/inbound-browser-smoke.js`, `node scripts/pilot-browser-smoke.js` and `docker compose -p marajut-naming-qa run --rm test`. | The customer completes fitting, simulated payment and delivery, the admin records the workflow, and an existing tailor retains scoped access. Guest verification, quote revision, pickup and simulated chat conversion work. |
+| Repository and screenshots | Search current filenames and file contents for the former branding, including hidden files. Inspect the archived screenshots and storefront images with OCR and check local image links in Markdown. | The then-current product name is consistent in the working files. The competition record gives the earlier entry and archive checksum in neutral terms. |
+| Branding and sign-in | Open the local marketplace and `/health/ready`. Sign in separately with `customer@merajut.test`, `operator@merajut.test` and `tailor@merajut.test` and the stack's demo password. | Readiness is 200. Merajut is used in the app, package, worker output, account mail and demo addresses. The customer, admin and tailor each reach their own workspace. |
+| Role regressions | Set `APP_ORIGIN`, `MAIL_ORIGIN`, `DEMO_PASSWORD` and `BROWSER_CHANNEL=chrome` for the disposable stack. Run `node scripts/browser-smoke.js`, `node scripts/inbound-browser-smoke.js`, `node scripts/pilot-browser-smoke.js` and `docker compose -p merajut-naming-qa run --rm test`. | The customer completes fitting, simulated payment and delivery, the admin records the workflow, and an existing tailor retains scoped access. Guest verification, quote revision, pickup and simulated chat conversion work. |
 | Mobile order menus | Install Playwright Chromium with `npx playwright install chromium` and run `node scripts/browser-smoke.js` with `BROWSER_CHANNEL` unset. The walkthrough resizes the tailor view to 360 px and the admin order board to 375 px. | The tailor queue menu and admin order filters collapse after the resize. Opening each menu allows the walkthrough to select a queue or the payment filter. |
 | Database upgrade | On synthetic data at migration 007, record the IDs and related records for the five original demo accounts. Apply migration 008 twice. Repeat with an occupied address, a role mismatch and an unrelated address. On a separate snapshot, rerun with the previously recorded 008 checksum, then try an unexpected checksum. | Eligible demo addresses change in place with their UUIDs, password digests, memberships and orders intact. Existing owners and unrelated accounts keep their addresses. The migrator accepts the approved 008 checksums and rejects an unrecognized checksum. |
-| Backup and rehearsal | Set `MARAJUT_BACKUP_PASSPHRASE` and run the backup and restore rehearsal below on the isolated Compose project. Check both the current format and a synthetic file with the prior format. | Both encrypted backups authenticate and restore into a temporary database. The report gives the same schema and fixture counts for both. |
+| Backup and rehearsal | Set `MERAJUT_BACKUP_PASSPHRASE` and run the backup and restore rehearsal below on the isolated Compose project. Check both the current format and a synthetic file with the prior format. | Both encrypted backups authenticate and restore into a temporary database. The report gives the same schema and fixture counts for both. |
 | Competition documents | Compare the [eligibility checklist](adr/ADR-0009-competition-eligibility.md#sevent-x-website-checklist) with pp. 9–11 and 14 of the supplied rulebook. | The checklist identifies the chosen subtheme, prior-work disclosure, tested functionality and remaining submission materials. |
-| GitHub publication | With write access to `origin`, run `npm.cmd run build`, `docker-compose config --quiet` and `git diff --cached --check`. Validate the staged files and use Marajut in the commit title and description. Push `main`, then compare `git rev-parse HEAD` with `git ls-remote origin refs/heads/main`. | The checks pass, local secrets and backup files stay outside the commit, and both hashes match. |
+| GitHub publication | With write access to `origin`, run `npm.cmd run build`, `docker-compose config --quiet` and `git diff --cached --check`. Validate the staged files and use Merajut in the commit title and description. Push `main`, then compare `git rev-parse HEAD` with `git ls-remote origin refs/heads/main`. | The checks pass, local secrets and backup files stay outside the commit, and both hashes match. |
 
-**Checks run.** Built the image from the renamed source with `npm ci`, started the separate Compose stack on ports 3164 and 3165, and confirmed readiness and Marajut startup logs. JavaScript syntax and Compose validation passed. All 21 integration tests and all three Chrome smoke paths passed, including the pilot's automated axe checks. A separate 007-to-008 upgrade test verified unchanged customer and tailor IDs, password digests, history and memberships, an occupied-address case, and sign-ins using the new addresses. Both backup formats restored seven requests and four orders at schema 008. GitHub repository metadata confirmed public visibility.
+**Checks run.** Built the image from the renamed source with `npm ci`, started the separate Compose stack on ports 3164 and 3165, and confirmed readiness and startup logs. JavaScript syntax and Compose validation passed. All 21 integration tests and all three Chrome smoke paths passed, including the pilot's automated axe checks. A separate 007-to-008 upgrade test verified unchanged customer and tailor IDs, password digests, history and memberships, an occupied-address case, and sign-ins using the addresses configured at the time. Both backup formats restored seven requests and four orders at schema 008. GitHub repository metadata confirmed public visibility.
 
 **Naming cleanup checks.** Ran `npm.cmd run build`, all 21 PostgreSQL and HTTP tests, and all three Chrome walkthroughs on the new isolated stack on ports 3166 and 3167. Fresh and previously applied migrations passed in disposable schemas. The five accounts kept their UUIDs, password digests, order history and memberships. Role mismatches and address conflicts stayed intact. Unexpected checksums for 001 and 008 were rejected. Both encrypted backup formats restored ten requests, seven orders and two photos with matching byte counts. Scanned current file contents, filenames and Markdown image links. OCR identified ten archived screenshots for removal and found no remaining matches in the retained screenshots or storefront WebP assets. Existing hosted builds and Git history were outside the verification scope.
 
@@ -264,7 +276,7 @@ Use separate customer, admin, and existing tailor sessions. The maintainer needs
 
 Use this scenario for new orders. The older tailor-operated quotation and cash scenarios below cover requests already in progress when migration 006 was applied.
 
-**Roles and setup.** Use a guest, a customer, the platform manager and a legacy tailor in separate browser sessions. Use a disposable PostgreSQL database with migrations through `006_managed_orders.sql`, a worker, synthetic seed data and `PAYMENT_MODE=demo`. With the local Docker prerequisites below, `node scripts/sandbox.js 3156 3157` creates a separate app and mailbox on those ports. Use available ports if those are occupied. Use `customer@marajut.test`, `operator@marajut.test` and `tailor@marajut.test` with that stack's `DEMO_PASSWORD`. Use synthetic contact data and inspect WhatsApp drafts locally during rehearsal.
+**Roles and setup.** Use a guest, a customer, the platform manager and a legacy tailor in separate browser sessions. Use a disposable PostgreSQL database with migrations through `006_managed_orders.sql`, a worker, synthetic seed data and `PAYMENT_MODE=demo`. With the local Docker prerequisites below, `node scripts/sandbox.js 3156 3157` creates a separate app and mailbox on those ports. Use available ports if those are occupied. Use `customer@merajut.test`, `operator@merajut.test` and `tailor@merajut.test` with that stack's `DEMO_PASSWORD`. Use synthetic contact data and inspect WhatsApp drafts locally during rehearsal.
 
 | Step | Action | Expected result |
 | --- | --- | --- |
@@ -277,7 +289,7 @@ Use this scenario for new orders. The older tailor-operated quotation and cash s
 | 7. Payment | Start a demo payment from the ready order. As admin use **Pembayaran** to open the order. Try a failed payment, retry as the customer, then verify it and complete handover. | Handover completion requires verified payment. With the default 5% commission, Rp80,000 yields Rp4,000 for the platform and Rp76,000 for the partner. Repeated verification counts the payment once. Demo commission appears under **Komisi uji**. |
 | 8. History and complaint | Open the completed request from customer history. Submit a complaint. As admin, open **Keluhan terbuka**, record the resolution and inspect **Kinerja layanan**. | Both roles see the outcome and the service's completed count increases. The public profile exposes only the aggregate completion count. |
 
-**Regression commands.** Run `npm run check` and `npm test` with `MARAJUT_ENV=test` and the disposable PostgreSQL connection variables set. For browser tests set `APP_ORIGIN`, `MAIL_ORIGIN` and `DEMO_PASSWORD` for the same disposable app, worker and mailbox. Use `BROWSER_CHANNEL=chrome` for installed Chrome. Run `npm run test:browser`, `npm run test:inbound-browser` and `npm run test:pilot-browser`.
+**Regression commands.** Run `npm run check` and `npm test` with `MERAJUT_ENV=test` and the disposable PostgreSQL connection variables set. For browser tests set `APP_ORIGIN`, `MAIL_ORIGIN` and `DEMO_PASSWORD` for the same disposable app, worker and mailbox. Use `BROWSER_CHANNEL=chrome` for installed Chrome. Run `npm run test:browser`, `npm run test:inbound-browser` and `npm run test:pilot-browser`.
 
 **Checks run.** The Express/PostgreSQL suite passed all 21 tests with separate legacy and managed schemas. The managed test registered and published an accountless partner, updated a customer profile, rejected and reassigned a quote, accepted a delivery with a fitting, and verified commission and complaint resolution. Gateway fixtures exercised a lost charge response, simultaneous retries, expiry and replacement, signature and amount validation, duplicate settlement and role restrictions. The three Chrome smoke scripts ran against a disposable web server, worker, database and mailbox. They covered mobile customer checkout, the existing tailor dashboard and read-only managed order, admin quote revision, guest verification, simulated payment, customer history, inbound chat conversion and the pilot accessibility assertions. JavaScript syntax and Compose configuration were checked.
 
@@ -287,32 +299,32 @@ Before publishing to GitHub, the JavaScript syntax check, Compose configuration 
 
 ## Before testing
 
-- Open [Marajut](http://127.0.0.1:3100/) and check [readiness](http://127.0.0.1:3100/health/ready). Use the port configured for the stack under test. The account table below uses the current demo addresses.
+- Open [Merajut](http://127.0.0.1:3100/) and check [readiness](http://127.0.0.1:3100/health/ready). Use the port configured for the stack under test. The account table below uses the current demo addresses.
 - From the project directory, start a stopped local app with `docker-compose up -d --wait`. To refresh it after source changes, run `docker-compose up -d --wait --build`. For fixture accounts, run `docker-compose run --rm seed`.
 - To demonstrate several tailor work states on a **disposable demo database**, run `docker-compose run --rm seed npm run db:seed -- --workday`. The examples are marked as demo and use ordinary domain commands. Repeating the command leaves those existing examples in their current state.
 - Use separate Chrome profiles or regular and private windows for each role. Fixture accounts use the local `DEMO_PASSWORD`. Give a new request a unique synthetic tag.
 
 | Account | Role |
 | --- | --- |
-| `customer@marajut.test` | Customer for the web request |
-| `tailor@marajut.test` | Jahit Rina tailor |
-| `customer2@marajut.test` | Customer for simulated WhatsApp |
-| `tailor2@marajut.test` | Ruang Jahit Dewi tailor |
-| `operator@marajut.test` | Platform manager for dispatch, payments, catalog and triage |
+| `customer@merajut.test` | Customer for the web request |
+| `tailor@merajut.test` | Jahit Rina tailor |
+| `customer2@merajut.test` | Customer for simulated WhatsApp |
+| `tailor2@merajut.test` | Ruang Jahit Dewi tailor |
+| `operator@merajut.test` | Platform manager for dispatch, payments, catalog and triage |
 
 ## Dev mode: native app with auto-restart (Postgres and MailCatcher in Docker)
 
 Affected roles: none in behavior; this is a developer workflow for all roles. It runs beside, not instead of, the full Docker stack above.
 
-Prerequisites: Docker, Node 22+, a `.env` with `POSTGRES_PASSWORD` and `DEMO_PASSWORD`. Create a gitignored `.env.dev` with `MARAJUT_ENV=local`, `PGHOST=127.0.0.1`, `PGPORT=5433`, `PGUSER=marajut`, `PGDATABASE=marajut`, `PGPASSWORD` (same value as `POSTGRES_PASSWORD`), `DEMO_PASSWORD`, `PORT=3100`, `BIND_HOST=127.0.0.1`, `APP_ORIGIN=http://localhost:3100`, `MESSAGING_MODE=simulated`, `SMTP_HOST=127.0.0.1`, `SMTP_PORT=1025`. Stop the Docker `web` and `worker` services first if running, since they use port 3100.
+Prerequisites: Docker, Node 22+, a `.env` with `POSTGRES_PASSWORD` and `DEMO_PASSWORD`. Create a gitignored `.env.dev` with `MERAJUT_ENV=local`, `PGHOST=127.0.0.1`, `PGPORT=5433`, `PGUSER=merajut`, `PGDATABASE=merajut`, `PGPASSWORD` (same value as `POSTGRES_PASSWORD`), `DEMO_PASSWORD`, `PORT=3100`, `BIND_HOST=127.0.0.1`, `APP_ORIGIN=http://localhost:3100`, `MESSAGING_MODE=simulated`, `SMTP_HOST=127.0.0.1`, `SMTP_PORT=1025`. Stop the Docker `web` and `worker` services first if running, since they use port 3100.
 
 | Step | Action | Expected result |
 | --- | --- | --- |
 | 1 | `docker compose -f compose.yaml -f compose.dev.yaml up -d --wait db mail`, then `npm ci`. | `db` (127.0.0.1:5433) and `mail` (UI 3101, SMTP 1025) are healthy. |
 | 2 | `npm run dev:migrate`, then `npm run dev:seed`. | Migrations 001–005 apply and fixture accounts are ready. |
-| 3 | In two terminals run `npm run dev` and `npm run dev:worker`. | Web logs `Marajut listening`. Worker logs `Marajut worker started`. `/health/ready` returns 200. |
-| 4 | Edit a source file under `apps/marajut/`. | Node restarts the process automatically. This is a server restart, not browser hot reload, so refresh the page. EJS views are re-read on request in non-production only if Express view caching is off; if a view change does not show, restart. |
-| 5 | Sign up as a guest and open [MailCatcher](http://127.0.0.1:3101/). | The verification email arrives. It uses the `SMTP_HOST` and `SMTP_PORT` override in `apps/marajut/mail.js`, which applies only in local and test environments. Docker-only runs still default to host `mail`, port 1025. |
+| 3 | In two terminals run `npm run dev` and `npm run dev:worker`. | Web logs `Merajut listening`. Worker logs `Merajut worker started`. `/health/ready` returns 200. |
+| 4 | Edit a source file under `apps/merajut/`. | Node restarts the process automatically. This is a server restart, not browser hot reload, so refresh the page. EJS views are re-read on request in non-production only if Express view caching is off; if a view change does not show, restart. |
+| 5 | Sign up as a guest and open [MailCatcher](http://127.0.0.1:3101/). | The verification email arrives. It uses the `SMTP_HOST` and `SMTP_PORT` override in `apps/merajut/mail.js`, which applies only in local and test environments. Docker-only runs still default to host `mail`, port 1025. |
 
 Checked in this change: migrate, seed, web start, worker start and heartbeat row, and `/health/ready` returned 200 on the native app. Not verified: automatic restart on file edit, EJS caching behavior, the MailCatcher email path from the native app, the customer and tailor regression paths T1 and T2, and the full Docker build. The first `docker compose up --build` failed when several services tried to create the same image tag in Docker Desktop. It is unresolved, so rerun it or build once with `docker compose build web` before `up`. `npm test` was not run.
 
@@ -329,9 +341,9 @@ Checked in this change: migrate, seed, web start, worker start and heartbeat row
 
 ## T2 · WhatsApp handoff inside the workspace
 
-1. As `customer2@marajut.test`, open **Pesanan Saya → Simulasi WhatsApp**. Send a simulated message, choose **Ruang Jahit Dewi · Perbaikan jahitan lepas** (**Seam repair** on older seeds), and send tailoring details. Use **Muat ulang** after submitting delayed events.
+1. As `customer2@merajut.test`, open **Pesanan Saya → Simulasi WhatsApp**. Send a simulated message, choose **Ruang Jahit Dewi · Perbaikan jahitan lepas** (**Seam repair** on older seeds), and send tailoring details. Use **Muat ulang** after submitting delayed events.
 2. If needed, choose **Tautkan pengirim**, send the proof and complete **Konfirmasi tautan** in the same session. The draft becomes available. Select **Minta bantuan penjahit**.
-3. As `tailor2@marajut.test`, open **Ringkasan → Chat WhatsApp · simulasi**. Check the conversation source label, open it, select **Tangani percakapan**, and send a reply. The customer sees a **Balasan simulasi**.
+3. As `tailor2@merajut.test`, open **Ringkasan → Chat WhatsApp · simulasi**. Check the conversation source label, open it, select **Tangani percakapan**, and send a reply. The customer sees a **Balasan simulasi**.
 4. Choose **Buat permintaan layanan**. The request shows **Percakapan terkait**. Send a quote and have the customer accept it from their own account. Return to the conversation and choose **Selesaikan percakapan**. It leaves the tailor queue and the customer sees the resolved conversation.
 5. Try the active conversation URL as Jahit Rina. Expect denied access and no other-business counts. WhatsApp is simulated throughout this path.
 
@@ -376,7 +388,7 @@ Use a seeded disposable Docker project, a customer and the Jahit Rina tailor in 
 
 ## T8 · Guest request, verification and account recovery
 
-Use a seeded disposable stack and its local MailCatcher inbox. The default inbox is at [127.0.0.1:3101](http://127.0.0.1:3101/). Use a unique `@marajut.test` address and keep proof codes within the test session.
+Use a seeded disposable stack and its local MailCatcher inbox. The default inbox is at [127.0.0.1:3101](http://127.0.0.1:3101/). Use a unique `@merajut.test` address and keep proof codes within the test session.
 
 1. Signed out, choose a service, fill in the request and email, and select **Simpan draf dan verifikasi email**. Add an optional synthetic JPEG or PNG on the confirmation page.
 2. Check the tailor's inbox before confirming. The draft and photo should be absent. Open the confirmation link or copy its code from the local inbox, choose **Periksa tautan**, review the draft and set your name and password. An existing customer uses their current password.
@@ -386,7 +398,7 @@ Use a seeded disposable stack and its local MailCatcher inbox. The default inbox
 
 ## T9 · Staff, orders and maintenance
 
-1. As `operator@marajut.test`, open **Pengelolaan → Undang usaha baru**. Enter a synthetic email and re-enter the operator password. As the invitee, open the local invitation and set a password. Add an active service as the new tailor. The shop must stay out of public discovery until the operator publishes it with a reason.
+1. As `operator@merajut.test`, open **Pengelolaan → Undang usaha baru**. Enter a synthetic email and re-enter the operator password. As the invitee, open the local invitation and set a password. Add an active service as the new tailor. The shop must stay out of public discovery until the operator publishes it with a reason.
 2. As the customer, check the newly published shop and submit a request. Send a quote as the tailor. The customer's **Tanyakan rincian penawaran** returns it for review and removes acceptance on that revision. An expired revision also becomes unavailable and the worker writes its expiry to the timeline. Send a new quote and have the customer accept it.
 3. Move the accepted order to **Siap diambil**. As the tailor, record cash only after confirming receipt. As the customer, check **Catatan tunai** and the separate work status. Void the receipt with a reason and check that the timeline shows the correction.
 4. As the tailor, use **Ajukan pembatalan kepada pengelola** on an active or ready order. Review as the operator. Approval must fail while a cash receipt is current. After the receipt is corrected and approval recorded, both parties see **Dibatalkan**. Use a reason appropriate for both parties to read.
@@ -397,20 +409,20 @@ Use a seeded disposable stack and its local MailCatcher inbox. The default inbox
 
 Use a disposable Compose project. Run `node scripts/sandbox.js 3122 3123` with two unused ports for a clean workday seed. The script prints a new project name and its two URLs. It creates a separate volume each run.
 
-Set `MARAJUT_BACKUP_PASSPHRASE` to a generated secret of at least 24 characters in the current shell. Save with `node scripts/db-backup.js save <project> <new-file>` and rehearse with `node scripts/db-backup.js rehearse <project> <file>`. Compare schema, request/order counts and photo bytes. An incorrect key must fail before temporary database creation. The restore removes its temporary database and scratch dump after verification.
+Set `MERAJUT_BACKUP_PASSPHRASE` to a generated secret of at least 24 characters in the current shell. Save with `node scripts/db-backup.js save <project> <new-file>` and rehearse with `node scripts/db-backup.js rehearse <project> <file>`. Compare schema, request/order counts and photo bytes. An incorrect key must fail before temporary database creation. The restore removes its temporary database and scratch dump after verification.
 
-Run `docker-compose -p <project> exec worker node apps/marajut/maintenance.js` for a count-only preview. In the isolated automated suite, age a closed request's photo past 90 days and run apply. Expect only the eligible image to disappear, with the order and timeline retained. The main demo uses preview mode for historical data.
+Run `docker-compose -p <project> exec worker node apps/merajut/maintenance.js` for a count-only preview. In the isolated automated suite, age a closed request's photo past 90 days and run apply. Expect only the eligible image to disappear, with the order and timeline retained. The main demo uses preview mode for historical data.
 
-## T11 · Marajut discovery and workspace
+## T11 · Merajut discovery and workspace
 
 Use a fresh synthetic stack with the workday seed, the local mailbox and two separate Chrome sessions. Set `APP_ORIGIN` and `MAIL_ORIGIN` to that stack before running the browser scripts. For the web path use Ayu and Rina. For the chat path use Bima and Dewi.
 
 | Role | Reproducible action | Expected result |
 | --- | --- | --- |
 | Guest | Open the homepage at 320 px, 360 px and desktop width. Tab to **Lewati ke konten**. Select **Cari Penjahit**, use a category and open a shop. Then use **Cara kerja** to read the ordering steps. | The wordmark and Masuk share the top row. Links remain reachable. The steps explain where to provide details, accept the price and track the work. Public cards show the shop’s own listings. |
-| Guest → customer | Use **Buka simulasi WhatsApp** in Cara kerja (the hero no longer carries a chat link). Sign in as Bima. Follow T2. | Sign-in explains the simulation and returns directly to it. Messages stay inside Marajut. The selected service and scope follow the converted request. |
+| Guest → customer | Use **Buka simulasi WhatsApp** in Cara kerja (the hero no longer carries a chat link). Sign in as Bima. Follow T2. | Sign-in explains the simulation and returns directly to it. Messages stay inside Merajut. The selected service and scope follow the converted request. |
 | Guest → tailor | In the second session use **Untuk penjahit**, sign in as Dewi and open **Chat WhatsApp · simulasi** from Ringkasan. Claim the conversation, reply, create the request and send a quote. | The tile opens the assigned queue. Bima can see the reply, open the linked request and approve the exact quote. Dewi can resolve the conversation. |
-| Customer and tailor | Complete T1 and T5 on the ordinary web route. Check **Layanan Saya**, **Profil Usaha**, **Pesanan Saya**, pickup and history. Repeat guest confirmation and recovery with T8. | Normal web entry keeps the selected service. Shop and customer see the same accepted quote and order progress. Verification and recovery messages use Marajut. |
+| Customer and tailor | Complete T1 and T5 on the ordinary web route. Check **Layanan Saya**, **Profil Usaha**, **Pesanan Saya**, pickup and history. Repeat guest confirmation and recovery with T8. | Normal web entry keeps the selected service. Shop and customer see the same accepted quote and order progress. Verification and recovery messages use Merajut. |
 | Web-only configuration | Run the HTTP suite for the disabled-mode case. Open the public catalog and login with the simulator return path in that configuration. | The catalog still offers quotations. It omits chat entry links, ignores the unavailable return path, and the simulator route is unavailable. |
 
 ## Automated checks
@@ -474,9 +486,9 @@ Checked both remote URLs after updating `origin`. The remote had no `main`, and 
 
 Roles affected are guest, customer and tailor, because the footer and the navbar border are shared by every page. Prerequisites: the dev-mode stack above, on `http://localhost:3100/`, with the demo seed. The shop banner (**Punya usaha jahit?**) shows only to guests and tailors. Use synthetic accounts only.
 
-1. As a guest at desktop width, open `/`. Expect larger gaps between the hero, **Layanan jahit di sekitar Anda**, **Cara memesan di Marajut** and the shop banner. Expect wider card gaps, larger step icons, a taller banner and no line under the navbar. Service cover images carry a 10% black tint, and the category tag stays readable.
+1. As a guest at desktop width, open `/`. Expect larger gaps between the hero, **Layanan jahit di sekitar Anda**, **Cara memesan di Merajut** and the shop banner. Expect wider card gaps, larger step icons, a taller banner and no line under the navbar. Service cover images carry a 10% black tint, and the category tag stays readable.
 2. Scroll down. The navbar stays out of view until you scroll more than 0.6 of the viewport height (changed from 1.0 on 25 November). Then it slides in from above, fixed, with a soft shadow and no jump in the page content. Scroll back above 0.6 of the viewport height. It slides out and the normal header is back.
-3. At the bottom, expect the logo with a one-line description on the left. On the right expect **Halaman** (Cari Penjahit, Cara memesan, Untuk penjahit) and **Kontak**. The contact address `halo@marajut.test` is a placeholder to replace with a real one.
+3. At the bottom, expect the logo with a one-line description on the left. On the right expect **Halaman** (Cari Penjahit, Cara memesan, Untuk penjahit) and **Kontak**. The contact address `halo@merajut.test` is a placeholder to replace with a real one.
 4. Repeat at 375 px: no horizontal scroll, one-column footer, and the pinned navbar covers no content.
 5. Sign in as a customer and as a tailor. The footer's third page link becomes **Pesanan Saya** or **Ruang usaha**. Open a tailor workspace page and confirm the sidebar, page spacing and footer still look right.
 6. Repeat T1 for the customer and T11 for the tailor, since shared layout changed.
@@ -538,7 +550,7 @@ Not verified: tailor, customer and operator pages, wrapping of large queue numbe
 
 Roles affected are guest and customer (storefront landing page `/` only). Prerequisites: the dev-mode stack above. Hard refresh (Ctrl+F5) first.
 
-1. Open `/` at desktop width and scroll to **Cara memesan di Marajut**. Expect the three step icons at about 67 px (up from 45 px) and a clay-coloured arrow in each of the two gaps, level with the icons. There is no arrow after the last step.
+1. Open `/` at desktop width and scroll to **Cara memesan di Merajut**. Expect the three step icons at about 67 px (up from 45 px) and a clay-coloured arrow in each of the two gaps, level with the icons. There is no arrow after the last step.
 2. At 375 px expect the steps stacked, a down arrow under steps 1 and 2 aligned with the icon, and no horizontal scroll.
 3. Use a screen reader or inspect the accessibility tree. The arrows are decorative and should not be read aloud (a browser without support for the empty alternative text may announce "right arrow").
 4. Check **Jelajahi layanan**, **Buka simulasi WhatsApp** and **Lihat pesanan saya**: each link still works and is not covered by an arrow.
@@ -551,7 +563,7 @@ Not verified: the tablet width (720–959 px), screen-reader announcements, link
 
 Roles affected are guest and customer (storefront landing page `/` only). This replaces the text arrows from the previous entry. Prerequisites: the dev-mode stack above. Hard refresh (Ctrl+F5) first.
 
-1. Open `/` at desktop width and scroll to **Cara memesan di Marajut**. Expect the site's own arrow icon (same style as the **Masuk** and **Buka ruang usaha** buttons) in each of the two gaps, centred horizontally in the gap and vertically on the step. There is none after the last step.
+1. Open `/` at desktop width and scroll to **Cara memesan di Merajut**. Expect the site's own arrow icon (same style as the **Masuk** and **Buka ruang usaha** buttons) in each of the two gaps, centred horizontally in the gap and vertically on the step. There is none after the last step.
 2. At 375 px expect the same icon rotated to point down, centred under steps 1 and 2, and no horizontal scroll.
 3. The arrows are `aria-hidden` and should not be announced by a screen reader.
 4. Select **Jelajahi layanan**, **Buka simulasi WhatsApp** and **Lihat pesanan saya**. Each link still works and is not covered by an arrow.
@@ -566,15 +578,15 @@ Roles affected are guest and customer (landing page `/`). Open `/` and look at *
 
 ### Cara memesan: more room around the arrows · 25 November 2026 WIB
 
-Roles affected are guest and customer (landing page `/`). The gap between steps is now `clamp(3.5rem, 7vw, 6rem)` (3.5 rem → 6 rem), and 4.2 rem on phones, so each arrow has clear space on both sides. Open `/` and check **Cara memesan di Marajut** at desktop width and at 375 px: arrows stay centred between the steps, text columns are narrower but do not wrap awkwardly, and there is no horizontal scroll. Checked: measured gap, arrow width and page overflow in the in-app browser at the pane's current width only. Not verified: 375 px after this change, 720–959 px, and long Indonesian text wrapping at 1024 px.
+Roles affected are guest and customer (landing page `/`). The gap between steps is now `clamp(3.5rem, 7vw, 6rem)` (3.5 rem → 6 rem), and 4.2 rem on phones, so each arrow has clear space on both sides. Open `/` and check **Cara memesan di Merajut** at desktop width and at 375 px: arrows stay centred between the steps, text columns are narrower but do not wrap awkwardly, and there is no horizontal scroll. Checked: measured gap, arrow width and page overflow in the in-app browser at the pane's current width only. Not verified: 375 px after this change, 720–959 px, and long Indonesian text wrapping at 1024 px.
 
 ### Logout confirmation modal and dashboard footer · 27 November 2026 WIB
 
-Roles affected are customer, tailor and operator (every signed-in page shows **Keluar**), plus the tailor and admin dashboards for the footer. Prerequisites: the dev-mode stack, demo seed, and synthetic accounts such as `tailor@marajut.test` and `customer@marajut.test` with the local `DEMO_PASSWORD`.
+Roles affected are customer, tailor and operator (every signed-in page shows **Keluar**), plus the tailor and admin dashboards for the footer. Prerequisites: the dev-mode stack, demo seed, and synthetic accounts such as `tailor@merajut.test` and `customer@merajut.test` with the local `DEMO_PASSWORD`.
 
 The modal is a shared component. `views/confirm-dialog.ejs` is mounted once in the footer, and `public/forms.js` opens it for any form that has `data-confirm` (with optional `data-confirm-title`, `-action`, `-cancel`, `-tone="danger"` and `-icon`). Without JavaScript the form submits normally.
 
-1. Sign in as a tailor and open **Ringkasan**. There is no footer below the dashboard (the same applies to the admin area). Select **Keluar** in the sidebar. Expect the modal to pop in (scale and fade) over a blurred dark backdrop, with a door icon, **Keluar dari Marajut?**, a short message, **Batal** focused, and a clay **Ya, keluar** button. The page behind does not scroll.
+1. Sign in as a tailor and open **Ringkasan**. There is no footer below the dashboard (the same applies to the admin area). Select **Keluar** in the sidebar. Expect the modal to pop in (scale and fade) over a blurred dark backdrop, with a door icon, **Keluar dari Merajut?**, a short message, **Batal** focused, and a clay **Ya, keluar** button. The page behind does not scroll.
 2. Select **Batal**, press Esc, or click the backdrop. Expect the modal to animate out and you to stay signed in on the same page.
 3. Open it again and select **Ya, keluar**. Expect to be signed out and returned to `/` with the footer visible.
 4. Repeat steps 2–3 as a customer from **Pesanan Saya** (storefront header, footer still shown there) and at 375 px.
@@ -591,9 +603,9 @@ Not verified: the customer and operator paths, 375 px, keyboard-only use (Tab tr
 
 Roles affected are customer, tailor and operator when they open the storefront: the home page `/` and public shop pages `/penjahit/<slug>`. Signed-out visitors and every dashboard page are unchanged. Prerequisites: the dev-mode stack, demo seed and synthetic accounts.
 
-1. Sign in as `tailor@marajut.test` and open `/` and `/penjahit/jahit-rina`. Expect the header to show only the Marajut wordmark and a **Buka Dasbor** button at the right, with no Ringkasan, Layanan Saya, Profil Usaha, Chat simulasi or **Keluar**.
+1. Sign in as `tailor@merajut.test` and open `/` and `/penjahit/jahit-rina`. Expect the header to show only the Merajut wordmark and a **Buka Dasbor** button at the right, with no Ringkasan, Layanan Saya, Profil Usaha, Chat simulasi or **Keluar**.
 2. Select **Buka Dasbor**. Expect **Ringkasan** at `/workspace` with the full sidebar and **Keluar** (logout confirmation still applies).
-3. Repeat as `customer@marajut.test`. **Buka Dasbor** opens **Pesanan Saya**, and that page keeps its usual links (Cari Penjahit, Pesanan Saya, Profil saya) and **Keluar**.
+3. Repeat as `customer@merajut.test`. **Buka Dasbor** opens **Pesanan Saya**, and that page keeps its usual links (Cari Penjahit, Pesanan Saya, Profil saya) and **Keluar**.
 4. As an admin operator, **Buka Dasbor** goes through `/workspace` to `/pengelola`.
 5. Sign out and open `/`. Expect the usual guest header (Cari Penjahit, Cara kerja, Admin, **Masuk**).
 6. At 375 px, signed in, the wordmark and button share one row with no horizontal scroll.
@@ -618,7 +630,7 @@ Checks run: fetched `/` without cookies in the in-app browser (footer: Cari Penj
 
 The role affected is the guest (signed out) on storefront and login pages at 720 px and below. Prerequisites: the dev-mode stack.
 
-1. Signed out, open `/` at 375 px. Expect one header row with the Marajut wordmark at left and **Masuk** at right. **Cari Penjahit** and **Cara kerja** are hidden on phones; they remain in the footer and as sections on the page.
+1. Signed out, open `/` at 375 px. Expect one header row with the Merajut wordmark at left and **Masuk** at right. **Cari Penjahit** and **Cara kerja** are hidden on phones; they remain in the footer and as sections on the page.
 2. Expect the hero to fill the first screen below the header (the phone hero offset is now 3.9 rem, matching the one-row header used by guests and by signed-in visitors with **Buka Dasbor**).
 3. At desktop width the guest header still shows **Cari Penjahit**, **Cara kerja** and **Masuk**.
 4. Signed in as a customer on **Pesanan Saya** at 375 px, the two-row header with links and **Keluar** is unchanged (that layout keys off the logout form, not the **Masuk** link).
@@ -629,7 +641,7 @@ Not verified: the customer header on phones (step 4), widths 721–959 px, and t
 
 ### Dashboard hamburger menu on phones and tablets · 27 November 2026 WIB
 
-Roles affected are tailor and admin operator (studio dashboards) below 960 px. The desktop sidebar is unchanged. Customer pages are unchanged and keep their tab row. Prerequisites: the dev-mode stack, demo seed and synthetic accounts such as `tailor@marajut.test`.
+Roles affected are tailor and admin operator (studio dashboards) below 960 px. The desktop sidebar is unchanged. Customer pages are unchanged and keep their tab row. Prerequisites: the dev-mode stack, demo seed and synthetic accounts such as `tailor@merajut.test`.
 
 1. Sign in as a tailor at 375 px. Expect a one-row top bar with the wordmark and a three-line menu button. The old tab row is gone.
 2. Tap the menu button. Expect a plum drawer sliding in from the right over a dimmed (45% black) page, with **Menu** and a ✕ button, **Ringkasan** (highlighted), **Layanan Saya**, **Profil Usaha**, **Chat simulasi**, then the account name and **Keluar** at the bottom. Focus moves to ✕, and the page behind does not scroll.
@@ -669,7 +681,7 @@ Not verified: customer, admin and account pages visually, Safari and Firefox mas
 
 Roles affected are guest, customer, tailor and admin operator. Prerequisites: the dev-mode stack and synthetic accounts. Hard refresh (Ctrl+F5) first.
 
-**Arrows.** No unicode arrows remain in `apps/marajut`.
+**Arrows.** No unicode arrows remain in `apps/merajut`.
 - The landing links **Bagaimana cara memesan?** (down), **Jelajahi layanan** (up), **Buka simulasi WhatsApp** and **Lihat pesanan saya** (right) use the site arrow icon. Hovering a right arrow nudges it.
 - The **Ubah layanan** toggle on **Layanan Saya** shows a down arrow that rotates up when the editor is open.
 
@@ -701,7 +713,7 @@ Not verified: the customer request form and its hint script, the admin grouped s
 
 ### Tailor overview: open queue panel and performance table · 27 November 2026 WIB
 
-The role affected is the tailor (**Ringkasan** at `/workspace`). Prerequisites: the dev-mode stack, demo seed and `tailor@marajut.test`.
+The role affected is the tailor (**Ringkasan** at `/workspace`). Prerequisites: the dev-mode stack, demo seed and `tailor@merajut.test`.
 
 1. Open **Ringkasan** at desktop width. **Antrean lain** is a fixed card with a heading and no ▼ toggle. It always lists **Butuh klarifikasi**, **Menunggu persetujuan** and **Riwayat** with counts. Each link still opens its queue.
 2. Below it, **Kinerja layanan saya** is a fixed card (not collapsible) with a table: **Layanan**, **Permintaan**, **Diterima**, **Selesai** and **Bagian mitra**. The caption reads "Seluruh periode · bagian mitra dari pembayaran terverifikasi". Numbers are right-aligned. It uses the same table style as the admin **Kinerja** page.
@@ -719,7 +731,7 @@ Not verified: queue links clicked after this change, the table with real non-zer
 
 ### Layanan Saya: tighter service cards · 27 November 2026 WIB
 
-The role affected is the tailor (**Layanan Saya** at `/workspace/services`). Prerequisites: the dev-mode stack and `tailor@marajut.test`. Open **Layanan Saya**. Each service card (for example **Ganti ritsleting**) has smaller padding: about 18 px top/bottom and 22 px left/right at desktop width (from about 31 px), with no extra space above the title. Select **Ubah layanan**. The editor still opens below a divider with normal spacing. The **Tambah layanan** card and every other card keep the default padding.
+The role affected is the tailor (**Layanan Saya** at `/workspace/services`). Prerequisites: the dev-mode stack and `tailor@merajut.test`. Open **Layanan Saya**. Each service card (for example **Ganti ritsleting**) has smaller padding: about 18 px top/bottom and 22 px left/right at desktop width (from about 31 px), with no extra space above the title. Select **Ubah layanan**. The editor still opens below a divider with normal spacing. The **Tambah layanan** card and every other card keep the default padding.
 
 Checks run in the in-app browser: computed padding of the service card (18.4 px / 22.4 px) against another card (30.7 px); a desktop screenshot; one card opened by script to measure the gap from the summary to the editor form. Not verified: 375 px, and saving an edit.
 
@@ -736,13 +748,13 @@ Checks run in the in-app browser as the synthetic tailor: the back link text, `h
 
 ### Dashboards: smaller top spacing · 27 November 2026 WIB
 
-Roles affected are tailor and admin operator (studio dashboard pages). Prerequisites: the dev-mode stack and `tailor@marajut.test`. The first section on dashboard pages now starts `clamp(1.25rem, 2.5vw, 2rem)` from the top (about 26 px at 1024 px wide, 32 px max), down from up to 80 px. Open **Ringkasan**, **Layanan Saya**, **Profil Usaha** and **Chat simulasi**. The location line or back link sits close below the top edge. Storefront pages (home, shop pages) keep their larger section spacing.
+Roles affected are tailor and admin operator (studio dashboard pages). Prerequisites: the dev-mode stack and `tailor@merajut.test`. The first section on dashboard pages now starts `clamp(1.25rem, 2.5vw, 2rem)` from the top (about 26 px at 1024 px wide, 32 px max), down from up to 80 px. Open **Ringkasan**, **Layanan Saya**, **Profil Usaha** and **Chat simulasi**. The location line or back link sits close below the top edge. Storefront pages (home, shop pages) keep their larger section spacing.
 
 Checks run in the in-app browser as the synthetic tailor: computed first-section top padding was 25.6 px on `/workspace`, `/workspace/services`, `/workspace/profile` and `/workspace/intake`, and the home catalog section stays at 61 px; the dashboard screenshot was reviewed. Not verified: admin pages, and phones below 960 px (the rule also applies there, under the hamburger top bar).
 
 ### Tailor overview: consistent card gaps · 27 November 2026 WIB
 
-The role affected is the tailor (**Ringkasan** at `/workspace`). Prerequisites: the dev-mode stack and `tailor@marajut.test`. Every gap on the overview uses one value (`--card-gap` on `.provider-home`): 1.25 rem (20 px) above 720 px and 0.85 rem (14 px) on phones. This covers the gaps between the count tiles, tiles to **Perlu tindakan**, **Perlu tindakan** to **Antrean lain**, and both cards to **Kinerja layanan saya**. **Perlu tindakan** and **Antrean lain** now stretch to the same height, so their bottom edges line up.
+The role affected is the tailor (**Ringkasan** at `/workspace`). Prerequisites: the dev-mode stack and `tailor@merajut.test`. Every gap on the overview uses one value (`--card-gap` on `.provider-home`): 1.25 rem (20 px) above 720 px and 0.85 rem (14 px) on phones. This covers the gaps between the count tiles, tiles to **Perlu tindakan**, **Perlu tindakan** to **Antrean lain**, and both cards to **Kinerja layanan saya**. **Perlu tindakan** and **Antrean lain** now stretch to the same height, so their bottom edges line up.
 
 1. Open **Ringkasan** at desktop width. All gaps look equal, and the two middle cards end at the same line.
 2. At 375 px the stacked tiles and cards are all evenly spaced, with no horizontal scroll.
@@ -752,7 +764,7 @@ Checks run in the in-app browser as the synthetic tailor: measured every gap as 
 
 ### Layanan Saya and Profil Usaha: no business name above the title · 27 November 2026 WIB
 
-The role affected is the tailor. Prerequisites: the dev-mode stack and `tailor@marajut.test`. On **Layanan Saya** the line "Jahit Rina · Semarang Tengah" is removed, and on **Profil Usaha** the line "Jahit Rina" is removed. Each page now shows the back link, then the title and **Lihat profil publik**. The business name still appears on the **Ringkasan** heading, in the sidebar account name, and in the **Nama usaha** field on **Profil Usaha**.
+The role affected is the tailor. Prerequisites: the dev-mode stack and `tailor@merajut.test`. On **Layanan Saya** the line "Jahit Rina · Semarang Tengah" is removed, and on **Profil Usaha** the line "Jahit Rina" is removed. Each page now shows the back link, then the title and **Lihat profil publik**. The business name still appears on the **Ringkasan** heading, in the sidebar account name, and in the **Nama usaha** field on **Profil Usaha**.
 
 Checks run in the in-app browser as the synthetic tailor: both pages render with no `.location` line in the main content, the order is back link then heading, and the title sits at the same position on both. Searched the smoke scripts: they look for "Jahit Rina" only on the overview heading and the public shop page, which are unchanged. `npm.cmd run check` passed. Not verified: 375 px.
 
@@ -766,7 +778,7 @@ Roles affected are tailor, customer and admin operator on `/workspace/intake`. T
 
 ### Admin: consistent Tambah mitra button · 27 November 2026 WIB
 
-The role affected is the admin operator. Prerequisites: the dev-mode stack and `operator@marajut.test`. On **Pengelolaan platform** (`/pengelola`) and **Mitra penjahit** (`/pengelola/mitra`) the **Tambah mitra** button is now the same primary plum button with a leading plus icon (new `plus` symbol in `public/studio-icons.svg`). Before, it was a secondary button with a shop icon on the first page and a primary button with a trailing arrow on the second. Both open `/pengelola/mitra/baru`.
+The role affected is the admin operator. Prerequisites: the dev-mode stack and `operator@merajut.test`. On **Pengelolaan platform** (`/pengelola`) and **Mitra penjahit** (`/pengelola/mitra`) the **Tambah mitra** button is now the same primary plum button with a leading plus icon (new `plus` symbol in `public/studio-icons.svg`). Before, it was a secondary button with a shop icon on the first page and a primary button with a trailing arrow on the second. Both open `/pengelola/mitra/baru`.
 
 Checks run in the in-app browser after signing in as the synthetic operator: on both pages the button has class `button`, a plum background, white text, the plus icon before the label, and the same size and position (zoomed screenshots compared). No smoke script clicks this button by name. `npm.cmd run check` passed. Not verified: 375 px and the tailor-side pages (unchanged). The in-app browser session is now signed in as the operator.
 
@@ -781,13 +793,13 @@ Checks run in the in-app browser as the synthetic operator: the admin card paddi
 
 ### Admin: Buka Dasbor outside the admin area · 27 November 2026 WIB
 
-The role affected is the admin operator (manager). Prerequisites: the dev-mode stack and `operator@marajut.test`. On any page outside the admin dashboard (for example **Percakapan WhatsApp** at `/workspace/intake`, the home page and public shop pages), the header shows only the wordmark and **Buka Dasbor**, which opens `/pengelola` directly. Before, the full admin links (Pesanan, Mitra, Kinerja, Operasional, Keluar) appeared on those pages in the storefront layout. Admin dashboard pages (`/pengelola…` and request pages) keep the sidebar and **Keluar**. Tailors, customers and chat-only operators are unchanged.
+The role affected is the admin operator (manager). Prerequisites: the dev-mode stack and `operator@merajut.test`. On any page outside the admin dashboard (for example **Percakapan WhatsApp** at `/workspace/intake`, the home page and public shop pages), the header shows only the wordmark and **Buka Dasbor**, which opens `/pengelola` directly. Before, the full admin links (Pesanan, Mitra, Kinerja, Operasional, Keluar) appeared on those pages in the storefront layout. Admin dashboard pages (`/pengelola…` and request pages) keep the sidebar and **Keluar**. Tailors, customers and chat-only operators are unchanged.
 
 Checks run in the in-app browser as the synthetic operator: fetched `/workspace/intake` and `/` (no nav, a single **Buka Dasbor** linking to `/pengelola`) and `/pengelola` and `/pengelola/mitra` (sidebar with 4 links and **Keluar**); a screenshot of the chat page was reviewed. The smoke scripts use admin navigation only on `/pengelola` and request pages, which are unchanged. `npm.cmd run check` passed. Not verified: request pages as the admin, 375 px, and the chat-only operator.
 
 ### Footer: even row spacing · 27 November 2026 WIB
 
-Roles affected are guest, customer and admin (storefront pages show the footer; dashboards hide it). Every footer row (**Halaman** links and **Kontak** lines) is now a 44 px row with the text vertically centred. Before, the links were centred in 44 px while the plain "Semarang, Jawa Tengah" line sat at the top of a 22 px line, so the two columns looked unevenly spaced. Open any storefront page and scroll to the footer: **Cari Penjahit** / **halo@marajut.test** and **Cara memesan** / **Semarang, Jawa Tengah** sit on the same lines with equal spacing. Checked in the in-app browser: all four rows are 44 px tall, with text centres at the same heights in both columns; a zoomed screenshot was reviewed. Not verified: 375 px (single-column footer) and signed-in footers with a third link.
+Roles affected are guest, customer and admin (storefront pages show the footer; dashboards hide it). Every footer row (**Halaman** links and **Kontak** lines) is now a 44 px row with the text vertically centred. Before, the links were centred in 44 px while the plain "Semarang, Jawa Tengah" line sat at the top of a 22 px line, so the two columns looked unevenly spaced. Open any storefront page and scroll to the footer: **Cari Penjahit** / **halo@merajut.test** and **Cara memesan** / **Semarang, Jawa Tengah** sit on the same lines with equal spacing. Checked in the in-app browser: all four rows are 44 px tall, with text centres at the same heights in both columns; a zoomed screenshot was reviewed. Not verified: 375 px (single-column footer) and signed-in footers with a third link.
 
 ### Footer: tighter rows · 27 November 2026 WIB
 
@@ -795,7 +807,7 @@ Roles affected are guest, customer and admin on storefront pages. Footer rows ar
 
 ### Admin desk filters: one scrolling row · 27 November 2026 WIB
 
-The role affected is the admin operator (**Papan pesanan** on `/pengelola`). Prerequisites: the dev-mode stack and `operator@marajut.test`. The filter chips (Semua, Perlu tindak lanjut, Koordinasi, Menunggu pelanggan, Pengerjaan, Pembayaran, Serah terima, Keluhan, Riwayat) no longer wrap onto a second line. They stay on one row that scrolls sideways, with a thin rounded plum scrollbar on a pale track (WebKit and Chromium). Firefox gets a thin scrollbar in the same colours. The row snaps lightly to chip edges. When the selected filter is off-screen (for example **Riwayat**), the row opens scrolled so that chip is visible. Below 680 px the chips are still inside the collapsible **Antrean** menu, and when it is opened they show as the same scrolling row.
+The role affected is the admin operator (**Papan pesanan** on `/pengelola`). Prerequisites: the dev-mode stack and `operator@merajut.test`. The filter chips (Semua, Perlu tindak lanjut, Koordinasi, Menunggu pelanggan, Pengerjaan, Pembayaran, Serah terima, Keluhan, Riwayat) no longer wrap onto a second line. They stay on one row that scrolls sideways, with a thin rounded plum scrollbar on a pale track (WebKit and Chromium). Firefox gets a thin scrollbar in the same colours. The row snaps lightly to chip edges. When the selected filter is off-screen (for example **Riwayat**), the row opens scrolled so that chip is visible. Below 680 px the chips are still inside the collapsible **Antrean** menu, and when it is opened they show as the same scrolling row.
 
 Checks run in the in-app browser as the synthetic operator: at 1024 px all 9 chips are on one row (1195 px of chips in 702 px), with no page overflow, and a zoomed screenshot shows the scrollbar. With `?filter=history` the row opens at `scrollLeft` 493 with **Riwayat** fully visible. At 375 px the menu starts collapsed; opened, the chips are one scrolling row, the last chip is reachable, and there is no page overflow. `npm.cmd run check` passed. The smoke steps that check `aria-current` and click **Pembayaran** at 375 px rely on Playwright scrolling the chip into view. Not verified: the smoke suite run, Firefox and Safari, trackpad and touch swiping.
 
@@ -820,7 +832,7 @@ Not verified: step 3 (no requests exist in the demo data), the quote editor and 
 
 ### Admin partner page: publication and access changes in modals · 27 November 2026 WIB
 
-The role affected is the admin operator (**Kelola mitra** at `/pengelola/mitra/<id>`, card **Marketplace**). Prerequisites: the dev-mode stack and `operator@marajut.test`. Use a disposable stack if you will submit.
+The role affected is the admin operator (**Kelola mitra** at `/pengelola/mitra/<id>`, card **Marketplace**). Prerequisites: the dev-mode stack and `operator@merajut.test`. Use a disposable stack if you will submit.
 
 The two collapsible forms (**Ubah publikasi** / **Publikasikan profil**, and **Akses akun penjahit**) are replaced by buttons with icons that open modal forms. The account name moved into the summary list as **Akun penjahit**.
 - **Publikasikan profil** (primary, eye icon) or **Sembunyikan profil** (secondary, eye-off icon) opens **Publikasikan profil?** / **Sembunyikan profil?**. The modal holds **Alasan perubahan**, **Kata sandi pengelola**, **Batal**, and **Ya, publikasikan** (plum) / **Ya, sembunyikan** (clay).
@@ -847,7 +859,7 @@ Not verified: real submissions (step 3, to avoid changing the demo data), the un
 
 ### Admin partner page: tighter Layanan mitra list · 27 November 2026 WIB
 
-The role affected is the admin operator (**Layanan mitra** card on **Kelola mitra**). Prerequisites: the dev-mode stack and `operator@marajut.test`. The card now uses `.disclosure-list`. The heading sits about 10 px above the first divider (from 42 px). Each service row and **Tambah layanan** is a single row of about 49 px with the text centred between its dividers. The 30 px of dead space between rows is gone. An opened row keeps 1 rem below its form. Checked in the in-app browser on **Ruang Jahit Dewi**: measured heading gap, row heights and zero gap between rows; zoomed screenshot reviewed. Not verified: a partner with many services, opened rows, and 375 px.
+The role affected is the admin operator (**Layanan mitra** card on **Kelola mitra**). Prerequisites: the dev-mode stack and `operator@merajut.test`. The card now uses `.disclosure-list`. The heading sits about 10 px above the first divider (from 42 px). Each service row and **Tambah layanan** is a single row of about 49 px with the text centred between its dividers. The 30 px of dead space between rows is gone. An opened row keeps 1 rem below its form. Checked in the in-app browser on **Ruang Jahit Dewi**: measured heading gap, row heights and zero gap between rows; zoomed screenshot reviewed. Not verified: a partner with many services, opened rows, and 375 px.
 
 ### Even card headings on admin pages, smaller top padding on all inner pages · 27 November 2026 WIB
 
@@ -860,7 +872,7 @@ Checks run in the in-app browser: measured first-section top padding of 25.5 px 
 
 ### Admin desk filters: no fold-out on phones · 27 November 2026 WIB
 
-The role affected is the admin operator (**Papan pesanan** on `/pengelola`). Prerequisites: the dev-mode stack and `operator@marajut.test`. The filter chips are no longer wrapped in a collapsible "Antrean …" menu below 680 px. They always show as the single scrolling row, and the selected chip is scrolled into view. The `<details>` became a plain `<div data-desk-filter-menu>`. The `forms.js` code that closed it on phones and the summary styles were removed. In `scripts/browser-smoke.js` the two phone steps now wait for the **Filter pesanan** navigation and no longer open a summary before choosing a filter.
+The role affected is the admin operator (**Papan pesanan** on `/pengelola`). Prerequisites: the dev-mode stack and `operator@merajut.test`. The filter chips are no longer wrapped in a collapsible "Antrean …" menu below 680 px. They always show as the single scrolling row, and the selected chip is scrolled into view. The `<details>` became a plain `<div data-desk-filter-menu>`. The `forms.js` code that closed it on phones and the summary styles were removed. In `scripts/browser-smoke.js` the two phone steps now wait for the **Filter pesanan** navigation and no longer open a summary before choosing a filter.
 
 Checks run in the in-app browser as the synthetic operator at 375 px with `?filter=work`: no summary, the chip row is visible on one line, **Pengerjaan** is selected and fully in view, and there is no page overflow (screenshot reviewed). `desk-overview.ejs` compiles, and `npm.cmd run check` passed. Not verified: the browser smoke suite run, and widths 681–959 px.
 
@@ -870,7 +882,7 @@ Roles affected are tailor and admin operator (desktop sidebar, 960 px and wider)
 
 ### Operasional: invite old business users in a modal · 27 November 2026 WIB
 
-The role affected is the admin operator (**Operasional** at `/pengelola/operasional`). Prerequisites: the dev-mode stack and `operator@marajut.test`. Use a disposable stack if you will submit.
+The role affected is the admin operator (**Operasional** at `/pengelola/operasional`). Prerequisites: the dev-mode stack and `operator@merajut.test`. Use a disposable stack if you will submit.
 
 The collapsible **Undang pengguna ruang usaha lama** form is replaced by a card **Pengguna ruang usaha lama** with a short explanation and a primary **Undang pengguna** button (plus icon). It opens the modal **Undang penjahit lama** with the same fields and endpoint: **Nama usaha**, **Area layanan**, **Cerita usaha**, **Email penjahit**, **Kata sandi pengelola**, plus **Batal** and **Kirim undangan**. Focus starts in **Nama usaha**. **Email penjahit** now has `autocomplete="off"`: the browser had been filling it with the signed-in admin's own email, as if it were the username for the password field below. **Batal** and Esc close the modal; a backdrop click does not.
 
@@ -890,7 +902,7 @@ Not verified: a real invite, whether Edge or Chrome honours `autocomplete="off"`
 
 ### Tailor pages: no back link · 27 November 2026 WIB
 
-The role affected is the tailor. Prerequisites: the dev-mode stack and `tailor@marajut.test`. **Layanan Saya**, **Profil Usaha** and **Chat simulasi** no longer show the **Ringkasan Usaha** back link (the sidebar or drawer already links to **Ringkasan**). Each page now starts with its title row at the top. On the chat page, customers keep **Pesanan Saya** and admin managers keep **Pesanan**, because they do not have the tailor sidebar.
+The role affected is the tailor. Prerequisites: the dev-mode stack and `tailor@merajut.test`. **Layanan Saya**, **Profil Usaha** and **Chat simulasi** no longer show the **Ringkasan Usaha** back link (the sidebar or drawer already links to **Ringkasan**). Each page now starts with its title row at the top. On the chat page, customers keep **Pesanan Saya** and admin managers keep **Pesanan**, because they do not have the tailor sidebar.
 
 Checks run in the in-app browser: as the synthetic operator, `/workspace/intake` still has the back link **Pesanan** to `/pengelola`. After signing in as the synthetic tailor, `/workspace/services`, `/workspace/profile` and `/workspace/intake` have no back link, their first element is the title row, and the title is 26 px from the top. A screenshot of **Layanan Saya** was reviewed. `npm.cmd run check` passed. No smoke script uses these back links. Not verified: the customer chat page and phone widths.
 
@@ -911,7 +923,7 @@ The role affected is the tailor (and admin dashboard pages, which already used t
 
 ### Profil Usaha: info card above the form · 27 November 2026 WIB
 
-The role affected is the tailor (**Profil Usaha** at `/workspace/profile`). Prerequisites: the dev-mode stack and `tailor@marajut.test`. The page is now one column (max 52 rem wide). The **Tampilan untuk pelanggan** card comes first as a compact info card (smaller heading, muted text), and the profile form is below it with the same width and a 16 px gap. The "not yet published" notice still appears inside the info card for unpublished profiles. Saving the form is unchanged. Checked in the in-app browser as the synthetic tailor at 1024 px: the info card sits above the form, both 742 px wide with a 16 px gap; a screenshot was reviewed; the template compiles; `npm.cmd run check` passed. Not verified: saving the profile after the change, the unpublished notice, and 375 px.
+The role affected is the tailor (**Profil Usaha** at `/workspace/profile`). Prerequisites: the dev-mode stack and `tailor@merajut.test`. The page is now one column (max 52 rem wide). The **Tampilan untuk pelanggan** card comes first as a compact info card (smaller heading, muted text), and the profile form is below it with the same width and a 16 px gap. The "not yet published" notice still appears inside the info card for unpublished profiles. Saving the form is unchanged. Checked in the in-app browser as the synthetic tailor at 1024 px: the info card sits above the form, both 742 px wide with a 16 px gap; a screenshot was reviewed; the template compiles; `npm.cmd run check` passed. Not verified: saving the profile after the change, the unpublished notice, and 375 px.
 
 ### Minta penawaran: no "Pilih layanan" estimate box · 27 November 2026 WIB
 
@@ -921,7 +933,7 @@ Checks run with Playwright (Edge, signed out) on `/requests/new`: the box is hid
 
 ### Customer request page: open history, cancel modal, new card order · 27 November 2026 WIB
 
-The role affected is the customer (`/requests/<id>`, managed request view). Admin and tailor views are unchanged. Prerequisites: the dev-mode stack and a synthetic customer with an open request (for example `customer2@marajut.test`). Use a disposable stack if you will submit.
+The role affected is the customer (`/requests/<id>`, managed request view). Admin and tailor views are unchanged. Prerequisites: the dev-mode stack and a synthetic customer with an open request (for example `customer2@merajut.test`). Use a disposable stack if you will submit.
 
 1. Open the request. The left column shows the next-step card, **Foto referensi** and **Riwayat aktivitas**, which is now an always-open card with a heading. The right column shows **Ringkasan permintaan**, **Detail permintaan** and **Tidak jadi menjahit?**.
 2. **Tidak jadi menjahit?** has a short explanation and a red-outline **Batalkan permintaan** button with a cancel icon (new `cancel` symbol). It opens the modal **Batalkan permintaan?** with **Alasan pembatalan**, **Batal** and **Ya, batalkan**. It posts the same `cancel` action as before.
@@ -930,8 +942,8 @@ The role affected is the customer (`/requests/<id>`, managed request view). Admi
 5. As the admin, the same request still has **Tindakan lain** (left) and the collapsible **Riwayat aktivitas** (right).
 
 Checks run with Playwright (Edge, headless sessions, nothing submitted):
-- As `customer2@marajut.test`: history, photos and the cancel card are in the expected columns, and no "Riwayat aktivitas" summary remains. The modal opened with focus in the reason field, the empty submit was blocked, and **Batal** closed it. Layout and modal screenshots were reviewed.
-- As `operator@marajut.test`: the admin layout is unchanged. The photo section is absent for the admin because the partial only shows it when photos exist or the customer can add them.
+- As `customer2@merajut.test`: history, photos and the cancel card are in the expected columns, and no "Riwayat aktivitas" summary remains. The modal opened with focus in the reason field, the empty submit was blocked, and **Batal** closed it. Layout and modal screenshots were reviewed.
+- As `operator@merajut.test`: the admin layout is unchanged. The photo section is absent for the admin because the partial only shows it when photos exist or the customer can add them.
 - The template compiles, and `npm.cmd run check` passed. A backup of the previous template is in the session scratch folder.
 
 Not verified: a real cancellation (step 4), 375 px (single column order), and a request that already has photos or several history items.
@@ -940,7 +952,7 @@ Not verified: a real cancellation (step 4), 375 px (single column order), and a 
 
 Roles affected are customer and admin (the managed request view; both share the summary card). The separate **Detail permintaan** card is removed. Its text (description and **Catatan ukuran**) now sits inside **Ringkasan permintaan** / **Detail pesanan**, under the price box and the "Harga akhir…" note, above the Penjahit / Jumlah pakaian list, separated by a thin divider with a small muted heading. It keeps `id="detail"`, so **Lihat detail permintaan** still scrolls to it.
 
-Checks run with Playwright (Edge, headless, as `customer2@marajut.test`): the detail is inside the summary card, after the price and before the list, and no separate detail card remains; **Lihat detail permintaan** sets `#detail` and the block is visible; a screenshot of the card was reviewed; the template compiles; `npm.cmd run check` passed. Not verified: the admin view, an order (with **Detail pesanan** and the quote breakdown), long descriptions with fit notes, and 375 px.
+Checks run with Playwright (Edge, headless, as `customer2@merajut.test`): the detail is inside the summary card, after the price and before the list, and no separate detail card remains; **Lihat detail permintaan** sets `#detail` and the block is visible; a screenshot of the card was reviewed; the template compiles; `npm.cmd run check` passed. Not verified: the admin view, an order (with **Detail pesanan** and the quote breakdown), long descriptions with fit notes, and 375 px.
 
 ### Public shop page: banner redesign · 27 November 2026 WIB
 
@@ -950,7 +962,7 @@ The shop banner now follows the mockup:
 - a plum-to-magenta gradient
 - the pin icon and area as a small line
 - the shop name as the title, then the description (and specialty if set)
-- a pink pill **N Pesanan Selesai** at the top right, replacing the old line "N pesanan selesai di Marajut"
+- a pink pill **N Pesanan Selesai** at the top right, replacing the old line "N pesanan selesai di Merajut"
 - the shop icon as a large faint outline cropped at the bottom-right corner (decorative, hidden from screen readers), replacing the apricot icon tile
 
 Below 520 px the banner is one column and the pill moves above the location.
@@ -971,7 +983,7 @@ Roles affected: guest, customer, and anyone on the home page below 720 px. Prere
 
 ### Storefront header: "Cek Pesanan" for customers · 27 November 2026 WIB
 
-The role affected is the customer. Prerequisites: the dev-mode stack and synthetic accounts. On the home page and public shop pages, the single header button for a signed-in customer now reads **Cek Pesanan** (it still opens `/workspace`, the order list). Tailors and admins keep **Buka Dasbor**. Checked with Playwright (Edge), signed in on `/` in separate sessions: `customer2@marajut.test` saw **Cek Pesanan** linking to `/workspace`, `tailor@marajut.test` saw **Buka Dasbor** linking to `/workspace`, and `operator@marajut.test` saw **Buka Dasbor** linking to `/pengelola`. The header template compiles, and `npm.cmd run check` passed. No test refers to the label. Not verified: phone width.
+The role affected is the customer. Prerequisites: the dev-mode stack and synthetic accounts. On the home page and public shop pages, the single header button for a signed-in customer now reads **Cek Pesanan** (it still opens `/workspace`, the order list). Tailors and admins keep **Buka Dasbor**. Checked with Playwright (Edge), signed in on `/` in separate sessions: `customer2@merajut.test` saw **Cek Pesanan** linking to `/workspace`, `tailor@merajut.test` saw **Buka Dasbor** linking to `/workspace`, and `operator@merajut.test` saw **Buka Dasbor** linking to `/pengelola`. The header template compiles, and `npm.cmd run check` passed. No test refers to the label. Not verified: phone width.
 
 ### Pesanan Saya: no redundant group link, group descriptions · 27 November 2026 WIB
 
@@ -981,15 +993,15 @@ The role affected is the customer (**Pesanan Saya** at `/workspace`). Prerequisi
 2. With orders in two or more groups, the shortcut bar still appears and jumps to each group.
 3. Each group heading now has a one-line muted description of which states it holds.
 
-Checks run with Playwright (Edge) as `customer2@marajut.test` (one request in **Sedang diproses**): no shortcut bar, and the group shows its description (screenshot reviewed). The template compiles, and `npm.cmd run check` passed. The smoke tests find groups by heading, which is unchanged. Not verified: step 2 (no synthetic customer currently has orders in two groups) and phones.
+Checks run with Playwright (Edge) as `customer2@merajut.test` (one request in **Sedang diproses**): no shortcut bar, and the group shows its description (screenshot reviewed). The template compiles, and `npm.cmd run check` passed. The smoke tests find groups by heading, which is unchanged. Not verified: step 2 (no synthetic customer currently has orders in two groups) and phones.
 
 ### Cara memesan: no dashed line above steps · 27 November 2026 WIB
 
-Roles affected: guest and customer (home page `/`). The dashed line above each of the three steps in **Cara memesan di Marajut** is removed, along with the 1.4 rem top padding that only made room for it. The icons now start right under the section gap, and the arrows between steps stay vertically centred. Checked with Playwright (Edge) at 1280 px: all three steps have no top border, the first arrow is centred on its step, and a screenshot was reviewed. Not verified: 375 px (where the down arrows sit between stacked steps).
+Roles affected: guest and customer (home page `/`). The dashed line above each of the three steps in **Cara memesan di Merajut** is removed, along with the 1.4 rem top padding that only made room for it. The icons now start right under the section gap, and the arrows between steps stay vertically centred. Checked with Playwright (Edge) at 1280 px: all three steps have no top border, the first arrow is centred on its step, and a screenshot was reviewed. Not verified: 375 px (where the down arrows sit between stacked steps).
 
 ### Tailor request page: no business name above the title · 27 November 2026 WIB
 
-The role affected is the tailor (`/requests/<id>` rendered with `request-detail.ejs`). Prerequisites: the dev-mode stack and `tailor@marajut.test`. The business name line (for example "Jahit Rina") above the service title is no longer shown to tailors, because it is their own business. Customers and admins who see this template keep the line. Checked in the in-app browser as the synthetic tailor on the demo request: the page loads (200), shows **Ringkasan Usaha** then the title **Permak panjang pakaian**, with no location line in the heading. The template compiles. Smoke scripts only look for "Jahit Rina" on the overview heading and the public shop page. Not verified: the customer and admin variants of this template.
+The role affected is the tailor (`/requests/<id>` rendered with `request-detail.ejs`). Prerequisites: the dev-mode stack and `tailor@merajut.test`. The business name line (for example "Jahit Rina") above the service title is no longer shown to tailors, because it is their own business. Customers and admins who see this template keep the line. Checked in the in-app browser as the synthetic tailor on the demo request: the page loads (200), shows **Ringkasan Usaha** then the title **Permak panjang pakaian**, with no location line in the heading. The template compiles. Smoke scripts only look for "Jahit Rina" on the overview heading and the public shop page. Not verified: the customer and admin variants of this template.
 
 ### "Lihat profil publik" buttons made consistent · 27 November 2026 WIB
 
@@ -1017,7 +1029,7 @@ Test changes: `scripts/browser-smoke.js`, `scripts/inbound-browser-smoke.js` and
 
 Checks run:
 - The attribute script matched each of the 29 targets exactly once; all 48 templates compile; all smoke scripts pass `node --check`; `npm.cmd run check` passed.
-- Playwright (Edge) as `operator@marajut.test` on the demo request: **Tutup permintaan** opened "Tutup permintaan?" with a red **Ya, lanjutkan**, and **Batal** closed it with 0 POST requests. **Penjahit berhalangan** opened "Catat penjahit berhalangan?", and **Batal** closed it with 0 POSTs. **Minta detail pelanggan** has no confirmation.
+- Playwright (Edge) as `operator@merajut.test` on the demo request: **Tutup permintaan** opened "Tutup permintaan?" with a red **Ya, lanjutkan**, and **Batal** closed it with 0 POST requests. **Penjahit berhalangan** opened "Catat penjahit berhalangan?", and **Batal** closed it with 0 POSTs. **Minta detail pelanggan** has no confirmation.
 
 Not verified: the confirm path completing each action (would change demo data), the other 27 buttons live, and the three smoke suites run.
 
@@ -1029,7 +1041,7 @@ Checks run in the in-app browser as the synthetic tailor at 1280 px: every card 
 
 ### Admin request page: open history, modal actions, no "Buka koordinasi" · 27 November 2026 WIB
 
-The role affected is the admin operator (managed request view `/requests/<id>`). Customer view changes are noted below. Prerequisites: the dev-mode stack and `operator@marajut.test`. Use a disposable stack to submit.
+The role affected is the admin operator (managed request view `/requests/<id>`). Customer view changes are noted below. Prerequisites: the dev-mode stack and `operator@merajut.test`. Use a disposable stack to submit.
 
 1. **Riwayat aktivitas** is an always-open card with a heading for the admin too, so no collapsibles remain on the page.
 2. **Pilih penjahit lain** is a card with a short note and a **Pilih penjahit** button (shop icon). It opens a modal with **Layanan pengganti**, **Batal** and **Alihkan permintaan** (customers: **Kirim ke penjahit ini**). When the tailor declined or is unavailable, the picker stays inline as the main task, with its confirmation. With no alternatives the card says so and shows no button. The form markup is written once in `managed-reassign.ejs`.
@@ -1039,7 +1051,7 @@ The role affected is the admin operator (managed request view `/requests/<id>`).
 
 Test change: `scripts/browser-smoke.js` now opens **Minta detail pelanggan**, fills the question inside the dialog, and presses **Kirim pertanyaan** (no more "Tindakan lain" summary).
 
-Checks run with Playwright (Edge) as `operator@marajut.test` on the demo request, nothing submitted:
+Checks run with Playwright (Edge) as `operator@merajut.test` on the demo request, nothing submitted:
 - No `summary` elements remain on the page, and the history heading is visible. The dispatch hint is 12 px below the buttons.
 - **Pilih penjahit**, **Minta detail pelanggan** and **Tutup permintaan** each open their modal. An empty submit is blocked, no second confirm stacks, and **Batal** closes it; 0 POST requests.
 - The next-step card has 0 buttons and "Buka koordinasi" is gone.
@@ -1049,7 +1061,7 @@ Not verified: real reassign, clarify or close submissions; the customer view of 
 
 ### Operasional: delivery health as a status button and popover · 27 November 2026 WIB
 
-The role affected is the admin operator (**Operasional** at `/pengelola/operasional`). Prerequisites: the dev-mode stack with the worker running (`npm.cmd run dev:worker`) and `operator@marajut.test`.
+The role affected is the admin operator (**Operasional** at `/pengelola/operasional`). Prerequisites: the dev-mode stack with the worker running (`npm.cmd run dev:worker`) and `operator@merajut.test`.
 
 The **Kesehatan pengiriman** card is removed from the page. In its place, a status button sits left of **Percakapan simulasi** in the header. Its coloured dot pulses like Tailwind `animate-pulse` (opacity 1 to 0.5 over 2 s, off with reduce motion):
 - green **Pengiriman normal** — worker seen in the last 5 minutes, nothing failed
@@ -1062,7 +1074,7 @@ Clicking the button opens a notification-style panel (native popover) anchored u
 2. Stop the worker for over 5 minutes and reload. Expect amber **Worker tidak aktif** and an amber worker row.
 3. On a disposable stack with a failed notification, expect red **1 perlu ditinjau** and the entry inside the panel.
 
-Checks run with Playwright (Edge) as `operator@marajut.test`:
+Checks run with Playwright (Edge) as `operator@merajut.test`:
 - At 1280 px the green state shows, the panel opens under the button right-aligned (384 px wide) with four green rows, and ✕, Esc and an outside click each close it (screenshot reviewed).
 - At 375 px the panel is 343 px wide with 16 px margins.
 - Dot opacity samples 1.00 → 0.52 → 0.90 over 2 s, and the animation is `none` with reduced motion.

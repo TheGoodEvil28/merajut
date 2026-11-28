@@ -2,7 +2,7 @@
 
 **Status** [PROPOSAL] Pending review · **Date** 18 November 2026 WIB
 
-[Parent RFC](../rfc/RFC-0001-MARAJUT-RECONSTRUCTION.md)
+[Parent RFC](../rfc/RFC-0001-MERAJUT-RECONSTRUCTION.md)
 
 ## Decision
 

@@ -1,0 +1,12 @@
+<%- include('header') %>
+<section class="narrow section"><h1>Periksa email Anda</h1>
+  <p>Jika alamat dapat digunakan, tautan akan tersedia di kotak masuk. Buka tautan lalu konfirmasikan di Merajut.</p>
+  <% if (draftId) { %><section class="card"><h2>Foto untuk penjahit</h2>
+    <p>Satu foto opsional, hingga 3 MB. Draf dan foto akan diteruskan setelah Anda mengonfirmasi permintaan.</p>
+    <form class="stack" data-guest-photo action="/akun/draf/<%= draftId %>/photos">
+      <label><span class="field-label">Foto pakaian<span class="req" aria-hidden="true"></span></span><input type="file" accept="image/jpeg,image/png,image/webp" required></label>
+      <input name="_csrf" type="hidden" value="<%= csrf %>">
+      <button type="submit" hidden>Tambahkan foto ke draf</button><span role="status"></span>
+    </form></section><% } %>
+  <a class="back" href="/akun/tautan">Masukkan kode dari email</a>
+</section><%- include('footer') %>

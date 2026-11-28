@@ -1,7 +1,7 @@
-name: marajut-preview-qa
+name: merajut-preview-qa
 
 x-preview-app: &preview-app
-  image: ${PREVIEW_IMAGE:-marajut-preview:local}
+  image: ${PREVIEW_IMAGE:-merajut-preview:local}
 x-preview-origin: &preview-origin "https://${PREVIEW_APP_HOST:-localhost}:${PREVIEW_HTTPS_PORT:-443}"
 
 services:

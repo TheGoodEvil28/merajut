@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
-import { seedEmails } from '../apps/marajut/seed.js';
+import { seedEmails } from '../apps/merajut/seed.js';
 import { previewBrowserOptions } from './preview-auth.js';
 
 const origin = new URL(process.env.APP_ORIGIN ?? 'http://127.0.0.1:' + (process.env.APP_PORT ?? '3100'));
@@ -45,7 +45,7 @@ try {
   await customer.getByRole('link', { name: 'Buka simulasi WhatsApp' }).click();
   await customer.getByText('Masuk untuk mencoba simulasi WhatsApp.', {exact:false}).waitFor();
   await signIn(customer, seedEmails.otherCustomer, '**/workspace/intake');
-  assert.match(await customer.title(), /Simulasi WhatsApp · Marajut/);
+  assert.match(await customer.title(), /Simulasi WhatsApp · Merajut/);
   await customer.getByLabel('Pesan pelanggan').fill('Hello, I need help repairing a seam.');
   await customer.getByRole('button', { name: 'Kirim pesan simulasi' }).click();
   const choice = customer.getByLabel('Penjahit dan layanan');

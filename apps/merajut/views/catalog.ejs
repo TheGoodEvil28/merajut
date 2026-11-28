@@ -1,0 +1,64 @@
+<%- include('header') %>
+<link rel="stylesheet" href="/assets/vendor/lenis/lenis.css">
+<script src="/assets/vendor/lenis/lenis.min.js" defer></script>
+<script src="/assets/landing.js" defer></script>
+<%# Decorative sewing threads drifting behind the whole landing page; stretched to the page height. Per thread: stroke-opacity sets how strong it looks, data-depth how much it lags the scroll (parallax), data-phone="hide" drops it on phones. %>
+<svg class="thread-layer" viewBox="0 0 1000 2000" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <path data-depth=".23" stroke-opacity=".9" d="M-40 90 C 90 12, 150 92, 300 62 S 520 -90, 640 -20 S 820 88, 1020 "/>
+  <!-- <path data-depth=".3" stroke-opacity=".28" d="M330 320 C 430 350, 520 345, 600 318 S 760 270, 860 330 S 960 420, 1020 400"/> -->
+  <path data-depth=".08" stroke-opacity=".5" d="M-20 500 C 110 560, 230 520, 380 545 S 610 610, 730 575 S 900 470, 1020 515"/>
+  <path data-depth=".15" data-phone="hide" stroke-opacity=".35" d="M-20 1690 C 70 1630, 150 1650, 190 1705 S 260 1790, 340 1760"/>
+  <path data-depth=".05" data-phone="hide" stroke-opacity=".6" d="M1020 1665 C 940 1660, 890 1720, 930 1765 S 1000 1800, 980 1860 S 900 1930, 1020 1960"/>
+</svg>
+<section class="market-intro" aria-labelledby="market-title">
+  <div class="market-intro-copy">
+    <p class="market-location"><%- include('icon', {name:'pin'}) %> Layanan jahit lokal di Semarang</p>
+    <h1 id="market-title">Dari Web ke Chat,<br><em>Setiap Jahitan Terhubung.</em></h1>
+    <p>Temukan penjahit untuk permak, perbaikan, atau jahit baru. Sepakati harga dan pantau pengerjaannya langsung di web.</p>
+    <form class="market-search" action="/#services" method="get" role="search">
+      <label class="sr-only" for="catalog-search">Cari layanan atau penjahit</label>
+      <%- include('icon', {name:'search'}) %>
+      <input id="catalog-search" name="q" type="search" placeholder="Layanan, penjahit, atau area" value="<%= filters.search %>" maxlength="80">
+      <% if (filters.category) { %><input type="hidden" name="category" value="<%= filters.category %>"><% } %>
+      <button>Cari</button>
+    </form>
+    <% if (!intakeEnabled) { %><a class="intro-how" href="#cara-kerja">Bagaimana cara memesan? <span class="dir dir-down" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span></a><% } %>
+  </div>
+  <div class="market-intro-photo"><img src="/assets/tailor-workshop.webp" width="1200" height="800" alt="Tangan penjahit mengarahkan kain melewati jarum mesin jahit" fetchpriority="high"></div>
+</section>
+<section id="services" class="section catalog-section" aria-labelledby="catalog-title">
+  <div class="section-caption"><div><h2 id="catalog-title">Layanan jahit di sekitar Anda</h2>
+    <p class="muted">Bandingkan layanan dan harga awal. Harga akhir tercantum dalam penawaran penjahit.</p></div>
+  </div>
+  <nav class="category-tabs" aria-label="Kategori layanan">
+    <% const icons = { alteration:'scissors', repair:'needle', custom:'shirt', other:'spool' };
+    for (const [key, label] of [['', 'Semua layanan'], ...Object.entries(serviceCategories)]) {
+      const params = new URLSearchParams();
+      if (filters.search) params.set('q', filters.search);
+      if (key) params.set('category', key); %>
+      <a href="/<%= params.size ? '?' + params : '' %>#services" <% if (key === filters.category) { %>aria-current="true"<% } %>><%- include('icon', {name:icons[key] ?? 'grid'}) %><%= label %></a>
+    <% } %>
+  </nav>
+  <% if (filters.search || filters.category) { %>
+    <div class="search-results"><p><%= services.length === 100 ? 'Menampilkan 100 hasil' : services.length + ' hasil' %><% if (filters.search) { %> untuk “<%= filters.search %>”<% } %></p><a href="/#services">Hapus filter</a></div>
+  <% } %>
+  <% if (!services.length) { %><div class="queue-empty"><strong><%= filters.search || filters.category ? 'Tidak ada layanan yang cocok.' : 'Belum ada layanan yang ditampilkan.' %></strong>
+    <p><%= filters.search || filters.category ? 'Pilih kategori lain atau ubah kata pencarian.' : 'Silakan periksa lagi nanti.' %></p></div><% } %>
+  <div class="cards"><% for (const service of services) { %><%- include('service-card', { service }) %><% } %></div>
+</section>
+<section class="how-section" id="cara-kerja" aria-labelledby="how-title">
+  <h2 id="how-title">Cara memesan di Merajut</h2>
+  <ol class="sewing-steps">
+    <li><span class="step-arrow" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span><%- include('icon', {name:'search'}) %><h3>Temukan layanan</h3><p>Bandingkan harga awal, baca profil usaha, lalu pilih layanan yang sesuai.</p><a href="#services">Jelajahi layanan <span class="dir dir-up" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span></a></li>
+    <li><span class="step-arrow" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span><%- include('icon', {name:'chat'}) %><h3>Ceritakan kebutuhan</h3><p>Kirim detail dan foto lewat formulir. Admin menghubungi mitra melalui WhatsApp untuk memastikan kesediaan, harga final, dan jadwal fitting.</p>
+      <% if (intakeEnabled) { %><a href="/workspace/intake">Buka simulasi WhatsApp <span class="dir" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span></a><% } %></li>
+    <li><%- include('icon', {name:'bag'}) %><h3>Sepakati dan pantau</h3><p>Periksa harga dan tanggal selesai. Setujui penawaran atau minta mitra lain. Setelah jahitan siap, bayar melalui halaman pesanan untuk pengambilan atau pengiriman.</p>
+      <% if (!user || user.role === 'customer') { %><a href="/workspace">Lihat pesanan saya <span class="dir" aria-hidden="true"><%- include('icon', {name:'arrow'}) %></span></a><% } %></li>
+  </ol>
+</section>
+<% if (!user || user.role === 'provider') { %>
+<section class="shop-entry"><div><h2>Punya usaha jahit?</h2><p>Bergabung sebagai mitra. Admin mengelola profil dan layanan Anda, lalu menghubungi Anda melalui WhatsApp saat ada pekerjaan.</p></div>
+  <% if (partnerContact) { %><a class="button" href="https://wa.me/<%= partnerContact %>?text=Saya%20ingin%20bergabung%20sebagai%20mitra%20Merajut">Hubungi admin</a><% } else { %><a class="button" href="/mitra/daftar">Daftar sebagai mitra</a><% } %>
+</section>
+<% } %>
+<%- include('footer') %>

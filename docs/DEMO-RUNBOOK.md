@@ -1,4 +1,4 @@
-# Demo Marajut dari permintaan sampai serah terima
+# Demo Merajut dari permintaan sampai serah terima
 
 Siapkan sesi browser pelanggan dan admin yang terpisah serta layar WhatsApp mitra. Gunakan satu permintaan sintetis dan catat kode pesanan yang muncul di website. Di preview privat, pastikan **Operasional → Pengiriman WhatsApp** menunjukkan gateway siap dan mitra tujuan sudah menyetujui pengiriman uji. Untuk latihan tanpa WhatsApp sungguhan, jalankan skenario `RFC-0004 dispatch authorization, queue recovery and signed replies` dalam panduan pengujian. Penawaran dan pembayaran dalam demo menggunakan data sintetis dan `PAYMENT_MODE=demo`. [Panduan pengujian](TEST-RUN-GUIDEBOOK.md#formulir-penawaran-whatsapp--28-november-2026-utc)
 

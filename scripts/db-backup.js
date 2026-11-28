@@ -13,7 +13,7 @@ const previousBackupHeader = Buffer.from('444a414854424b31', 'hex');
 const headerLength=magic.length+16+12;
 const tagLength=16;
 const [command,project,file,requestId]=process.argv.slice(2);
-const passphrase=process.env.MARAJUT_BACKUP_PASSPHRASE;
+const passphrase=process.env.MERAJUT_BACKUP_PASSPHRASE ?? process.env.MARAJUT_BACKUP_PASSPHRASE;
 const composeProject = /^[a-z0-9][a-z0-9_-]*$/;
 const databaseEnvironment = 'export PGUSER="$POSTGRES_USER" PGDATABASE="$POSTGRES_DB"\nexec "$@"';
 
@@ -29,8 +29,8 @@ if (requestId !== undefined && (command !== 'rehearse' || !/^[\da-f]{8}(?:-[\da-
 
 async function verifyRestoredOrder(database, id) {
   const readOrder = `
-    import { createPool, one } from './apps/marajut/db.js';
-    import { inquiryDetail } from './apps/marajut/inquiries.js';
+    import { createPool, one } from './apps/merajut/db.js';
+    import { inquiryDetail } from './apps/merajut/inquiries.js';
 
     const id = process.argv[1];
     const pool = createPool();
@@ -88,11 +88,11 @@ if (command==='save') {
     throw error;
   }
 } else {
-  if (!/^marajut-(?:sandbox|[a-z0-9-]+-qa)(?:-|$)/.test(project)) throw new Error('Restore rehearsal requires a separate QA or sandbox project.');
+  if (!/^m[ae]rajut-(?:sandbox|[a-z0-9-]+-qa)(?:-|$)/.test(project)) throw new Error('Restore rehearsal requires a separate QA or sandbox project.');
   const source=await open(file,'r');
-  const scratch=await mkdtemp(join(tmpdir(),'marajut-restore-'));
+  const scratch=await mkdtemp(join(tmpdir(),'merajut-restore-'));
   const dump=join(scratch,'verified.dump');
-  const database='marajut_rehearsal_'+randomBytes(8).toString('hex');
+  const database='merajut_rehearsal_'+randomBytes(8).toString('hex');
   let created=false;
   try {
     const {size}=await source.stat();

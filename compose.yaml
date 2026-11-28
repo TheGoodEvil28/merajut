@@ -1,14 +1,14 @@
-name: marajut
+name: merajut
 x-app: &app
   build:
     context: .
     dockerfile: infra/Dockerfile
-  image: marajut-local
+  image: merajut-local
   environment: &app-env
-    MARAJUT_ENV: local
+    MERAJUT_ENV: local
     PGHOST: db
-    PGUSER: ${POSTGRES_USER:-marajut}
-    PGDATABASE: ${POSTGRES_DB:-marajut}
+    PGUSER: ${POSTGRES_USER:-merajut}
+    PGDATABASE: ${POSTGRES_DB:-merajut}
     PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     PORT: 3100
     BIND_HOST: 0.0.0.0
@@ -25,8 +25,8 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-marajut}
-      POSTGRES_DB: ${POSTGRES_DB:-marajut}
+      POSTGRES_USER: ${POSTGRES_USER:-merajut}
+      POSTGRES_DB: ${POSTGRES_DB:-merajut}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - data:/var/lib/postgresql/data
@@ -47,10 +47,10 @@ services:
     profiles: ["tools"]
     command: ["npm", "run", "db:seed"]
     environment:
-      MARAJUT_ENV: local
+      MERAJUT_ENV: local
       PGHOST: db
-      PGUSER: ${POSTGRES_USER:-marajut}
-      PGDATABASE: ${POSTGRES_DB:-marajut}
+      PGUSER: ${POSTGRES_USER:-merajut}
+      PGDATABASE: ${POSTGRES_DB:-merajut}
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       DEMO_PASSWORD: ${DEMO_PASSWORD:-}
     depends_on:
@@ -84,7 +84,7 @@ services:
   worker:
     <<: *app
     restart: unless-stopped
-    command: ["node", "apps/marajut/worker.js"]
+    command: ["node", "apps/merajut/worker.js"]
     stop_grace_period: 30s
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -94,10 +94,10 @@ services:
     profiles: ["tools"]
     command: ["npm", "test"]
     environment:
-      MARAJUT_ENV: test
+      MERAJUT_ENV: test
       PGHOST: db
-      PGUSER: ${POSTGRES_USER:-marajut}
-      PGDATABASE: ${POSTGRES_DB:-marajut}
+      PGUSER: ${POSTGRES_USER:-merajut}
+      PGDATABASE: ${POSTGRES_DB:-merajut}
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     depends_on:
       db: { condition: service_healthy }
@@ -106,7 +106,7 @@ services:
     <<: *app
     profiles: ["dispatch"]
     restart: unless-stopped
-    command: ["node", "apps/marajut/dispatch-worker.js"]
+    command: ["node", "apps/merajut/dispatch-worker.js"]
     stop_grace_period: 35s
     environment:
       <<: *app-env

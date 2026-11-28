@@ -7,7 +7,7 @@
 {$PREVIEW_ORIGIN} {
 	@private_dispatch path /webhooks/openwa /webhooks/openwa/*
 	respond @private_dispatch 404
-	basic_auth bcrypt "Marajut preview" {
+	basic_auth bcrypt "Merajut preview" {
 		import /run/secrets/preview_testers
 		import /run/secrets/preview_qa
 	}
@@ -17,7 +17,7 @@
 }
 
 {$PREVIEW_MAIL_ORIGIN} {
-	basic_auth bcrypt "Marajut test mailbox" {
+	basic_auth bcrypt "Merajut test mailbox" {
 		import /run/secrets/preview_qa
 	}
 	reverse_proxy mail:1080 {

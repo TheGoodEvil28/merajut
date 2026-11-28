@@ -3,7 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
-import { seedEmails } from '../apps/marajut/seed.js';
+import { seedEmails } from '../apps/merajut/seed.js';
 import { previewBrowserOptions } from './preview-auth.js';
 
 const base = new URL(process.env.APP_ORIGIN ?? 'http://localhost:' + (process.env.APP_PORT ?? '3100'));
@@ -49,7 +49,7 @@ async function signIn(page, email, destination = '**/workspace') {
   await page.waitForURL(destination);
   if (base.protocol === 'https:') {
     const cookies = await page.context().cookies(base.origin);
-    const session = cookies.find(cookie => cookie.name === 'marajut_session');
+    const session = cookies.find(cookie => cookie.name === 'merajut_session');
     assert.ok(session?.secure && session.httpOnly, 'HTTPS sign-in must set a secure session cookie.');
   }
 }
@@ -58,7 +58,7 @@ try {
   await customer.goto('/');
   await customer.getByRole('heading', { name: 'Layanan jahit di sekitar Anda' }).waitFor();
   await customer.evaluate(() => document.fonts.ready);
-  const brand = customer.getByRole('link', { name: 'Beranda Marajut' });
+  const brand = customer.getByRole('link', { name: 'Beranda Merajut' });
   const signInLink = customer.getByRole('link', { name: 'Masuk', exact: true });
   for (const width of [320, 360, 768, 1366]) {
     await customer.setViewportSize({ width, height: 844 });

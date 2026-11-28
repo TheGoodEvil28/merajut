@@ -4,25 +4,26 @@ import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import pg from 'pg';
 import sharp from 'sharp';
-import { createApp } from '../apps/marajut/app.js';
-import { migrate } from '../apps/marajut/migrate.js';
-import { seed, seedEmails } from '../apps/marajut/seed.js';
-import { seedWorkday } from '../apps/marajut/demo-workday.js';
-import { createInquiry } from '../apps/marajut/inquiries.js';
-import { updateDispatch } from '../apps/marajut/dispatch.js';
-import { enqueue, messagingMode, processNext, simulator } from '../apps/marajut/outbox.js';
-import { normalizeSimulation } from '../apps/marajut/inbound-adapter.js';
-import { processInbound } from '../apps/marajut/inbound.js';
-import { processAccountMail } from '../apps/marajut/mail.js';
-import { midtrans } from '../apps/marajut/payments.js';
+import { createApp } from '../apps/merajut/app.js';
+import { migrate } from '../apps/merajut/migrate.js';
+import { seed, seedEmails } from '../apps/merajut/seed.js';
+import { seedWorkday } from '../apps/merajut/demo-workday.js';
+import { createInquiry } from '../apps/merajut/inquiries.js';
+import { digest, startSession, token } from '../apps/merajut/identity.js';
+import { updateDispatch } from '../apps/merajut/dispatch.js';
+import { enqueue, messagingMode, processNext, simulator } from '../apps/merajut/outbox.js';
+import { normalizeSimulation } from '../apps/merajut/inbound-adapter.js';
+import { processInbound } from '../apps/merajut/inbound.js';
+import { processAccountMail } from '../apps/merajut/mail.js';
+import { midtrans } from '../apps/merajut/payments.js';
 import { createServer } from 'node:http';
-import { decideQuote, expireQuotes, issueQuote } from '../apps/marajut/quotes.js';
-import { retentionSweep } from '../apps/marajut/maintenance.js';
-import { dispatchSettings } from '../apps/marajut/whatsapp-config.js';
-import { dispatchPanel } from '../apps/marajut/whatsapp-dispatch.js';
-import { mockDispatchGateway, openwaGateway } from '../apps/marajut/whatsapp-gateway.js';
-import { finishDispatch, processDispatch } from '../apps/marajut/whatsapp-worker.js';
-import { processDispatchInbox } from '../apps/marajut/whatsapp-inbox.js';
+import { decideQuote, expireQuotes, issueQuote } from '../apps/merajut/quotes.js';
+import { retentionSweep } from '../apps/merajut/maintenance.js';
+import { dispatchSettings } from '../apps/merajut/whatsapp-config.js';
+import { dispatchPanel } from '../apps/merajut/whatsapp-dispatch.js';
+import { mockDispatchGateway, openwaGateway } from '../apps/merajut/whatsapp-gateway.js';
+import { finishDispatch, processDispatch } from '../apps/merajut/whatsapp-worker.js';
+import { processDispatchInbox } from '../apps/merajut/whatsapp-inbox.js';
 
 function browserClient(base) {
   const cookies = new Map();
@@ -33,7 +34,7 @@ function browserClient(base) {
       if (body) {
         headers['content-type'] ??= 'application/json';
         headers.origin ??= base;
-        headers['x-csrf-token'] ??= cookies.get('marajut_csrf') ?? '';
+        headers['x-csrf-token'] ??= cookies.get('merajut_csrf') ?? '';
       }
       const response = await fetch(base + path, { method: body ? 'POST' : 'GET',
         body: Buffer.isBuffer(body) ? body : body ? JSON.stringify(body) : undefined, headers, redirect: 'manual' });
@@ -54,7 +55,7 @@ test('Live messaging cannot be selected', () => {
 });
 
 async function isolatedDatabase(t) {
-  assert.equal(process.env.MARAJUT_ENV, 'test', 'Run in the isolated test environment documented in README.');
+  assert.equal(process.env.MERAJUT_ENV, 'test', 'Run in the isolated test environment documented in README.');
   const schema = 'test_' + randomBytes(12).toString('hex');
   const administration = new pg.Pool();
   await administration.query(`CREATE SCHEMA "${schema}"`);
@@ -77,6 +78,47 @@ async function serve(t,pool,options) {
   t.after(() => new Promise(resolve=>server.close(resolve)));
   return base;
 }
+
+test('Merajut name upgrade preserves fixture identity, proof links and active sessions', async t => {
+  const {pool} = await isolatedDatabase(t);
+  await migrate(pool);
+  const password = randomBytes(20).toString('hex');
+  await seed(pool,password);
+  const previous = 'customer@marajut.test';
+  const {rows:[customer]} = await pool.query(`UPDATE users SET email=$1 WHERE email=$2
+    RETURNING id,password_digest`,[previous,seedEmails.customer]);
+  const code = token();
+  const {rows:[proof]} = await pool.query(`INSERT INTO account_challenges(purpose,email,user_id,code_digest,expires_at)
+    VALUES('recovery',$1,$2,$3,now()+interval '10 minutes') RETURNING id`,[previous,customer.id,digest(code)]);
+  const session = await startSession(pool,customer.id);
+  const {rows:[occupied]} = await pool.query(`INSERT INTO users(email,display_name,password_digest,role,verified_at)
+    VALUES('occupied@marajut.test','Satu',$1,'customer',now()),('occupied@merajut.test','Dua',$1,'customer',now())
+    RETURNING id,email`,[customer.password_digest]);
+
+  await pool.query("DELETE FROM schema_migrations WHERE name='013_merajut_brand.sql'");
+  await migrate(pool);
+  await migrate(pool);
+  assert.deepEqual((await pool.query('SELECT id,password_digest FROM users WHERE email=$1',[seedEmails.customer])).rows[0],customer);
+  assert.equal((await pool.query('SELECT email FROM account_challenges WHERE id=$1',[proof.id])).rows[0].email,seedEmails.customer);
+  assert.equal((await pool.query('SELECT email FROM users WHERE id=$1',[occupied.id])).rows[0].email,occupied.email);
+
+  const base = await serve(t,pool);
+  const client = browserClient(base);
+  await client.request('/api/v1/session');
+  assert.equal((await client.request('/akun/periksa',{body:{code}})).existing,true);
+  await client.request('/api/v1/session',{body:{email:previous,password}});
+  assert.equal((await client.request('/api/v1/session')).user.id,customer.id);
+  await client.request('/api/v1/session',{body:{email:occupied.email,password}});
+  assert.equal((await client.request('/api/v1/session')).user.id,occupied.id);
+
+  const csrf = token();
+  const legacyHeaders = {cookie:`marajut_session=${session}; marajut_csrf=${csrf}`};
+  assert.equal((await fetch(base+'/api/v1/session',{headers:legacyHeaders}).then(res=>res.json())).user.id,customer.id);
+  const signedOut = await fetch(base+'/api/v1/session/logout',{method:'POST',headers:{...legacyHeaders,
+    origin:base,'x-csrf-token':csrf,'content-type':'application/json'},body:'{}'});
+  assert.equal(signedOut.status,200);
+  assert.equal((await fetch(base+'/api/v1/session',{headers:legacyHeaders}).then(res=>res.json())).user,null);
+});
 
 test('Express and PostgreSQL workflow', async t => {
   const {pool,schema}=await isolatedDatabase(t);
@@ -116,9 +158,9 @@ test('Express and PostgreSQL workflow', async t => {
     await customer.request('/api/v1/messages/preference', { body: { enabled: true } });
   });
 
-  await t.test('Marajut offers a local chat destination only when intake is enabled', async () => {
+  await t.test('Merajut offers a local chat destination only when intake is enabled', async () => {
     const home = await client.request('/', { raw: true });
-    assert.match(home, /Marajut/);
+    assert.match(home, /Merajut/);
     assert.match(home, /Buka simulasi WhatsApp/);
     const chatLogin = await client.request('/login?next=%2Fworkspace%2Fintake', { raw:true });
     assert.match(chatLogin, /name="next" value="\/workspace\/intake"/);
@@ -562,7 +604,7 @@ test('Express and PostgreSQL workflow', async t => {
   await t.test('a verified guest claims one request and its private photo; recovery revokes sessions',async() => {
     const guest=browserClient(base);
     const outsider=browserClient(base);
-    const email='guest-pilot@marajut.test';
+    const email='guest-pilot@merajut.test';
     await guest.request('/api/v1/session');
     await outsider.request('/api/v1/session');
     const draft={...createRequest(),email,quantity:2};
@@ -581,7 +623,7 @@ test('Express and PostgreSQL workflow', async t => {
     assert.equal(request.photos.length,1);
     await details(foreignTailor,claim.inquiryId,404);
     const recovery=await outsider.request('/akun/lupa',{body:{email},status:202});
-    assert.deepEqual(await outsider.request('/akun/lupa',{body:{email:'absent@marajut.test'},status:202}),recovery);
+    assert.deepEqual(await outsider.request('/akun/lupa',{body:{email:'absent@merajut.test'},status:202}),recovery);
     const reset=await getProof(email,'recovery');
     const replacement=password+'2';
     await outsider.request('/akun/konfirmasi',{body:{code:reset,password:replacement}});
@@ -593,7 +635,7 @@ test('Express and PostgreSQL workflow', async t => {
 
   await t.test('manager invites, publishes and revokes one tailor with an audit trail',async() => {
     const newTailor=browserClient(base);
-    const email='new-tailor@marajut.test';
+    const email='new-tailor@merajut.test';
     await customer.request('/api/v1/management',{status:403});
     const invite={name:'Jahit Uji',area:'Semarang Timur',description:'Permak pakaian untuk uji coba.',email,password};
     await operator.request('/api/v1/management/invites',{body:{...invite,password:'wrong'},status:403});
@@ -625,7 +667,7 @@ test('Express and PostgreSQL workflow', async t => {
     assert.equal(await expireQuotes(pool),1);
     const expired=await details(customer,id);
     assert.equal(expired.inquiry.status,'EXPIRED');
-    assert.equal(expired.events.at(-1).actor,'Sistem Marajut');
+    assert.equal(expired.events.at(-1).actor,'Sistem Merajut');
     const active=await newQuote(tailor,id,25000,expired.inquiry.revision);
     const accepted=await customer.request('/api/v1/quotes/'+active.id+'/decisions',{body:{decision:'ACCEPTED',version:2}});
     const path='/api/v1/provider/orders/'+accepted.orderId;
@@ -1007,7 +1049,7 @@ test('RFC-0004 dispatch authorization, queue recovery and signed replies', async
   const phone = '6281200000001';
   const directChat = phone+'@c.us';
   const secret = randomBytes(32).toString('hex');
-  const settings = dispatchSettings({MARAJUT_ENV:'test',DISPATCH_WHATSAPP_MODE:'mock',
+  const settings = dispatchSettings({MERAJUT_ENV:'test',DISPATCH_WHATSAPP_MODE:'mock',
     OPENWA_GROUP_CHAT_ID:groupChat,OPENWA_WEBHOOK_SECRET:secret});
   const sender = mockDispatchGateway();
   const base = await serve(t,pool,{dispatch:settings});
@@ -1259,7 +1301,7 @@ CATATAN: Jahitan dikirim setelah pembayaran terverifikasi.`;
   await processDispatch(pool,settings,{...sender,send:async()=>assert.fail('Outdated start message must not be sent')});
   assert.equal((await readPanel()).history.find(job=>job.id===staleStart.id).state,'CANCELLED');
   const progressPage = await admin.request(customerPath,{raw:true});
-  assert.match(progressPage,/<strong>MARAJUT — KABAR PENGERJAAN<\/strong>/);
+  assert.match(progressPage,/<strong>MERAJUT — KABAR PENGERJAAN<\/strong>/);
   assert.match(progressPage,/<strong>Perkiraan selesai:<\/strong> 11 Des 2099/);
   assert.ok(progressPage.includes('<pre><code>'+reference+'\nJahitan sudah siap.</code></pre>'));
   await sendFollowup('work_update');
@@ -1355,7 +1397,7 @@ test('verified WhatsApp replies advance only eligible order stages and update th
   const groupChat = '120363000000000002@g.us';
   const phone = '6281200000002';
   const directChat = phone+'@c.us';
-  const settings = dispatchSettings({MARAJUT_ENV:'test',DISPATCH_WHATSAPP_MODE:'mock',
+  const settings = dispatchSettings({MERAJUT_ENV:'test',DISPATCH_WHATSAPP_MODE:'mock',
     OPENWA_GROUP_CHAT_ID:groupChat,OPENWA_WEBHOOK_SECRET:secret});
   const base = await serve(t,pool,{dispatch:settings});
   const [admin,customer,other,tailor] = [browserClient(base),browserClient(base),browserClient(base),browserClient(base)];

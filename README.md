@@ -1,8 +1,8 @@
-# Marajut
+# Merajut
 
-Marajut helps residents of Semarang find and book local tailoring services. Customers review prices, arrange fittings, and track work through payment and handover. Admins manage the marketplace and coordinate with tailors over WhatsApp. Express serves the website, PostgreSQL stores orders and their history, and a separate worker handles email and simulated notifications.
+Merajut helps residents of Semarang find and book local tailoring services. Customers review prices, arrange fittings, and track work through payment and handover. Admins manage the marketplace and coordinate with tailors over WhatsApp. Express serves the website, PostgreSQL stores orders and their history, and a separate worker handles email and simulated notifications.
 
-Marajut is aligned with the SEVENT X Website subtheme **Decent Work and Economic Growth (SDG 8)** through service discovery for independent tailors and a documented path from quote to paid work. See the review of the attached rulebook and the prior-work eligibility question. [Competition requirements](docs/adr/ADR-0009-competition-eligibility.md) · [Project provenance](LEGACY_ORIGIN.md)
+Merajut is aligned with the SEVENT X Website subtheme **Decent Work and Economic Growth (SDG 8)** through service discovery for independent tailors and a documented path from quote to paid work. See the review of the attached rulebook and the prior-work eligibility question. [Competition requirements](docs/adr/ADR-0009-competition-eligibility.md) · [Project provenance](LEGACY_ORIGIN.md)
 
 ## Start locally
 
@@ -17,17 +17,17 @@ docker compose run --rm seed
 docker compose ps
 ```
 
-On older Docker Desktop setups that expose Compose as `docker-compose`, use that command in place of `docker compose`. Open [127.0.0.1:3100](http://127.0.0.1:3100/) or [localhost:3100](http://localhost:3100/). The port is bound to loopback. If your browser reports a refused connection, include the port and check `docker compose ps`. The default Compose project, image and database use the Marajut name. To upgrade an existing database, retain its connection settings or set its current PostgreSQL user and database in `POSTGRES_USER` and `POSTGRES_DB` and use its existing Compose project name. Migration 008 updates the five demo account addresses in place where the new address is available. Sign in again with the updated demo address after a cookie-name change.
+On older Docker Desktop setups that expose Compose as `docker-compose`, use that command in place of `docker compose`. Open [127.0.0.1:3100](http://127.0.0.1:3100/) or [localhost:3100](http://localhost:3100/). The port is bound to loopback. If your browser reports a refused connection, include the port and check `docker compose ps`. The default Compose project, image and database use the Merajut name. For an upgrade, pass the running project name with `-p` or `COMPOSE_PROJECT_NAME`, and keep its `POSTGRES_USER` and `POSTGRES_DB` settings. Migration 013 updates synthetic email addresses to `@merajut.test` when the new address is available. Existing passwords, verification links, and session cookies continue to work.
 
 The seed creates two published businesses, three services and five synthetic accounts. They use your local `DEMO_PASSWORD`.
 
 | Role | Account | Scope |
 | --- | --- | --- |
-| Customer | `customer@marajut.test` | Ayu's own requests and messages |
-| Customer | `customer2@marajut.test` | Separate customer for access checks |
-| Tailor | `tailor@marajut.test` | Jahit Rina |
-| Tailor | `tailor2@marajut.test` | Ruang Jahit Dewi |
-| Platform operator | `operator@marajut.test` | Admin desk, partner directory, order dispatch, payments and performance |
+| Customer | `customer@merajut.test` | Ayu's own requests and messages |
+| Customer | `customer2@merajut.test` | Separate customer for access checks |
+| Tailor | `tailor@merajut.test` | Jahit Rina |
+| Tailor | `tailor2@merajut.test` | Ruang Jahit Dewi |
+| Platform operator | `operator@merajut.test` | Admin desk, partner directory, order dispatch, payments and performance |
 
 Use separate browser profiles for the customer and admin. Customers start in **Cari Penjahit** and manage contact details in **Profil saya**. Admins open **Pengelolaan platform**, add partners and services, publish listings, and open incoming requests from **Papan pesanan**. Search the admin order queue by its reference, customer, tailor, or service. Customers can request a fitting and select pickup or delivery when submitting the request. They can confirm a revised fitting time on the order page. Admins can record delivery after checkout and close the order after handover. A new partner needs only a private WhatsApp number. Existing tailor logins can view their assigned work. The original cash workflow remains available for requests created before migration 006.
 
@@ -83,7 +83,7 @@ preview run --rm seed npm run db:seed -- --workday
 preview ps
 ```
 
-From another network, open the app URL in a fresh browser session. Confirm HTTP redirects to HTTPS, the certificate is trusted, and the tester login reaches Marajut. The mailbox has its own QA gate. Share the app URL and individual gate logins privately. Reserve the seeded `DEMO_PASSWORD` for QA that needs access to every demo role, including admin. For customer-only tests, use a synthetic signup and have QA relay its verification code from the test mailbox.
+From another network, open the app URL in a fresh browser session. Confirm HTTP redirects to HTTPS, the certificate is trusted, and the tester login reaches Merajut. The mailbox has its own QA gate. Share the app URL and individual gate logins privately. Reserve the seeded `DEMO_PASSWORD` for QA that needs access to every demo role, including admin. For customer-only tests, use a synthetic signup and have QA relay its verification code from the test mailbox.
 
 In the loopback example, open the app at `https://localhost:3170` and the mailbox at `https://127.0.0.1:3170`. The test guide shows how to trust the loopback certificate for the smoke run. Preview payments and messaging use simulation. The proxy is the only service with published ports. [Preview verification and pilot steps](docs/TEST-RUN-GUIDEBOOK.md#rfc-0003-private-preview-and-pilot--26-november-2026-wib)
 
@@ -93,9 +93,9 @@ Open a managed request and expand **Koordinasi penjahit → Kirim ke grup** or *
 
 ## Demo inbound intake and handoff
 
-1. Sign in as `customer2@marajut.test` and open **Pesanan Saya → Simulasi WhatsApp**. Send a message, choose **Ruang Jahit Dewi · Perbaikan jahitan lepas** (**Seam repair** on older seeds), and submit **Detail jahitan**.
+1. Sign in as `customer2@merajut.test` and open **Pesanan Saya → Simulasi WhatsApp**. Send a message, choose **Ruang Jahit Dewi · Perbaikan jahitan lepas** (**Seam repair** on older seeds), and submit **Detail jahitan**.
 2. If the sender is unlinked, choose **Tautkan pengirim**, send the proof and refresh. Select **Konfirmasi tautan** in the session that generated the code.
-3. Choose **Minta bantuan penjahit**. As `tailor2@marajut.test`, open **Ringkasan → Percakapan WhatsApp**. Choose the conversation and select **Tangani percakapan**.
+3. Choose **Minta bantuan penjahit**. As `tailor2@merajut.test`, open **Ringkasan → Percakapan WhatsApp**. Choose the conversation and select **Tangani percakapan**.
 4. Send **Kirim balasan simulasi** and refresh the customer conversation to see it. Choose **Buat permintaan layanan** or link a matching existing request. The operator can handle unassigned conversations.
 5. As the admin, open the linked request, record that the partner is available and send a quote. The customer accepts the displayed version in their signed-in workspace. Resolve the conversation or return it to automated intake from the tailor view.
 
@@ -113,11 +113,11 @@ After selecting a business, the conversation stays scoped to that business even 
 docker compose run --rm migrate
 docker compose run --rm seed
 docker compose logs web worker
-docker compose exec db psql -U marajut -d marajut -c "SELECT mode, seen_at FROM worker_heartbeats;"
+docker compose exec db psql -U merajut -d merajut -c "SELECT mode, seen_at FROM worker_heartbeats;"
 docker compose stop
 ```
 
-The migrator stores checksums and applies pending files under a PostgreSQL advisory lock. Seed reruns refresh the fixture passwords and preserve service edits and business history. To rehearse from an empty database, use a fresh Compose project name and a different `APP_PORT`. For a PostgreSQL instance you provision separately, set standard `PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE` and `PGPASSWORD` variables. Run `npm ci`, `npm run db:migrate`, and `npm run db:seed` with `MARAJUT_ENV=local` and `DEMO_PASSWORD`. Start `npm start` and `npm run worker` in separate terminals. Align `PORT` and `APP_ORIGIN` with the browser URL when overriding defaults.
+The migrator stores checksums and applies pending files under a PostgreSQL advisory lock. Seed reruns refresh the fixture passwords and preserve service edits and business history. To rehearse from an empty database, use a fresh Compose project name and a different `APP_PORT`. For a PostgreSQL instance you provision separately, set standard `PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE` and `PGPASSWORD` variables. Run `npm ci`, `npm run db:migrate`, and `npm run db:seed` with `MERAJUT_ENV=local` and `DEMO_PASSWORD`. Start `npm start` and `npm run worker` in separate terminals. Align `PORT` and `APP_ORIGIN` with the browser URL when overriding defaults.
 
 Health endpoints are `/health/live` and `/health/ready`. Readiness depends on the database and schema version. Browser forms and JSON clients share the same handlers. JSON clients first fetch `GET /api/v1/session`, retain the cookie and send the returned value as `X-CSRF-Token` on writes. Refresh the session endpoint after sign-in or logout, which rotates that token.
 
@@ -133,10 +133,10 @@ Migration `005_pilot_workflows.sql` adds verification challenges, scoped staff p
 node scripts/sandbox.js 3122 3123
 node scripts/db-backup.js save <project> <new-backup-file>
 node scripts/db-backup.js rehearse <project> <backup-file>
-docker compose -p <project> exec worker node apps/marajut/maintenance.js
+docker compose -p <project> exec worker node apps/merajut/maintenance.js
 ```
 
-An approved deployment can schedule encrypted backup creation and retain copies off-host. The maintenance command previews the draft 90-day closed-photo and 30-day abandoned-thread policies. Apply requires an approved policy and the explicit `--apply` switch with `MARAJUT_RETENTION_POLICY=approved-90-30`. Rehearse on synthetic data first.
+An approved deployment can schedule encrypted backup creation and retain copies off-host. The maintenance command previews the draft 90-day closed-photo and 30-day abandoned-thread policies. Apply requires an approved policy and the explicit `--apply` switch with `MERAJUT_RETENTION_POLICY=approved-90-30`. Rehearse on synthetic data first.
 
 ## Tests
 
@@ -171,11 +171,11 @@ If this directory still has no Git history, first confirm the intended repositor
 | Area | Files |
 | --- | --- |
 | Local build and setup | `package.json`, `package-lock.json`, `.env.example`, `.gitignore`, `.dockerignore`, `compose.yaml`, `infra/Dockerfile` |
-| Database and identities | `db/migrations/{001_core,002_messaging}.sql`, `apps/marajut/{db,migrate,seed,identity}.js` |
-| Business and messaging | `apps/marajut/{catalog,inquiries,quotes,orders,outbox,worker}.js` |
-| HTTP and UI | `apps/marajut/{app,server,errors,validation}.js`, `apps/marajut/views/*.ejs`, `apps/marajut/public/style.css` |
+| Database and identities | `db/migrations/{001_core,002_messaging}.sql`, `apps/merajut/{db,migrate,seed,identity}.js` |
+| Business and messaging | `apps/merajut/{catalog,inquiries,quotes,orders,outbox,worker}.js` |
+| HTTP and UI | `apps/merajut/{app,server,errors,validation}.js`, `apps/merajut/views/*.ejs`, `apps/merajut/public/style.css` |
 | Verification | `scripts/{check,browser-smoke}.js`, `tests/workflow.test.js` |
-| Delivery docs | `README.md`, `LEGACY_ORIGIN.md`, `docs/roadmap/MARAJUT-IMPLEMENTATION-ROADMAP.md` |
+| Delivery docs | `README.md`, `LEGACY_ORIGIN.md`, `docs/roadmap/MERAJUT-IMPLEMENTATION-ROADMAP.md` |
 
-See [RFC-0001](docs/rfc/RFC-0001-MARAJUT-RECONSTRUCTION.md), the [ADR register](docs/adr/README.md) and the [roadmap](docs/roadmap/MARAJUT-IMPLEMENTATION-ROADMAP.md) for remaining release work.
+See [RFC-0001](docs/rfc/RFC-0001-MERAJUT-RECONSTRUCTION.md), the [ADR register](docs/adr/README.md) and the [roadmap](docs/roadmap/MERAJUT-IMPLEMENTATION-ROADMAP.md) for remaining release work.
 "# merajut" 

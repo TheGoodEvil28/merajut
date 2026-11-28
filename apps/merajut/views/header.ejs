@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#512746">
+  <title><%= title %> · Merajut</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/merajut-mark.svg">
+  <link rel="preload" href="/assets/fonts/dm-sans.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script src="/assets/forms.js" defer></script>
+</head>
+<% const here = typeof currentPath === 'string' ? currentPath : '';
+const admin = Boolean(user?.manager && (here.startsWith('/pengelola') || here.startsWith('/requests/') || here.startsWith('/api/')));
+const studio = admin || (user?.role==='provider' && here!=='/' && !here.startsWith('/penjahit/'));
+// Signed-in visitors on the storefront (home and public shop pages) get a single "Buka Dasbor" button.
+const storefront = !studio && (here === '/' || here.startsWith('/penjahit/'));
+// Outside their dashboard, signed-in tailors/customers on the storefront and admins on any non-admin page see one 'Buka Dasbor' button.
+const dashboard = !user ? null : user.manager && !studio ? '/pengelola' : storefront ? '/workspace' : null; // /workspace redirects each role to its own dashboard
+const links = dashboard ? [] : user?.role === 'provider' ? [
+  ['/workspace', 'Ringkasan', 'grid', here === '/workspace' || here.startsWith('/requests/')],
+  ['/workspace/services', 'Layanan Saya', 'scissors', here === '/workspace/services'],
+  ['/workspace/profile', 'Profil Usaha', 'shop', here === '/workspace/profile'],
+  ...(intakeEnabled ? [['/workspace/intake', 'Chat simulasi', 'chat', here.startsWith('/workspace/intake')]] : [])
+] : user?.role === 'operator' ? [
+  ...(user.manager ? [
+    ['/pengelola','Pesanan','bag',here==='/pengelola' || here.startsWith('/requests/')],
+    ['/pengelola/mitra','Mitra','shop',here.startsWith('/pengelola/mitra')],
+    ['/pengelola/kinerja','Kinerja','grid',here==='/pengelola/kinerja'],
+    ['/pengelola/operasional','Operasional','inbox',here==='/pengelola/operasional' || here==='/pengelola/whatsapp']
+  ] : intakeEnabled ? [['/workspace/intake','Chat simulasi','chat',here.startsWith('/workspace/intake')]] : [])
+] : [
+  ['/#services', 'Cari Penjahit', 'search', here === '/' || here.startsWith('/penjahit/')],
+  ...(user ? [
+    ['/workspace', 'Pesanan Saya', 'bag', here === '/workspace' || here.startsWith('/requests/')],
+    ['/akun/profil', 'Profil saya', 'shop', here === '/akun/profil']
+  ] : [['/#cara-kerja', 'Cara kerja', 'quote', false]])
+]; %>
+<body class="<%= studio ? 'studio-shell'+(admin?' admin-shell':'') : 'market-shell' %>">
+  <a class="skip" href="#main">Lewati ke konten</a>
+  <header class="site-header">
+    <div class="wrap nav">
+      <a class="brand" href="<%= admin ? '/pengelola' : user?.role === 'provider' ? '/workspace' : '/' %>" aria-label="Beranda Merajut"><img src="/assets/merajut-mark.svg" alt="" width="36" height="36">Merajut</a>
+      <% if (studio) { %><span class="rail-label"><%= admin?'Ruang admin':'Ruang usaha' %></span><% } %>
+      <% if (studio) { %><button type="button" class="nav-toggle" data-nav-toggle aria-controls="nav-drawer" aria-expanded="false" aria-label="Buka menu"><span></span><span></span><span></span></button>
+      <div class="nav-drawer" id="nav-drawer"><div class="drawer-head"><span>Menu</span><button type="button" class="nav-close" data-nav-close aria-label="Tutup menu"></button></div><% } %>
+      <% if (links.length) { %><nav aria-label="Navigasi utama">
+        <% for (const [url, label, icon, current] of links) { %>
+          <a href="<%= url %>" <% if (current) { %>aria-current="page"<% } %>><%- include('icon', {name:icon}) %><span><%= label %></span></a>
+        <% } %>
+      </nav><% } %>
+      <div class="nav-account">
+      <% if (dashboard) { %><a class="button" href="<%= dashboard %>"><%= user.role === 'customer' ? 'Cek Pesanan' : 'Buka Dasbor' %> <%- include('icon', {name:'arrow'}) %></a>
+      <% } else if (user) { %>
+        <% if (studio) { %><span class="account-name"><b aria-hidden="true"><%= Array.from(user.display_name)[0] %></b><%= user.display_name %></span><% } %>
+        <form action="/api/v1/session/logout" method="post" data-confirm="Anda perlu masuk lagi untuk melihat pesanan dan pesan" data-confirm-title="Keluar dari Merajut?" data-confirm-action="Ya, keluar" data-confirm-tone="danger" data-confirm-icon="door">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <button class="quiet"><%- include('icon', {name:'door'}) %>Keluar</button>
+        </form>
+      <% } else { %><a class="button" href="/login">Masuk <%- include('icon', {name:'arrow'}) %></a><% } %>
+      </div>
+      <% if (studio) { %></div><% } %>
+    </div>
+  </header>
+  <% if (studio) { %><div class="nav-scrim" data-nav-scrim></div><% } %>
+  <main class="wrap" id="main" tabindex="-1">

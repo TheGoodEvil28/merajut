@@ -2,7 +2,7 @@
 
 **Status** [BLOCKER] Pending written organizer rulings · **Date** 18 November 2026 WIB
 
-[Parent RFC](../rfc/RFC-0001-MARAJUT-RECONSTRUCTION.md)
+[Parent RFC](../rfc/RFC-0001-MERAJUT-RECONSTRUCTION.md)
 
 ## Decision
 
@@ -14,8 +14,8 @@ Reviewed 26 November 2026 WIB against the supplied *SEVENT X - Software Developm
 
 | Rulebook | Requirement | Current evidence |
 | --- | --- | --- |
-| pp. 3–5, 9 | Submit a responsive, functional, accessible web MVP aligned with an SDG subtheme. | **Decent Work and Economic Growth (SDG 8).** Marajut connects customers with independent local tailors, records negotiated prices and appointments, and tracks paid work through pickup or delivery. Pilot impact and real usage remain to be measured. |
-| p. 9, items 3 and 5 | The proposal and work must be original. The work must not have been made and published previously for a competition or another purpose. | **Eligibility unresolved.** The [prior-work record](../../LEGACY_ORIGIN.md) identifies the earlier tailoring project and its Poliwangi competition context. The working repository also has a public revision history. Obtain a written ruling about the specific Marajut implementation, the earlier project, and the disclosure to make on the originality form. |
+| pp. 3–5, 9 | Submit a responsive, functional, accessible web MVP aligned with an SDG subtheme. | **Decent Work and Economic Growth (SDG 8).** Merajut connects customers with independent local tailors, records negotiated prices and appointments, and tracks paid work through pickup or delivery. Pilot impact and real usage remain to be measured. |
+| p. 9, items 3 and 5 | The proposal and work must be original. The work must not have been made and published previously for a competition or another purpose. | **Eligibility unresolved.** The [prior-work record](../../LEGACY_ORIGIN.md) identifies the earlier tailoring project and its Poliwangi competition context. The working repository also has a public revision history. Obtain a written ruling about the specific Merajut implementation, the earlier project, and the disclosure to make on the originality form. |
 | pp. 6–8 | Register one team of 3–5 active students from the same institution and provide the organizer's registration evidence. | Roster, institutional affiliation, identity documents, team registration, and payment evidence have to be verified by the team. |
 | pp. 10–11 | Submit one work and proposal. The website must have an active online URL and the source repository must be public and active throughout the competition. | The [configured GitHub repository](https://github.com/TheGoodEvil28/merajut) was verified public. The tested site is a local demo. The accessible competition URL and the precise source revision to be submitted still need verification. |
 | pp. 10–11 | Use the official proposal template with its structure intact. Limit it to 25 pages excluding cover, bibliography, and appendices. Use the official originality form. | Use the organizer's templates and the approved disclosure. Proposal, signed form and page count remain pending. |
@@ -42,5 +42,5 @@ Team lead · SEVENT X derivative/cross-entry pending. TECHCOMFEST derivative/cro
 | SEVENT X | Pending | Pending | No reply supplied |
 | TECHCOMFEST | Pending | Pending | No reply supplied |
 
-Disclose the earlier tailoring project, its competition history and the proposed retained concepts/assets/code. Ask whether this specific derivative and intended publication satisfy the originality rules, whether participation in the other event is allowed, and how to complete the declaration truthfully. The [roadmap](../roadmap/MARAJUT-IMPLEMENTATION-ROADMAP.md) lists the separate release checks.
+Disclose the earlier tailoring project, its competition history and the proposed retained concepts/assets/code. Ask whether this specific derivative and intended publication satisfy the originality rules, whether participation in the other event is allowed, and how to complete the declaration truthfully. The [roadmap](../roadmap/MERAJUT-IMPLEMENTATION-ROADMAP.md) lists the separate release checks.
 

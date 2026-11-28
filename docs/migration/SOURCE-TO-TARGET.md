@@ -1,6 +1,6 @@
 # Source-to-target migration plan
 
-**Status** [PROPOSAL] · 18 November 2026 WIB · [RFC-0001](../rfc/RFC-0001-MARAJUT-RECONSTRUCTION.md)
+**Status** [PROPOSAL] · 18 November 2026 WIB · [RFC-0001](../rfc/RFC-0001-MERAJUT-RECONSTRUCTION.md)
 
 Source paths and line numbers are relative to the original archive (S4). Each legacy observation is [FACT — SOURCE] from static inspection. Each target disposition and check is proposed. **Keep/reference** retains a pattern or taxonomy after review. **Rewrite** rebuilds comparable behavior against the new model. **Replace** removes a legacy contract in favor of a different workflow. **Defer/archive** preserves evidence outside the release. Route paths below are actual legacy registrations. Target names describe new contracts.
 
@@ -82,5 +82,5 @@ Frontend JS and pages reside under `frontend/frontend/assets/js/` and `frontend/
 4. Cut over to the new release only after fresh migration and E2E acceptance, privacy controls, tested restore, and signed-off deployment. If replacing a real writable deployment later, schedule a read-only window or delta replay with reconciliation and explicit reverse path before opening target writes. There is no verified production cutover obligation for the ZIP. Keep the original snapshots unchanged and remove unnecessary staging copies on approval.
 5. Roll back the release image if schema compatibility is intact. Otherwise use the predeploy snapshot and an approved recovery/replay plan for post-cutover writes. Keep the prior release isolated if its known privacy controls are insufficient. Do not resume outbound work before checking consent and dedupe on the restored state.
 
-[Prioritized slices and evidence gates](../roadmap/MARAJUT-IMPLEMENTATION-ROADMAP.md)
+[Prioritized slices and evidence gates](../roadmap/MERAJUT-IMPLEMENTATION-ROADMAP.md)
 

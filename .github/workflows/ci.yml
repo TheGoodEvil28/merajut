@@ -1,4 +1,4 @@
-name: Marajut checks
+name: Merajut checks
 on: [push, pull_request]
 permissions:
   contents: read
