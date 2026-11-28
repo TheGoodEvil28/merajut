@@ -45,7 +45,9 @@ const showWhatsAppFollowups = whatsapp && whatsapp.mode!=='disabled' && whatsapp
       <section class="next-action <%= isCustomer?'customer-action':'' %>" aria-labelledby="next-title">
         <div>
           <h2 id="next-title"><%= awaitingReplyDecision ? 'Balasan WhatsApp diterima' : journey.title %></h2>
-          <p><%= awaitingReplyDecision ? 'Tinjau jawaban penjahit dan catat kesediaannya untuk melanjutkan ke penawaran.'
+          <p><%= awaitingReplyDecision ? (quoteReply?.declined ? 'Mitra memilih menolak permintaan. Tinjau balasannya dan catat jika mitra berhalangan.'
+            : quoteReply?.draft ? 'Mitra sudah mengirim penawaran. Catat Penjahit bersedia untuk membuka draft penawaran yang sudah terisi.'
+            : 'Tinjau jawaban penjahit dan catat kesediaannya untuk melanjutkan ke penawaran.')
             : journey.key==='PENDING' && isCustomer && order.payment.mode==='demo'
             ? 'Admin akan memeriksa transaksi simulasi. Status akan berubah setelah admin mencatat hasilnya.' : journey.description %></p>
         </div>

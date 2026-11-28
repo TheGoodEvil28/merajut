@@ -995,7 +995,7 @@ test('RFC-0004 dispatch authorization, queue recovery and signed replies', async
     await client.request('/api/v1/session');
     await client.request('/api/v1/session',{body:{email,password}});
   }
-  const {rows:[service]} = await pool.query(`SELECT s.id,s.business_id FROM services s JOIN businesses b ON b.id=s.business_id
+  const {rows:[service]} = await pool.query(`SELECT s.id,s.business_id,s.name FROM services s JOIN businesses b ON b.id=s.business_id
     WHERE b.slug='jahit-rina' ORDER BY s.name LIMIT 1`);
   await pool.query('UPDATE businesses SET whatsapp=$2 WHERE id=$1',[service.business_id,phone]);
   const newRequest = async () => (await customer.request('/api/v1/inquiries',{status:201,body:{
@@ -1021,6 +1021,8 @@ test('RFC-0004 dispatch authorization, queue recovery and signed replies', async
   assert.equal(partner.reason,null);
   assert.match(partner.masked,/0001$/);
   assert.match(partner.text,/2099-12-10/);
+  assert.match(partner.text,/Bersedia menerima pesanan: YA \/ TIDAK[\s\S]*Harga tetap \(Rp\):/);
+  assert.doesNotMatch(group.text,/Harga tetap \(Rp\)/);
   assert.doesNotMatch(group.text+partner.text,/PRIVATE-|6281200000001/);
   const page = await admin.request('/requests/'+requestId,{raw:true});
   assert.match(page,/Konfirmasi kirim/);
@@ -1066,13 +1068,35 @@ test('RFC-0004 dispatch authorization, queue recovery and signed replies', async
   assert.match(repliedPage,/id="balasan-whatsapp"[\s\S]*&lt;em&gt;tersedia&lt;\/em&gt;[\s\S]*value="AVAILABLE">Penjahit bersedia/);
   assert.doesNotMatch(repliedPage,/id="editor-penawaran"/);
   assert.doesNotMatch(await customer.request('/requests/'+requestId,{raw:true}),/Riwayat WhatsApp|tersedia&lt;|Balasan WhatsApp diterima/);
+  const reference = requestId.slice(0,8).toUpperCase();
+  const customerPath = '/requests/'+requestId;
+  const receive = async (id,body,chatId=alias) => {
+    await callback('message.received',{...reply,id,body,chatId,author:alias,timestamp:Math.floor(Date.now()/1000)});
+    assert.equal(await processDispatchInbox(pool),true);
+  };
+  const filledForm = template => template
+    .replace('Bersedia menerima pesanan: YA / TIDAK','Bersedia menerima pesanan: YA')
+    .replace('Harga tetap (Rp):','Harga tetap (Rp): Rp50.000')
+    .replace('Perkiraan selesai (tanggal):','Perkiraan selesai (tanggal): 11/12/2099')
+    .replace('Estimasi durasi (hari):','Estimasi durasi (hari): 4')
+    .replace('Perlu fitting: YA / TIDAK','Perlu fitting: YA')
+    .replace('Catatan fitting:','Catatan fitting: Datang untuk pengukuran')
+    .replace('Cara serah terima: AMBIL / KIRIM','Cara serah terima: KIRIM')
+    .replace('Catatan tambahan:','Catatan tambahan: Jahitan dikirim setelah pembayaran terverifikasi.')
+    .replace('Status penawaran: AJUKAN / TOLAK','Status penawaran: AJUKAN');
+  await receive('quote-first-contact',filledForm(partner.text));
+  const firstReplyPage = await admin.request(customerPath,{raw:true});
+  assert.match(firstReplyPage,/Mitra sudah mengirim penawaran/);
+  assert.doesNotMatch(firstReplyPage,/id="editor-penawaran"/);
   await admin.request('/api/v1/management/inquiries/'+requestId+'/dispatch',{
     body:{revision:history.previews[0].revision,state:'AVAILABLE'}
   });
   const quotePage = await admin.request('/requests/'+requestId,{raw:true});
   assert.match(quotePage,/id="editor-penawaran"/);
   assert.match(quotePage,/href="#editor-penawaran">Susun penawaran/);
-  assert.match(quotePage,/id="editor-penawaran"[\s\S]*Balasan WhatsApp dari Jahit Rina[\s\S]*&lt;em&gt;tersedia&lt;\/em&gt;/);
+  assert.match(quotePage,/id="editor-penawaran"[\s\S]*Balasan WhatsApp dari Jahit Rina[\s\S]*Harga tetap \(Rp\): Rp50\.000/);
+  assert.match(quotePage,/name="itemPrice"[^>]*value="50000"/);
+  assert.match(quotePage,/Mitra meminta fitting/);
   assert.doesNotMatch(quotePage,/Balasan WhatsApp diterima/);
   const {rows:[manager]} = await pool.query('SELECT id,role,true AS manager FROM users WHERE email=$1',[seedEmails.operator]);
   const readPanel = () => dispatchPanel(pool,manager,requestId,settings);
@@ -1091,13 +1115,11 @@ test('RFC-0004 dispatch authorization, queue recovery and signed replies', async
     return saved.id;
   };
   const quoteRequest = await draft('quote_request');
-  assert.match(quoteRequest.text,/usulan harga, perkiraan selesai, dan jadwal fitting/);
-  const reference = requestId.slice(0,8).toUpperCase();
-  assert.ok(quoteRequest.text.includes(`KODE: ${reference}\nITEM:`));
+  assert.ok(quoteRequest.text.includes(`📋 *Referensi:* ${reference}`));
+  assert.match(quoteRequest.text,/Bersedia menerima pesanan: YA\n/);
   await approve(requestId,{...quoteRequest,channel:'group'},409);
   const requested = await sendFollowup('quote_request');
   assert.match((await draft('quote_request')).reason,/sudah tercatat/);
-  const customerPath = '/requests/'+requestId;
   const form = `KODE: ${reference}
 ITEM: Permak dua celana | 2 | 20000
 ITEM: Penyesuaian pola | 1 | 10000
@@ -1107,37 +1129,40 @@ SERAH_TERIMA: KIRIM
 FITTING: 2099-12-10 10:00
 LOKASI_FITTING: Studio uji
 CATATAN: Jahitan dikirim setelah pembayaran terverifikasi.`;
-  const receive = async (id,body,chatId=alias) => {
-    await callback('message.received',{...reply,id,body,chatId,author:alias,timestamp:Math.floor(Date.now()/1000)});
-    assert.equal(await processDispatchInbox(pool),true);
-  };
   await receive('quote-code-only',reference);
-  assert.equal((await readPanel()).quoteReply,null);
+  assert.equal((await readPanel()).quoteReply.reply.dispatch_id,direct.id);
   await receive('quote-group',form,groupChat);
-  assert.equal((await readPanel()).quoteReply,null);
+  assert.equal((await readPanel()).quoteReply.reply.dispatch_id,direct.id);
   await receive('quote-wrong-reference',form.replace(reference,reference==='00000000' ? 'FFFFFFFF' : '00000000'));
-  assert.equal((await readPanel()).quoteReply,null);
-  await receive('quote-invalid',form.replace('20000','20.000'));
+  assert.equal((await readPanel()).quoteReply.reply.dispatch_id,direct.id);
+  await receive('quote-invalid',filledForm(quoteRequest.text).replace('Rp50.000','Rp50,00'));
   assert.match(await admin.request(customerPath,{raw:true}),/Balasan formulir WhatsApp belum bisa diisikan/);
+  assert.equal((await readPanel()).quoteReply.draft,null);
+  const declined = partner.text.replace('Bersedia menerima pesanan: YA / TIDAK','Bersedia menerima pesanan: TIDAK')
+    .replace('Status penawaran: AJUKAN / TOLAK','Status penawaran: TOLAK');
+  await receive('quote-declined',declined);
+  assert.equal((await readPanel()).quoteReply.declined,true);
   assert.equal((await readPanel()).quoteReply.draft,null);
   await receive('quote-no-fitting',form.replace('2099-12-10 10:00','TIDAK').replace('Studio uji','-'));
   const withoutFitting = (await readPanel()).quoteReply.draft;
   assert.equal(withoutFitting.fittingAt,'');
   assert.equal(withoutFitting.fittingPlace,'');
-  const instructions = quoteRequest.text.split(`KODE: ${reference}`)[0];
-  await receive('quote-complete',instructions+form);
+  assert.equal(withoutFitting.items.length,2);
+  await receive('quote-compact',`REF: ${reference}\nTERIMA: YA\nHARGA: 50000\nSELESAI: 2099-12-11\nDURASI_HARI: 4\nFITTING: YA\nCATATAN_FITTING: Datang untuk pengukuran\nCATATAN: Bahan dibawa pelanggan\nSTATUS: AJUKAN`);
+  assert.equal((await readPanel()).quoteReply.fittingPending,true);
+  await receive('quote-complete',filledForm(quoteRequest.text)
+    .replace('Jadwal fitting (WIB):','Jadwal fitting (WIB): 10/12/2099 10:00')
+    .replace('Lokasi fitting:','Lokasi fitting: Studio uji'));
   await receive('quote-regular-message',`Terima kasih ${reference}`);
   const imported = (await readPanel()).quoteReply;
   assert.equal(imported.reply.dispatch_id,requested);
   const fields = imported.draft;
-  assert.deepEqual(fields.items,[{name:'Permak dua celana',quantity:2,unitPrice:20000},
-    {name:'Penyesuaian pola',quantity:1,unitPrice:10000}]);
+  assert.deepEqual(fields.items,[{name:service.name,quantity:1,unitPrice:50000}]);
   const filledPage = await admin.request(customerPath,{raw:true});
   assert.match(filledPage,/Formulir terisi dari balasan WhatsApp mitra/);
-  assert.match(filledPage,/name="itemPrice"[^>]*value="20000"/);
-  assert.match(filledPage,/name="itemPrice"[^>]*value="10000"/);
+  assert.match(filledPage,/name="itemPrice"[^>]*value="50000"/);
   assert.match(filledPage,/name="eta" value="2099-12-11"/);
-  assert.match(filledPage,/name="validHours" value="36"/);
+  assert.match(filledPage,/name="validHours" value="48"/);
   assert.match(filledPage,/<option value="delivery" selected>/);
   assert.match(filledPage,/name="fittingAt" value="2099-12-10T10:00"/);
   assert.match(filledPage,/name="fittingPlace"[^>]*value="Studio uji"/);

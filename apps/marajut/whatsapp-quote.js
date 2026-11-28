@@ -1,82 +1,177 @@
 import { orderReference } from './order-flow.js';
 import { quote } from './validation.js';
 
-export function quoteFormLines(reference) {
+const labels = {
+  REF:'Referensi',
+  TERIMA:'Bersedia menerima pesanan',
+  HARGA:'Harga tetap (Rp)',
+  CATATAN_BIAYA:'Catatan biaya tambahan',
+  SELESAI:'Perkiraan selesai (tanggal)',
+  DURASI_HARI:'Estimasi durasi (hari)',
+  FITTING:'Perlu fitting',
+  JADWAL_FITTING:'Jadwal fitting (WIB)',
+  LOKASI_FITTING:'Lokasi fitting',
+  CATATAN_FITTING:'Catatan fitting',
+  SERAH_TERIMA:'Cara serah terima',
+  CATATAN:'Catatan tambahan',
+  STATUS:'Status penawaran'
+};
+const aliases = new Map(Object.entries(labels).flatMap(([key,label]) => [[key,key],[label.toUpperCase(),key]]));
+for (const [label,key] of [['KODE','REF'],['ITEM','ITEM'],['BERLAKU','BERLAKU']]) aliases.set(label,key);
+
+export function partnerQuoteForm(inquiry, fields, followup = false) {
+  const reference = orderReference(inquiry.id);
   return [
-    'Salin dan isi format di bawah. Pertahankan nama kolom dan kode pesanan.',
-    'Ulangi baris ITEM untuk setiap rincian (maks. 8). Tulis harga satuan sebagai angka rupiah tanpa titik atau koma.',
-    'Pilih AMBIL atau KIRIM. Untuk fitting, isi YYYY-MM-DD HH:mm (WIB) dan lokasi. Jika tanpa fitting, biarkan TIDAK dan -.',
+    '🧵 *MARAJUT — KONFIRMASI PERMINTAAN JAHIT*',
     '',
-    `KODE: ${reference}`,
-    'ITEM: [rincian] | [jumlah] | [harga satuan]',
-    'SELESAI: YYYY-MM-DD',
-    'BERLAKU: 48',
-    'SERAH_TERIMA: [AMBIL/KIRIM]',
-    'FITTING: TIDAK',
-    'LOKASI_FITTING: -',
-    'CATATAN: [rincian pengerjaan dan serah terima]'
+    `📋 *${labels.REF}:* ${reference}`,
+    `🪡 *Layanan:* ${fields.service}`,
+    `👕 *Jumlah:* ${inquiry.quantity ?? 1} pakaian`,
+    ...(fields.desired_date ? [`Target pelanggan: ${fields.desired_date}`] : []),
+    '',
+    'Halo, salin pesan ini dan isi jawaban setelah titik dua. Ganti setiap pilihan dengan satu jawaban.',
+    '',
+    '*1. KESEDIAAN PENGERJAAN*',
+    `${labels.TERIMA}: ${followup ? 'YA' : 'YA / TIDAK'}`,
+    '',
+    '*2. PENAWARAN HARGA*',
+    `${labels.HARGA}:`,
+    `${labels.CATATAN_BIAYA}:`,
+    '',
+    '*3. ESTIMASI PENGERJAAN*',
+    `${labels.SELESAI}:`,
+    `${labels.DURASI_HARI}:`,
+    '',
+    '*4. KEBUTUHAN FITTING*',
+    `${labels.FITTING}: YA / TIDAK`,
+    `${labels.JADWAL_FITTING}:`,
+    `${labels.LOKASI_FITTING}:`,
+    `${labels.CATATAN_FITTING}:`,
+    '',
+    '*5. SERAH TERIMA DAN CATATAN*',
+    `${labels.SERAH_TERIMA}: AMBIL / KIRIM`,
+    `${labels.CATATAN}:`,
+    '',
+    '━━━━━━━━━━━━━━',
+    '✅ *KONFIRMASI*',
+    `${labels.STATUS}: AJUKAN / TOLAK`,
+    '',
+    'Harga tetap adalah total untuk seluruh pakaian. Tulis tanggal DD/MM/YYYY dan jadwal fitting DD/MM/YYYY JJ:MM (WIB) jika sudah disepakati.',
+    'Durasi dan catatan boleh dikosongkan. Jika menolak, isi kesediaan dan status saja.',
+    `Kirim kembali di chat ini dan sertakan referensi ${reference}.`,
+    '',
+    '*Marajut — Dari Web ke Chat, Setiap Jahitan Terhubung.*'
   ].join('\n');
 }
 
-function quoteFormHeader(body) {
-  return body?.match(/^[ \t]*KODE:[ \t]*([a-f0-9]{8})[ \t]*\r?$/im) ?? null;
+function formEntries(body) {
+  const entries = [];
+  for (const line of (body ?? '').split(/\r?\n/)) {
+    const match = line.match(/^[^\p{L}]*([\p{L}][^:]*):\*?[ \t]*(.*)$/u);
+    if (!match) continue;
+    const field = aliases.get(match[1].replace(/\*/g,'').trim().toUpperCase());
+    if (field) entries.push([field,match[2].trim()]);
+  }
+  return entries;
+}
+
+function formReference(entries) {
+  const refs = entries.filter(([field]) => field === 'REF');
+  return refs.length === 1 && /^[A-F0-9]{8}$/i.test(refs[0][1]) ? refs[0][1].toUpperCase() : null;
 }
 
 export function quoteFormReference(body) {
-  return quoteFormHeader(body)?.[1].toUpperCase() ?? null;
+  return formReference(formEntries(body));
 }
 
-function parseQuoteReply(body, revision, today) {
-  const header = quoteFormHeader(body);
-  if (!header) return null;
-  const lines = body.slice(header.index + header[0].length).split(/\r?\n/);
+function isoDate(value = '') {
+  const parts = value.match(/^(\d{2})([/-])(\d{2})\2(\d{4})$/);
+  return parts ? `${parts[4]}-${parts[3]}-${parts[1]}` : value;
+}
+
+function parseQuoteReply(entries, inquiry, service, today) {
   const values = new Map();
   const items = [];
-  const allowed = ['SELESAI','BERLAKU','SERAH_TERIMA','FITTING','LOKASI_FITTING','CATATAN'];
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    const match = line.trim().match(/^([A-Z_]+):\s*(.*)$/i);
-    if (!match) return null;
-    const label = match[1].toUpperCase();
-    const value = match[2].trim();
-    if (label === 'ITEM') {
+  for (const [field,value] of entries) {
+    if (field === 'ITEM') {
       const parts = value.split('|').map(part => part.trim());
-      if (parts.length !== 3 || parts[0]==='[rincian]') return null;
-      const [name, quantity, unitPrice] = parts;
+      if (parts.length !== 3 || parts[0] === '[rincian]') return null;
+      const [name,quantity,unitPrice] = parts;
       items.push({name,quantity,unitPrice});
     } else {
-      if (!allowed.includes(label) || values.has(label)) return null;
-      values.set(label,value);
+      if (values.has(field)) return null;
+      values.set(field,value);
     }
   }
-  const handover = { AMBIL:'pickup', KIRIM:'delivery' }[values.get('SERAH_TERIMA')?.toUpperCase()];
-  const fitting = values.get('FITTING')?.toUpperCase();
-  const place = values.get('LOKASI_FITTING');
-  const terms = values.get('CATATAN');
-  const fittingAt = fitting === 'TIDAK' ? '' : fitting?.replace(' ','T');
-  const fittingPlace = place === '-' ? '' : place;
-  if (!handover || !fitting || !place || terms==='[rincian pengerjaan dan serah terima]' ||
-      Boolean(fittingAt) !== Boolean(fittingPlace)) return null;
-  const parsed = quote.safeParse({items,handover,fittingAt,fittingPlace,revision,
-    eta:values.get('SELESAI'),validHours:values.get('BERLAKU'),terms});
+  const choice = field => values.get(field)?.toUpperCase();
+  if (choice('TERIMA') === 'TIDAK' || choice('STATUS') === 'TOLAK') return {declined:true};
+  const legacy = items.length > 0 && !values.has('HARGA') && !values.has('TERIMA') && !values.has('STATUS');
+  const handoverChoice = choice('SERAH_TERIMA');
+  const handover = { AMBIL:'pickup', KIRIM:'delivery' }[handoverChoice];
+  if (handoverChoice && !handover) return null;
+
+  let terms = values.get('CATATAN');
+  const fitting = choice('FITTING');
+  let fittingAt = '';
+  let fittingPlace = values.get('LOKASI_FITTING') || '';
+  if (fittingPlace === '-') fittingPlace = '';
+  if (legacy) {
+    if (!handover || !fitting || !values.get('LOKASI_FITTING') ||
+        terms === '[rincian pengerjaan dan serah terima]') return null;
+    fittingAt = fitting === 'TIDAK' ? '' : fitting.replace(' ','T');
+    if (Boolean(fittingAt) !== Boolean(fittingPlace)) return null;
+  } else {
+    if (choice('TERIMA') !== 'YA' || choice('STATUS') !== 'AJUKAN' || !['YA','TIDAK'].includes(fitting) || items.length) return null;
+    const price = values.get('HARGA')?.match(/^(?:Rp\.?\s*)?(\d+|\d{1,3}(?:\.\d{3})+)$/i);
+    if (!price) return null;
+    items.push({name:service,quantity:1,unitPrice:price[1].replaceAll('.','')});
+    const duration = values.get('DURASI_HARI');
+    if (duration && !/^\d{1,3}$/.test(duration)) return null;
+    terms = [
+      terms,
+      values.get('CATATAN_BIAYA') && 'Catatan biaya tambahan: '+values.get('CATATAN_BIAYA'),
+      duration && 'Estimasi durasi: '+Number(duration)+' hari.',
+      values.get('CATATAN_FITTING') && 'Catatan fitting: '+values.get('CATATAN_FITTING')
+    ].filter(Boolean).join('\n') || 'Pengerjaan sesuai permintaan.';
+    const time = values.get('JADWAL_FITTING');
+    if (fitting === 'YA' && time) {
+      const parts = time.match(/^(\S+)[ T](\d{2}:\d{2})(?: WIB)?$/i);
+      if (!parts) return null;
+      fittingAt = `${isoDate(parts[1])}T${parts[2]}`;
+    }
+    if (fitting === 'TIDAK') fittingPlace = '';
+  }
+
+  const parsed = quote.safeParse({items,handover:handover || inquiry.requested_handover || undefined,
+    fittingAt,fittingPlace,revision:inquiry.revision,eta:isoDate(values.get('SELESAI')),
+    validHours:legacy ? values.get('BERLAKU') : 48,terms});
   if (!parsed.success) return null;
   const draft = parsed.data;
   const total = draft.items.reduce((sum,item) => sum + item.quantity * item.unitPrice,0);
   if (total < 1 || total > 100000000 || draft.eta < today) return null;
-  if (fittingAt && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(fittingAt) || fittingPlace.length < 3 ||
+  if (fittingAt && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(fittingAt) ||
       fittingAt.slice(0,10) > draft.eta || !(new Date(fittingAt+'+07:00') > new Date()))) return null;
-  return {...draft,fittingPlace};
+  if (fittingPlace && fittingPlace.length < 3) return null;
+  return {draft:{...draft,fittingPlace},fittingPending:fitting === 'YA' && (!fittingAt || !fittingPlace)};
 }
 
-export function quoteReplyDraft(inquiry, preview, history, replies, settings, today) {
+export function quoteReplyDraft(inquiry, preview, history, replies, settings, workflow, service) {
   if (settings.mode === 'disabled' || !preview?.recipient || !preview.permission || preview.permission.revoked_at ||
       preview.permission.chat_id !== preview.recipient) return null;
-  const sourceIds = new Set(history.filter(job => job.purpose==='quote_request' && job.channel==='partner' &&
-    job.business_id===inquiry.business_id && job.context_key===preview.contextKey && job.recipient===preview.recipient &&
-    job.permission_id===preview.permission.id && job.mode===settings.mode && job.session_id===settings.sessionId).map(job => job.id));
+  const sourceIds = new Set(history.filter(job => job.channel==='partner' && job.business_id===inquiry.business_id &&
+    job.recipient===preview.recipient && job.permission_id===preview.permission.id && job.mode===settings.mode &&
+    job.session_id===settings.sessionId && (
+      (job.purpose==='quote_request' && job.context_key===preview.contextKey) ||
+      (job.purpose==='contact' && !workflow.quote_id)
+    )).map(job => job.id));
   const reference = orderReference(inquiry.id);
-  const reply = replies.findLast(item => item.state==='LINKED' && item.business_id===inquiry.business_id &&
-    item.chat_id===preview.recipient && item.sender_chat===preview.recipient && sourceIds.has(item.dispatch_id) &&
-    quoteFormReference(item.body)===reference);
-  return reply ? {reply,draft:parseQuoteReply(reply.body,inquiry.revision,today)} : null;
+  for (const reply of replies.toReversed()) {
+    if (reply.state !== 'LINKED' || reply.business_id !== inquiry.business_id || reply.chat_id !== preview.recipient ||
+        reply.sender_chat !== preview.recipient || !sourceIds.has(reply.dispatch_id)) continue;
+    const entries = formEntries(reply.body);
+    if (formReference(entries) !== reference || !entries.some(([field]) => ['ITEM','TERIMA','HARGA','STATUS'].includes(field))) continue;
+    const result = parseQuoteReply(entries,inquiry,service,workflow.today);
+    return {reply,draft:null,...result};
+  }
+  return null;
 }

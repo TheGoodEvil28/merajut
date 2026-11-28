@@ -1,7 +1,7 @@
 import { one } from './db.js';
 import { orderReference } from './order-flow.js';
 import { formatDate, formatTime } from './ui-copy.js';
-import { quoteFormLines } from './whatsapp-quote.js';
+import { partnerQuoteForm } from './whatsapp-quote.js';
 
 export const followupLabels = {
   quote_request:'Minta penawaran dari mitra',
@@ -40,17 +40,14 @@ export function followupDrafts(inquiry, fields, workflow) {
       `Marajut · ${followupLabels[purpose]} · ${reference}`,
       `${fields.service} · ${inquiry.quantity ?? 1} pakaian.`,
       ...lines,
-      purpose==='quote_request' ? null : `Mohon balas dengan referensi ${reference}.`
+      `Mohon balas dengan referensi ${reference}.`
     ].filter(Boolean).join('\n');
     drafts[purpose] = {contextKey,text};
   };
   if (!workflow.order_id) {
     if (inquiry.dispatch_state==='AVAILABLE' && !workflow.quote_active &&
         ['NEW','UNDER_REVIEW','QUOTED','EXPIRED'].includes(inquiry.status)) {
-      // A prior request for a free-text reply should not block sending the form.
-      add('quote_request',`quote-form-v1:${workflow.quote_id || 'initial'}`,
-        'Terima kasih sudah menyanggupi permintaan ini. Mohon kirim usulan harga, perkiraan selesai, dan jadwal fitting jika diperlukan.',
-        quoteFormLines(reference));
+      drafts.quote_request = {contextKey:`quote-form-v1:${workflow.quote_id || 'initial'}`,text:partnerQuoteForm(inquiry,fields,true)};
     }
     return drafts;
   }

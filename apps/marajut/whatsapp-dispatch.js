@@ -5,7 +5,7 @@ import { lockInquiry } from './inquiries.js';
 import { orderReference } from './order-flow.js';
 import { canonicalChat } from './whatsapp-config.js';
 import { followupDrafts, followupLabels, readDispatchWorkflow } from './whatsapp-followup.js';
-import { quoteReplyDraft } from './whatsapp-quote.js';
+import { partnerQuoteForm, quoteReplyDraft } from './whatsapp-quote.js';
 
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const blockingStates = ['QUEUED','SENDING','RETRY_WAIT','SENT','NEEDS_REVIEW','CONFIRMED_MANUALLY'];
@@ -123,17 +123,13 @@ export async function dispatchSnapshot(db, inquiry, channel, settings, {
       WHERE d.recipient=$2 AND (d.state IN ('SENDING','NEEDS_REVIEW') OR d.late_evidence) LIMIT 1`, [inquiry.id,recipient]);
   if (ancestor) reason ||= 'Periksa pengiriman pada permintaan sebelumnya sebelum menghubungi tujuan ini kembali.';
   const reference = orderReference(inquiry.id);
-  const lines = channel === 'group' ? [
+  const groupText = [
     `Marajut · Pekerjaan ${reference}`,
     `${fields.service} · ${inquiry.quantity ?? 1} pakaian.`,
     `Jika tersedia, balas admin secara pribadi dengan referensi ${reference}.`
-  ] : [
-    `Marajut · Permintaan ${reference}`,
-    `${fields.service} · ${inquiry.quantity ?? 1} pakaian.`,
-    fields.desired_date ? `Tanggal yang diharapkan ${fields.desired_date}.` : '',
-    `Mohon balas dengan referensi ${reference}, kesediaan, harga tetap, perkiraan selesai, dan kebutuhan fitting.`
-  ];
-  const text = contact ? lines.filter(Boolean).join('\n') : followup?.text || '';
+  ].join('\n');
+  const contactText = channel === 'group' ? groupText : partnerQuoteForm(inquiry,fields);
+  const text = contact ? contactText : followup?.text || '';
   const snapshot = [1,text,recipient,settings.mode,settings.sessionId,permission?.id,permission?.version,inquiry.business_id];
   // Existing approvals keep their snapshot digest through the migration.
   if (!contact) snapshot.push(purpose,contextKey);
@@ -204,7 +200,10 @@ export async function dispatchPanel(pool, actor, inquiryId, settings) {
     LEFT JOIN businesses b ON b.id=n.business_id WHERE n.inquiry_id=$1 AND n.event_kind='message.received'
     ORDER BY n.message_at,n.received_at,n.id`,[inquiryId])).rows;
   const quotePreview = followups.find(item => item.purpose==='quote_request');
-  const quoteReply = quoteReplyDraft(inquiry,quotePreview,history,replies,settings,inputs.workflow.today);
+  const {workflow,fields} = inputs;
+  const firstContact = !workflow.quote_id && !workflow.order_id && ['NEW','UNDER_REVIEW','NEEDS_DETAILS'].includes(inquiry.status)
+    ? previews.find(item => item.channel==='partner') : null;
+  const quoteReply = quoteReplyDraft(inquiry,quotePreview ?? firstContact,history,replies,settings,workflow,fields.service);
   return {previews,followups,history,replies,quoteReply,mode:settings.mode};
 }
 
