@@ -18,6 +18,7 @@ const labels = {
 };
 const aliases = new Map(Object.entries(labels).flatMap(([key,label]) => [[key,key],[label.toUpperCase(),key]]));
 for (const [label,key] of [['KODE','REF'],['ITEM','ITEM'],['BERLAKU','BERLAKU']]) aliases.set(label,key);
+const exampleHeading = 'Contoh pengisian';
 
 export function partnerQuoteForm(inquiry, fields, followup = false) {
   const reference = orderReference(inquiry.id);
@@ -29,7 +30,7 @@ export function partnerQuoteForm(inquiry, fields, followup = false) {
     `👕 *Jumlah:* ${inquiry.quantity ?? 1} pakaian`,
     ...(fields.desired_date ? [`Target pelanggan: ${fields.desired_date}`] : []),
     '',
-    'Halo, salin pesan ini dan isi jawaban setelah titik dua. Ganti setiap pilihan dengan satu jawaban.',
+    'Isi bagian 1–5 setelah titik dua, lalu balas di chat ini dengan referensi di atas. Jika tidak bersedia, cukup isi TIDAK pada bagian 1.',
     '',
     '*1. KESEDIAAN PENGERJAAN*',
     `${labels.TERIMA}: ${followup ? 'YA' : 'YA / TIDAK'}`,
@@ -52,21 +53,26 @@ export function partnerQuoteForm(inquiry, fields, followup = false) {
     `${labels.SERAH_TERIMA}: AMBIL / KIRIM`,
     `${labels.CATATAN}:`,
     '',
-    '━━━━━━━━━━━━━━',
-    '✅ *KONFIRMASI*',
-    `${labels.STATUS}: AJUKAN / TOLAK`,
-    '',
-    'Harga tetap adalah total untuk seluruh pakaian. Tulis tanggal DD/MM/YYYY dan jadwal fitting DD/MM/YYYY JJ:MM (WIB) jika sudah disepakati.',
-    'Durasi dan catatan boleh dikosongkan. Jika menolak, isi kesediaan dan status saja.',
-    `Kirim kembali di chat ini dan sertakan referensi ${reference}.`,
-    '',
-    '*Marajut — Dari Web ke Chat, Setiap Jahitan Terhubung.*'
+    `*${exampleHeading}*`,
+    'Gunakan contoh ini sebagai acuan. Ganti harga total, jadwal, dan catatan sesuai pesanan.',
+    `> ${labels.TERIMA}: YA`,
+    `> ${labels.HARGA}: Rp50.000`,
+    `> ${labels.CATATAN_BIAYA}: Tidak ada`,
+    `> ${labels.SELESAI}: 15/01/2027`,
+    `> ${labels.DURASI_HARI}: 4`,
+    `> ${labels.FITTING}: YA`,
+    `> ${labels.JADWAL_FITTING}: 12/01/2027 14:00`,
+    `> ${labels.LOKASI_FITTING}: Studio jahit`,
+    `> ${labels.CATATAN_FITTING}: Datang untuk pengukuran`,
+    `> ${labels.SERAH_TERIMA}: AMBIL`,
+    `> ${labels.CATATAN}: Ambil setelah pembayaran lunas`
   ].join('\n');
 }
 
 function formEntries(body) {
   const entries = [];
   for (const line of (body ?? '').split(/\r?\n/)) {
+    if (line.replace(/\*/g,'').trim().toLowerCase() === exampleHeading.toLowerCase()) break;
     const match = line.match(/^[^\p{L}]*([\p{L}][^:]*):\*?[ \t]*(.*)$/u);
     if (!match) continue;
     const field = aliases.get(match[1].replace(/\*/g,'').trim().toUpperCase());
@@ -121,7 +127,8 @@ function parseQuoteReply(entries, inquiry, service, today) {
     fittingAt = fitting === 'TIDAK' ? '' : fitting.replace(' ','T');
     if (Boolean(fittingAt) !== Boolean(fittingPlace)) return null;
   } else {
-    if (choice('TERIMA') !== 'YA' || choice('STATUS') !== 'AJUKAN' || !['YA','TIDAK'].includes(fitting) || items.length) return null;
+    const status = choice('STATUS');
+    if (choice('TERIMA') !== 'YA' || (status && status !== 'AJUKAN') || !['YA','TIDAK'].includes(fitting) || items.length) return null;
     const price = values.get('HARGA')?.match(/^(?:Rp\.?\s*)?(\d+|\d{1,3}(?:\.\d{3})+)$/i);
     if (!price) return null;
     items.push({name:service,quantity:1,unitPrice:price[1].replaceAll('.','')});

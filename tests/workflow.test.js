@@ -1021,7 +1021,11 @@ test('RFC-0004 dispatch authorization, queue recovery and signed replies', async
   assert.equal(partner.reason,null);
   assert.match(partner.masked,/0001$/);
   assert.match(partner.text,/2099-12-10/);
+  const reference = requestId.slice(0,8).toUpperCase();
+  assert.ok(group.text.includes('```\n'+reference+'\n```'));
   assert.match(partner.text,/Bersedia menerima pesanan: YA \/ TIDAK[\s\S]*Harga tetap \(Rp\):/);
+  assert.match(partner.text,/\*Contoh pengisian\*\n[\s\S]*> Harga tetap \(Rp\): Rp50\.000/);
+  assert.doesNotMatch(partner.text,/Status penawaran|KONFIRMASI\*\n|Dari Web ke Chat/);
   assert.doesNotMatch(group.text,/Harga tetap \(Rp\)/);
   assert.doesNotMatch(group.text+partner.text,/PRIVATE-|6281200000001/);
   const page = await admin.request('/requests/'+requestId,{raw:true});
@@ -1068,7 +1072,6 @@ test('RFC-0004 dispatch authorization, queue recovery and signed replies', async
   assert.match(repliedPage,/id="balasan-whatsapp"[\s\S]*&lt;em&gt;tersedia&lt;\/em&gt;[\s\S]*value="AVAILABLE">Penjahit bersedia/);
   assert.doesNotMatch(repliedPage,/id="editor-penawaran"/);
   assert.doesNotMatch(await customer.request('/requests/'+requestId,{raw:true}),/Riwayat WhatsApp|tersedia&lt;|Balasan WhatsApp diterima/);
-  const reference = requestId.slice(0,8).toUpperCase();
   const customerPath = '/requests/'+requestId;
   const receive = async (id,body,chatId=alias) => {
     await callback('message.received',{...reply,id,body,chatId,author:alias,timestamp:Math.floor(Date.now()/1000)});
@@ -1082,8 +1085,7 @@ test('RFC-0004 dispatch authorization, queue recovery and signed replies', async
     .replace('Perlu fitting: YA / TIDAK','Perlu fitting: YA')
     .replace('Catatan fitting:','Catatan fitting: Datang untuk pengukuran')
     .replace('Cara serah terima: AMBIL / KIRIM','Cara serah terima: KIRIM')
-    .replace('Catatan tambahan:','Catatan tambahan: Jahitan dikirim setelah pembayaran terverifikasi.')
-    .replace('Status penawaran: AJUKAN / TOLAK','Status penawaran: AJUKAN');
+    .replace('Catatan tambahan:','Catatan tambahan: Jahitan dikirim setelah pembayaran terverifikasi.');
   await receive('quote-first-contact',filledForm(partner.text));
   const firstReplyPage = await admin.request(customerPath,{raw:true});
   assert.match(firstReplyPage,/Mitra sudah mengirim penawaran/);
@@ -1138,8 +1140,10 @@ CATATAN: Jahitan dikirim setelah pembayaran terverifikasi.`;
   await receive('quote-invalid',filledForm(quoteRequest.text).replace('Rp50.000','Rp50,00'));
   assert.match(await admin.request(customerPath,{raw:true}),/Balasan formulir WhatsApp belum bisa diisikan/);
   assert.equal((await readPanel()).quoteReply.draft,null);
-  const declined = partner.text.replace('Bersedia menerima pesanan: YA / TIDAK','Bersedia menerima pesanan: TIDAK')
-    .replace('Status penawaran: AJUKAN / TOLAK','Status penawaran: TOLAK');
+  await receive('quote-only-example',quoteRequest.text.replace('Perlu fitting: YA / TIDAK','Perlu fitting: YA')
+    .replace('Cara serah terima: AMBIL / KIRIM','Cara serah terima: AMBIL'));
+  assert.equal((await readPanel()).quoteReply.draft,null);
+  const declined = partner.text.replace('Bersedia menerima pesanan: YA / TIDAK','Bersedia menerima pesanan: TIDAK');
   await receive('quote-declined',declined);
   assert.equal((await readPanel()).quoteReply.declined,true);
   assert.equal((await readPanel()).quoteReply.draft,null);
@@ -1151,6 +1155,8 @@ CATATAN: Jahitan dikirim setelah pembayaran terverifikasi.`;
   await receive('quote-compact',`REF: ${reference}\nTERIMA: YA\nHARGA: 50000\nSELESAI: 2099-12-11\nDURASI_HARI: 4\nFITTING: YA\nCATATAN_FITTING: Datang untuk pengukuran\nCATATAN: Bahan dibawa pelanggan\nSTATUS: AJUKAN`);
   assert.equal((await readPanel()).quoteReply.fittingPending,true);
   await receive('quote-complete',filledForm(quoteRequest.text)
+    .replace('*Contoh pengisian*','Contoh pengisian')
+    .replaceAll('\n> ','\n')
     .replace('Jadwal fitting (WIB):','Jadwal fitting (WIB): 10/12/2099 10:00')
     .replace('Lokasi fitting:','Lokasi fitting: Studio uji'));
   await receive('quote-regular-message',`Terima kasih ${reference}`);

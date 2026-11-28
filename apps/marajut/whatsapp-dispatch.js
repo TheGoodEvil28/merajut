@@ -124,9 +124,15 @@ export async function dispatchSnapshot(db, inquiry, channel, settings, {
   if (ancestor) reason ||= 'Periksa pengiriman pada permintaan sebelumnya sebelum menghubungi tujuan ini kembali.';
   const reference = orderReference(inquiry.id);
   const groupText = [
-    `Marajut · Pekerjaan ${reference}`,
-    `${fields.service} · ${inquiry.quantity ?? 1} pakaian.`,
-    `Jika tersedia, balas admin secara pribadi dengan referensi ${reference}.`
+    '🧵 *MARAJUT — PERMINTAAN JAHIT*',
+    `🪡 ${fields.service} · ${inquiry.quantity ?? 1} pakaian`,
+    '',
+    '*Kode pesanan*',
+    '```',
+    reference,
+    '```',
+    '',
+    'Jika bersedia, salin kode di atas dan kirim ke admin lewat chat pribadi.'
   ].join('\n');
   const contactText = channel === 'group' ? groupText : partnerQuoteForm(inquiry,fields);
   const text = contact ? contactText : followup?.text || '';
