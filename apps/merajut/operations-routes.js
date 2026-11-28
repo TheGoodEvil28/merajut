@@ -8,7 +8,8 @@ import { operationsBoard,partnerDirectory,inviteTailor,moderateShop,decideCancel
 import { deskOverview,partnerDetails,savePartner,updateDispatch,reassign,servicePerformance } from './dispatch.js';
 import { saveService } from './catalog.js';
 import { approveDispatch, reviewDispatch, dispatchPanel, dispatchOperations, dispatchInbox,
-  permissionFor, saveDispatchPermission, pauseDispatch, resolveDispatchInbox } from './whatsapp-dispatch.js';
+  hasDispatchPermission, permissionFor, saveDispatchPermission, pauseDispatch, resolveDispatchInbox } from './whatsapp-dispatch.js';
+import { canonicalChat } from './whatsapp-config.js';
 import { followupLabels } from './whatsapp-followup.js';
 import { serviceCategories } from './service-categories.js';
 import { businessPhotoUpload, readBusinessPhoto, removeBusinessPhoto, saveBusinessPhoto } from './business-photos.js';
@@ -102,8 +103,19 @@ export function operationsRouter(pool,{operator,provider,finish,dispatch}) {
     res.render('partner',{...newPartnerPage,contactInput:'+'+number.data,
       onboarding:{number:number.data,text:partnerOnboardingMessage(number.data),existing}});
   });
-  router.get('/pengelola/mitra/:id',async(req,res)=>res.render('partner',{title:'Kelola mitra',...await partnerDetails(pool,parse(id,req.params.id)),
-    whatsappPermission:await permissionFor(pool,dispatch,parse(id,req.params.id)),dispatchMode:dispatch.mode,saved:req.query.saved==='1'}));
+  router.get('/pengelola/mitra/:id', async (req,res) => {
+    const partnerId = parse(id, req.params.id);
+    const [details, whatsappPermission, groupPermission] = await Promise.all([
+      partnerDetails(pool, partnerId), permissionFor(pool, dispatch, partnerId), permissionFor(pool, dispatch)
+    ]);
+    const whatsappApproved = hasDispatchPermission(whatsappPermission, canonicalChat(details.business.whatsapp + '@c.us'));
+    const groupApproved = hasDispatchPermission(groupPermission, dispatch.groupChatId);
+    const groupMember = whatsappApproved && groupApproved
+      && whatsappPermission.verified_group === groupPermission.chat_id
+      && whatsappPermission.verified_group_version === groupPermission.version;
+    res.render('partner', { title:'Kelola mitra', ...details, whatsappPermission, whatsappApproved,
+      groupMember, groupApproved, dispatchMode:dispatch.mode, saved:req.query.saved==='1' });
+  });
   router.get('/pengelola/mitra/:id/ulasan', async (req,res) => {
     const { business } = await partnerDetails(pool, parse(id, req.params.id));
     const cursor = parse(id.optional(), req.query.sebelum);

@@ -48,8 +48,8 @@
     </details>
     <% if (whatsapp.groupChatId) { %>
       <details class="form-disclosure"><summary>Persetujuan grup penjahit</summary>
-        <p><%= whatsapp.groupLabel || whatsapp.groupChatId %> · <%= whatsapp.groupPermission && !whatsapp.groupPermission.revoked_at?'Disetujui':'Perlu persetujuan' %></p>
-        <%- include('whatsapp-permission',{permission:whatsapp.groupPermission,partnerPermission:false,
+        <p><%= whatsapp.groupLabel || whatsapp.groupChatId %> · <%= whatsapp.groupApproved ? 'Disetujui' : 'Perlu persetujuan' %></p>
+        <%- include('whatsapp-permission',{permission:whatsapp.groupPermission,approved:whatsapp.groupApproved,partnerPermission:false,
           permissionPath:'/api/v1/management/whatsapp/group-permission',consentLabel:'Semua anggota grup setuju menerima pengumuman pekerjaan'}) %>
       </details>
     <% } %>

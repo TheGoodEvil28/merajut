@@ -29,6 +29,10 @@ export async function permissionFor(db, settings, businessId = null, lock = fals
     [settings.mode, settings.sessionId, businessId ? 'partner:'+businessId : 'group']);
 }
 
+export function hasDispatchPermission(permission, chatId) {
+  return Boolean(chatId && permission?.chat_id === chatId && !permission.revoked_at);
+}
+
 export function saveDispatchPermission(pool, actor, settings, businessId, input) {
   requireDispatchManager(actor);
   if (settings.mode === 'disabled') conflict('Aktifkan konfigurasi dispatch sebelum mencatat persetujuan.');
@@ -44,7 +48,7 @@ export function saveDispatchPermission(pool, actor, settings, businessId, input)
     const senderAlias = input.senderAlias || null;
     if (senderAlias && !/^\d+@lid$/.test(senderAlias)) conflict('Identitas WhatsApp alternatif tidak valid.');
     const group = business && input.groupMember === 'yes' ? await permissionFor(db,settings,null,true) : null;
-    if (input.action === 'grant' && business && input.groupMember === 'yes' && (!group || group.revoked_at || group.chat_id!==settings.groupChatId)) {
+    if (input.action === 'grant' && business && input.groupMember === 'yes' && !hasDispatchPermission(group, settings.groupChatId)) {
       conflict('Setujui grup terlebih dahulu sebelum mencatat keanggotaan mitra.');
     }
     const permission = await one(db, `INSERT INTO whatsapp_dispatch_permissions
@@ -135,7 +139,7 @@ export async function dispatchSnapshot(db, inquiry, channel, settings, {
   }
   const permission = await permissionFor(db, settings, channel === 'partner' ? inquiry.business_id : null, lock);
   const recipient = channel === 'partner' ? canonicalChat(fields.whatsapp+'@c.us') : settings.groupChatId;
-  if (!recipient || !permission || permission.revoked_at || permission.chat_id !== recipient) {
+  if (!hasDispatchPermission(permission, recipient)) {
     reason ||= 'Persetujuan untuk tujuan WhatsApp saat ini diperlukan.';
   }
   const manual = contact && await one(db, 'SELECT id FROM domain_events WHERE inquiry_id=$1 AND kind=$2 LIMIT 1',
@@ -264,8 +268,9 @@ export async function dispatchOperations(pool, settings) {
     (SELECT gateway_state FROM whatsapp_dispatch_heartbeats WHERE mode=$1 AND session_id=$2) AS gateway_state,
     (SELECT min(created_at) FROM whatsapp_dispatches WHERE state IN ('QUEUED','RETRY_WAIT','SENDING')) AS oldest,
     (SELECT count(*)::int FROM whatsapp_dispatches WHERE state='NEEDS_REVIEW' OR late_evidence) AS review_count`, [settings.mode,settings.sessionId]);
+  const groupPermission = await permissionFor(pool,settings);
   return {health,mode:settings.mode,groupChatId:settings.groupChatId,groupLabel:settings.groupLabel,paused:await dispatchPaused(pool,settings),
-    groupPermission:await permissionFor(pool,settings)};
+    groupPermission,groupApproved:hasDispatchPermission(groupPermission, settings.groupChatId)};
 }
 
 export async function dispatchInbox(pool) {

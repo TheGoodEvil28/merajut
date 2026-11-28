@@ -2,6 +2,18 @@
 
 Update this guide with every change. Record the affected roles, prerequisites, steps, expected results, verification method, and any unverified behavior.
 
+## Centang persetujuan WhatsApp · 28 November 2026 UTC
+
+Gunakan sesi admin pada preview QA dengan pengiriman simulasi, satu grup uji, dan satu profil mitra dengan nomor sintetis.
+
+| Langkah | Hasil yang diharapkan |
+| --- | --- |
+| Buka **Mitra → Kelola → Persetujuan WhatsApp mitra** sebelum menyimpan persetujuan. | Centang persetujuan kosong. Centang keanggotaan grup tersedia setelah grup penjahit disetujui di **Operasional**. |
+| Catat persetujuan grup simulasi. Buka profil mitra, isi referensi, centang persetujuan mitra dan keanggotaan grup, lalu klik **Simpan persetujuan**. Muat ulang halaman. | Status **Disetujui** dan kedua centang tampil kembali. Centang persetujuan grup juga tampil kembali di **Operasional**. |
+| Perbarui persetujuan grup. Buka kembali profil mitra, lalu coba cabut persetujuan mitra dengan alasan yang sesuai. | Perubahan persetujuan grup memerlukan pemeriksaan ulang keanggotaan. Setelah persetujuan mitra dicabut, kedua kotak kosong dan status berubah menjadi **Perlu persetujuan**. |
+
+**Hasil uji.** Pemeriksaan JavaScript, 28 uji integrasi, tiga uji Chromium loopback, dan uji browser simpan, muat ulang, serta pencabutan dengan data sintetis lulus. Setelah Docker preview diperbarui, kedua centang yang sudah tersimpan tampil kembali pada profil mitra melalui HTTPS. Verifikasi di preview hanya membaca status dan menggunakan browser dari VM. Pengiriman WhatsApp langsung dan browser dari jaringan lain belum diuji untuk perubahan ini.
+
 ## Foto usaha, notifikasi, dan ulasan pelanggan · 28 November 2026 UTC
 
 Gunakan preview QA terpisah dengan migrasi 014, akun admin, dua akun pelanggan, dan dua akun mitra. Siapkan satu foto sintetis JPEG, PNG, atau WebP hingga 3 MB dan pesanan uji dengan pembayaran demo. Gunakan gateway WhatsApp simulasi untuk menguji balasan mitra.

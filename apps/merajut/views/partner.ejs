@@ -55,9 +55,9 @@
         <% if (dispatchMode!=='disabled' && business.whatsapp) { %>
           <section class="card stack" id="whatsapp-permission">
             <h2>Persetujuan WhatsApp mitra</h2>
-            <p><%= business.whatsapp %> · <%= whatsappPermission && !whatsappPermission.revoked_at?'Disetujui':'Perlu persetujuan' %></p>
+            <p><%= business.whatsapp %> · <%= whatsappApproved ? 'Disetujui' : 'Perlu persetujuan' %></p>
             <% if (dispatchMode==='mock') { %><p class="muted">Simulasi WhatsApp</p><% } %>
-            <%- include('whatsapp-permission',{permission:whatsappPermission,partnerPermission:true,
+            <%- include('whatsapp-permission',{permission:whatsappPermission,approved:whatsappApproved,partnerPermission:true,groupMember,groupApproved,
               permissionPath:'/api/v1/management/partners/'+business.id+'/whatsapp-permission',
               consentLabel:'Mitra setuju menerima pesan koordinasi pada nomor ini'}) %>
           </section>
