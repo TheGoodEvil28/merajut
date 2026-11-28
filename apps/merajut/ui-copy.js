@@ -20,6 +20,7 @@ const events = {
   ORDER_UPDATED: 'Status pesanan diperbarui', ORDER_SHIPPED: 'Pesanan dikirim',
   TAILOR_START_PLANNED:'Rencana mulai dari mitra', TAILOR_PROGRESS:'Kabar pengerjaan dari mitra',
   TAILOR_FITTING_ACK:'Mitra siap untuk jadwal fitting', TAILOR_BLOCKED:'Mitra melaporkan kendala', TAILOR_RESUMED:'Pesanan dapat dilanjutkan',
+  SERVICE_REVIEW_REPLIED: 'Mitra menanggapi ulasan Anda',
   FITTING_CHANGE_REQUESTED:'Pelanggan meminta jadwal lain', FITTING_PROPOSED:'Jadwal fitting baru diusulkan',
   FITTING_CONFIRMED:'Pelanggan menyetujui jadwal fitting', FITTING_DONE:'Fitting selesai',
   QUOTE_EXPIRED:'Penawaran kedaluwarsa', CANCEL_REVIEW:'Pembatalan diajukan',

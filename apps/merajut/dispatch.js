@@ -72,7 +72,8 @@ export async function servicePerformance(pool,businessId=null) {
 }
 
 export async function partnerDetails(pool,id) {
-  const business=found(await one(pool,`SELECT b.*,u.display_name AS operator FROM businesses b
+  const business=found(await one(pool,`SELECT b.*,u.display_name AS operator,
+    EXISTS (SELECT 1 FROM business_photos WHERE business_id=b.id) AS has_photo FROM businesses b
     LEFT JOIN provider_memberships m ON m.business_id=b.id AND m.active LEFT JOIN users u ON u.id=m.user_id
     WHERE b.id=$1`,[id]));
   const services=(await pool.query('SELECT * FROM services WHERE business_id=$1 ORDER BY active DESC,name,id',[id])).rows;

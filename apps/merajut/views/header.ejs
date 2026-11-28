@@ -21,6 +21,7 @@ const links = dashboard ? [] : user?.role === 'provider' ? [
   ['/workspace', 'Ringkasan', 'grid', here === '/workspace' || here.startsWith('/requests/')],
   ['/workspace/services', 'Layanan Saya', 'scissors', here === '/workspace/services'],
   ['/workspace/profile', 'Profil Usaha', 'shop', here === '/workspace/profile'],
+  ['/workspace/ulasan', 'Ulasan pelanggan', 'quote', here === '/workspace/ulasan'],
   ...(intakeEnabled ? [['/workspace/intake', 'Chat simulasi', 'chat', here.startsWith('/workspace/intake')]] : [])
 ] : user?.role === 'operator' ? [
   ...(user.manager ? [
@@ -50,6 +51,12 @@ const links = dashboard ? [] : user?.role === 'provider' ? [
         <% } %>
       </nav><% } %>
       <div class="nav-account">
+      <% if (user?.role === 'customer') { %>
+        <a class="notification-link" href="/akun/notifikasi" data-notifications aria-label="Notifikasi"
+          <% if (here === '/akun/notifikasi') { %>aria-current="page"<% } %>>
+          <%- include('icon', {name:'inbox'}) %><span class="notification-count" data-notification-count aria-hidden="true" hidden></span>
+        </a>
+      <% } %>
       <% if (dashboard) { %><a class="button" href="<%= dashboard %>"><%= user.role === 'customer' ? 'Cek Pesanan' : 'Buka Dasbor' %> <%- include('icon', {name:'arrow'}) %></a>
       <% } else if (user) { %>
         <% if (studio) { %><span class="account-name"><b aria-hidden="true"><%= Array.from(user.display_name)[0] %></b><%= user.display_name %></span><% } %>

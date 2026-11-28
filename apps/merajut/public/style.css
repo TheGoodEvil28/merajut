@@ -338,10 +338,10 @@ fieldset.price-editor { min-width: 0; margin: 0; padding: .85rem; border: 1px so
   .nav { min-height: 3.8rem; gap: .35rem; flex-wrap: wrap; }
   .brand { font-size: 1.7rem; }
   .nav-account { padding-left: .35rem; }
-  .market-shell .site-header .nav:has(.nav-account > a) { display: grid; grid-template-columns: 1fr auto; gap: 0; padding-top: .35rem; }
-  .market-shell .nav:has(.nav-account > a) nav { display: none; } /* guests on phones: logo + Masuk only */
-  .market-shell .nav:has(.nav-account > a) .nav-account { grid-column: 2; grid-row: 1; }
-  .nav-account:has(> a) { padding: 0; border: 0; }
+  .market-shell .site-header .nav:has(.nav-account > .button) { display: grid; grid-template-columns: 1fr auto; gap: 0; padding-top: .35rem; }
+  .market-shell .nav:has(.nav-account > .button) nav { display: none; } /* guests on phones: logo + Masuk only */
+  .market-shell .nav:has(.nav-account > .button) .nav-account { grid-column: 2; grid-row: 1; }
+  .nav-account:has(> .button) { padding: 0; border: 0; }
   .nav-account > .button { padding-inline: .7rem; font-size: .86rem; }
   .site-header nav a, .site-header button.quiet { padding: .4rem .5rem; font-size: .83rem; }
   .site-header nav a .icon { display: none; }
@@ -843,3 +843,19 @@ button.danger-outline:hover { color: #fff; background: var(--clay); border-color
 .thread-layer path { vector-effect: non-scaling-stroke; will-change: transform; }
 @media (max-width: 640px) { .thread-layer [data-phone="hide"] { display: none; } } /* phones: the tall page stretches curves across body text, so keep only the threads that fall in gaps */
 .market-shell:has(.thread-layer):not(.nav-pinned) > .site-header { background: transparent; } /* resting navbar blends into the paper so the top thread runs behind it; the pinned bar keeps its surface colour */
+
+.notification-link {
+  position: relative; display: grid; place-items: center; width: 44px; min-height: 44px;
+  color: var(--plum); border-radius: .7rem; text-decoration: none; flex: none;
+}
+.notification-link:hover, .notification-link[aria-current] { background: #f2e8eb; color: var(--plum); }
+.notification-count {
+  position: absolute; inset: .08rem -.15rem auto auto; min-width: 1.25rem; padding: .1rem .25rem;
+  border-radius: 999px; background: var(--plum); color: white; font-size: .72rem; text-align: center;
+}
+.business-photo { display: block; width: min(100%, 27rem); height: auto; max-height: 24rem; object-fit: contain; object-position: left; border-radius: .8rem; }
+.shop-photo { margin-top: 1rem; }
+.activity-list { list-style: none; padding: 0; display: grid; gap: .8rem; }
+.activity-list .status { margin-inline-start: .35rem; }
+.activity-list p { margin-block: .4rem; }
+.activity-pagination { margin-top: 1rem; }

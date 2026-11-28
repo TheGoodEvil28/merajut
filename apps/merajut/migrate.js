@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { createPool, one, transaction } from './db.js';
 
 const migrations = new URL('../../db/migrations/', import.meta.url);
-export const schemaVersion = '013_merajut_brand.sql';
+export const schemaVersion = '014_customer_experience.sql';
 
 // Both versions rename the same demo accounts. Keep successful earlier migration records valid.
 const demoAccountMigration = {

@@ -21,8 +21,10 @@ const nextStep = order ? {
     QUOTED: canManage ? 'Pelanggan perlu memutuskan penawaran terbaru.' : 'Periksa harga, tanggal selesai, dan masa berlaku sebelum menyetujui.',
     DECLINED: 'Penjahit telah menutup permintaan ini.', CANCELLED: 'Permintaan ini telah dibatalkan.'
   })[state]; %>
-<section class="section">
+<% const liveOrder = isCustomer && ['CONFIRMED','IN_PROGRESS','READY'].includes(order?.status); %>
+<section class="section" <% if (liveOrder) { %>data-order-version="<%= events.at(-1)?.sequence ?? '0' %>" data-order-updates="/api/v1/inquiries/<%= inquiry.id %>/order-version"<% } %>>
   <a class="back" href="<%= user.manager?'/pengelola':'/workspace' %>"><%= user.manager ? 'Papan pesanan' : user.role==='provider' ? 'Ringkasan Usaha' : 'Pesanan Saya' %></a>
+  <% if (liveOrder) { %><p class="notice" data-order-update-pending role="status" hidden>Ada pembaruan pesanan. Muat ulang halaman setelah selesai mengisi.</p><% } %>
   <div class="page-heading">
     <div><% if (user.role !== 'provider') { %><p class="location"><%= inquiry.business %></p><% } %><h1><%= inquiry.service %></h1></div>
     <span class="status" data-state="<%= state %>"><%= label(latest?.status === 'EXPIRED' && !order && state === 'QUOTED' ? 'EXPIRED' : state) %></span>
@@ -82,6 +84,7 @@ const nextStep = order ? {
           <% } %>
         </section>
         <% if (inquiry.dispatch_state) { %><%- include('order-payment') %><% } else { %><%- include('order-management', { legacyProvider:user.role==='provider' }) %><% } %>
+        <% if (order.status === 'COMPLETED') { %><%- include('service-review') %><% } %>
       <% } %>
       <% if (latest && !order) { %>
         <section class="card" id="penawaran" tabindex="-1">

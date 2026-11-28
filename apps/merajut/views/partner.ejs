@@ -51,6 +51,7 @@
         <button><%= business ? 'Simpan mitra' : 'Simpan mitra sebagai draf' %></button>
       </form>
       <% if (business) { const serviceBase='/api/v1/management/partners/'+business.id+'/services'; %>
+        <%- include('business-photo', { photoPath:'/api/v1/management/partners/'+business.id+'/photo' }) %>
         <% if (dispatchMode!=='disabled' && business.whatsapp) { %>
           <section class="card stack" id="whatsapp-permission">
             <h2>Persetujuan WhatsApp mitra</h2>
@@ -80,6 +81,7 @@
         <div><dt>Kontak WhatsApp</dt><dd><%= business.whatsapp?'Tersimpan':'Belum diisi' %></dd></div>
         <% if (business.operator) { %><div><dt>Akun penjahit</dt><dd><%= business.operator %></dd></div><% } %>
       </dl>
+      <a href="/pengelola/mitra/<%= business.id %>/ulasan">Lihat ulasan pelanggan</a>
       <% const canPublish = business.published || (activeCount && (business.whatsapp || business.operator)); %>
       <% if (!canPublish) { %><p>Simpan kontak WhatsApp dan tambahkan layanan aktif untuk memublikasikan profil.</p><% } %>
       <% if (canPublish || business.operator) { %><div class="actions">

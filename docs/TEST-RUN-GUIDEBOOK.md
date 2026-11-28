@@ -2,6 +2,21 @@
 
 Update this guide with every change. Record the affected roles, prerequisites, steps, expected results, verification method, and any unverified behavior.
 
+## Foto usaha, notifikasi, dan ulasan pelanggan · 28 November 2026 UTC
+
+Gunakan preview QA terpisah dengan migrasi 014, akun admin, dua akun pelanggan, dan dua akun mitra. Siapkan satu foto sintetis JPEG, PNG, atau WebP hingga 3 MB dan pesanan uji dengan pembayaran demo. Gunakan gateway WhatsApp simulasi untuk menguji balasan mitra.
+
+| Peran | Langkah | Hasil yang diharapkan |
+| --- | --- | --- |
+| Admin dan mitra | Buka **Mitra → Kelola → Foto usaha** sebagai admin atau **Profil Usaha → Foto usaha** sebagai mitra. Unggah, ganti, lalu hapus gambar. Coba unggah file rusak atau buka URL foto profil yang masih draf dari sesi tamu. | Satu foto dapat disimpan per usaha. Foto disimpan sebagai JPEG dan tampil di profil marketplace setelah dipublikasikan. Foto draf hanya tersedia untuk admin dan mitra pemilik profil. |
+| Pelanggan dan admin | Buka ikon **Notifikasi** dan pilih **Tandai semua dibaca**. Biarkan **Pesanan Saya** terbuka, lalu mulai pengerjaan dari sesi admin atau melalui balasan WhatsApp simulasi yang terverifikasi. Lanjutkan ke fitting, pembayaran, dan serah terima. | Angka baru muncul di ikon tanpa memuat ulang halaman. Notifikasi mengarah ke pesanan yang sesuai. Pelanggan lain tidak menerima notifikasi pesanan ini. Riwayat tahap pesanan yang sudah ada juga tersedia dari kotak notifikasi. |
+| Pelanggan | Buka pesanan sebelum dan setelah serah terima selesai. Isi **Ulasan pesanan** dengan nilai 1–5 dan masukan opsional. Coba kirim lagi atau kirim dari akun pelanggan lain. | Formulir hanya muncul untuk pelanggan pemilik pesanan yang sudah selesai. Satu pesanan menerima satu ulasan. |
+| Mitra dan admin | Sebagai mitra yang menangani pesanan, buka **Ulasan pelanggan**, periksa nilai rata-rata, buka pesanan dan kirim tanggapan. Sebagai admin, buka **Mitra → Kelola → Lihat ulasan pelanggan**. Periksa notifikasi pelanggan dan tampilan profil publik. | Mitra melihat ulasan usahanya sendiri dan dapat menanggapi sekali per ulasan. Pelanggan menerima notifikasi tanggapan. Nilai, masukan, dan tanggapan tersedia di ruang pelanggan terkait, mitra yang menangani pesanan, dan admin. |
+
+**Hasil uji.** Pemeriksaan JavaScript, 28 uji integrasi, dan tiga uji Chromium melalui HTTPS loopback lulus. Uji browser memverifikasi unggah dan hapus foto, angka notifikasi yang berubah tanpa memuat ulang halaman, pembayaran demo, ulasan pelanggan, tanggapan mitra, dan akses admin. Uji integrasi memverifikasi penolakan akses lintas akun, pembatasan ulasan duplikat, dan notifikasi dari balasan WhatsApp simulasi yang terverifikasi.
+
+**Preview terpasang.** Cadangan basis data terenkripsi disimpan sebelum migrasi 014. Docker preview lulus readiness. Chromium dari VM berhasil masuk melalui HTTPS dan membuka panel foto admin, kotak notifikasi pelanggan, dan halaman ulasan mitra. Pengujian yang menulis data dilakukan di QA. Pengujian dari jaringan lain dan pengalihan HTTP publik masih terbuka. Cloudflare mengembalikan tantangan autentikasi `401` untuk HTTP dan HTTPS saat diuji tanpa kredensial.
+
 ## Merajut brand correction · 28 November 2026 UTC
 
 Use Docker Compose, Node 22 or later, Chromium, and separate guest, customer, tailor, and admin sessions on a synthetic preview. Build and run the integration suite and the three loopback browser scripts. For an existing preview use its Compose project name, PostgreSQL settings and mounted volumes. For OpenWA reuse the registered callback hostname and network with `OPENWA_CALLBACK_HOST` and `OPENWA_DISPATCH_NETWORK`.

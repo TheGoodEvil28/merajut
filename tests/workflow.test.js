@@ -250,6 +250,7 @@ test('Express and PostgreSQL workflow', async t => {
 
   await t.test('legal order transitions and event history persist across pools', async () => {
     const path = '/api/v1/provider/orders/' + orderId + '/transitions';
+    await customer.request('/api/v1/orders/' + orderId + '/review', { body: { rating: 5 }, status: 409 });
     await tailor.request(path, { body: { action: 'complete', revision: 1 }, status: 409 });
     await foreignTailor.request(path, { body: { action: 'start', revision: 1 }, status: 404 });
     await tailor.request(path, { body: { action: 'start', revision: 1 } });
@@ -271,6 +272,55 @@ test('Express and PostgreSQL workflow', async t => {
     assert.match(page, /Detail pesanan/);
     assert.match(page, /Versi sebelumnya/);
     assert.doesNotMatch(page, /payment successful/i);
+  });
+
+  await t.test('completed service feedback is private, unique and tied to the assigned tailor', async () => {
+    const review = '/api/v1/orders/' + orderId + '/review';
+    const reply = '/api/v1/provider/orders/' + orderId + '/review/reply';
+    const url = '/requests/' + requestId;
+    const body = { rating: 5, comment: 'Rapi & nyaman <uji>' };
+    await foreignCustomer.request(review, { body, status: 404 });
+    await customer.request(review, { body: { rating: 6 }, status: 422 });
+    await customer.request(review, { body, status: 201 });
+    await customer.request(review, { body, status: 409 });
+    await foreignTailor.request(reply, { body: { reply: 'Bukan pesanan saya.' }, status: 404 });
+    assert.doesNotMatch(await foreignTailor.request('/workspace/ulasan', { raw: true }), /Rapi/);
+    assert.match(await tailor.request('/workspace/ulasan', { raw: true }), /Rapi &amp; nyaman &lt;uji&gt;/);
+    await tailor.request(reply, { body: { reply: 'Terima kasih atas masukannya.' } });
+    await tailor.request(reply, { body: { reply: 'Tanggapan duplikat' }, status: 409 });
+    assert.match(await customer.request(url, { raw: true }), /Terima kasih atas masukannya/);
+    assert.match(await customer.request('/akun/notifikasi', { raw: true }), /Mitra menanggapi ulasan Anda/);
+    assert.doesNotMatch(await client.request('/penjahit/jahit-rina', { raw: true }), /Rapi &amp; nyaman/);
+  });
+
+  await t.test('a business photo is normalized and accessible only through authorized profiles', async () => {
+    const manager = browserClient(base);
+    await manager.request('/api/v1/session');
+    await manager.request('/api/v1/session', { body: { email: seedEmails.operator, password } });
+    const { rows: [business] } = await pool.query("SELECT id FROM businesses WHERE slug='jahit-rina'");
+    const managed = '/api/v1/management/partners/' + business.id + '/photo';
+    const own = '/api/v1/provider/profile/photo';
+    const published = '/penjahit/jahit-rina/foto';
+    const photo = await sharp({ create: { width: 10, height: 14, channels: 3, background: '#512746' } })
+      .png().toBuffer();
+    const upload = (body, status) => ({ body, status, headers: { 'content-type': 'image/png' }, raw: true });
+    await pool.query('UPDATE businesses SET published=false WHERE id=$1', [business.id]);
+    try {
+      await customer.request(managed, { status: 403 });
+      await manager.request(managed, upload(photo, 204));
+      await client.request(published, { raw: true, status: 404 });
+      await foreignTailor.request(own, { status: 404 });
+      const privateCopy = await tailor.request(own, { raw: 'bytes' });
+      assert.equal((await sharp(privateCopy).metadata()).format, 'jpeg');
+      await tailor.request(own, upload(Buffer.from('invalid photo'), 422));
+      await pool.query('UPDATE businesses SET published=true WHERE id=$1', [business.id]);
+      assert.deepEqual(await client.request(published, { raw: 'bytes' }), privateCopy);
+      assert.match(await client.request('/penjahit/jahit-rina', { raw: true }), /Foto usaha Jahit Rina/);
+      await tailor.request(own + '/remove', { body: {} });
+      await client.request(published, { raw: true, status: 404 });
+    } finally {
+      await pool.query('UPDATE businesses SET published=true WHERE id=$1', [business.id]);
+    }
   });
 
   await t.test('duplicate intents, retry, failure, and lost responses preserve the order', async () => {
@@ -1456,6 +1506,13 @@ test('verified WhatsApp replies advance only eligible order stages and update th
   await reply('Sudah mulai.',{id:startId});
   await reply('Sudah mulai.',{id:startId,handled:false});
   assert.equal((await detail()).order.status,'IN_PROGRESS');
+  const unread = '/api/v1/notifications/unread';
+  const inbox = '/akun/notifikasi';
+  assert.equal((await other.request(unread)).count, 0);
+  assert.equal((await customer.request(unread)).count, 4);
+  assert.match(await customer.request(inbox,{raw:true}), /Pesanan mulai dikerjakan/);
+  await customer.request('/api/v1/notifications/read',{body:{}});
+  assert.equal((await customer.request(unread)).count, 0);
   await reply('Tidak bisa lanjut.',{at:timestamp-1});
   assert.equal((await detail()).order.tailor_blocked,false);
   await reply('Progres: jahit\nPerkiraan selesai: 12/12/2099');
@@ -1468,6 +1525,9 @@ test('verified WhatsApp replies advance only eligible order stages and update th
   const blockedPage = await customer.request(customerPath,{raw:true});
   assert.match(blockedPage,/Pesanan tertunda/);
   assert.doesNotMatch(blockedPage,/INFORMASI-PRIBADI-MITRA/);
+  const alerts = await customer.request(inbox,{raw:true});
+  assert.match(alerts,/Mitra melaporkan kendala/);
+  assert.doesNotMatch(alerts,/INFORMASI-PRIBADI-MITRA/);
   assert.match(await admin.request('/pengelola?filter=follow-up',{raw:true}),/Tindak lanjuti kendala mitra/);
   await admin.request('/api/v1/management/orders/'+orderId+'/transitions',{
     body:{action:'resume',revision:current.order.revision}
@@ -1495,6 +1555,7 @@ test('verified WhatsApp replies advance only eligible order stages and update th
   await reply('Pelanggan sudah menerima pesanan.');
   current = await detail();
   assert.equal(current.order.status,'COMPLETED');
+  assert.match(await customer.request(inbox,{raw:true}), /Pesanan selesai/);
   assert.equal(current.events.filter(item=>item.kind==='ORDER_UPDATED' && item.new_status==='IN_PROGRESS').length,1);
   assert.notEqual((await customer.request(versionPath)).version,initial.version);
   assert.ok((await panel()).replies.some(item=>item.correlation==='ORDER_UPDATE_REVIEW_REQUIRED'));

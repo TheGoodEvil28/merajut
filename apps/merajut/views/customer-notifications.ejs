@@ -1,0 +1,34 @@
+<%- include('header') %>
+<section class="section profile-layout">
+  <a class="back" href="/workspace">Pesanan Saya</a>
+  <header class="page-heading">
+    <div><h1>Notifikasi</h1><p class="muted">Pembaruan pesanan dan tanggapan mitra.</p></div>
+    <% if (items.length) { %>
+      <form method="post" action="/api/v1/notifications/read">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <button class="secondary">Tandai semua dibaca</button>
+      </form>
+    <% } %>
+  </header>
+  <% if (items.length) { %>
+    <ul class="activity-list">
+      <% for (const item of items) { %>
+        <li class="card">
+          <a href="/requests/<%= item.inquiry_id %><%= item.kind === 'SERVICE_REVIEW_REPLIED' ? '#service-review' : '' %>"><strong><%= item.title %></strong></a>
+          <% if (item.unread) { %><span class="status" data-tone="neutral">Baru</span><% } %>
+          <p><%= item.service %></p>
+          <time class="muted" datetime="<%= item.created_at.toISOString() %>"><%= dateTime(item.created_at) %></time>
+        </li>
+      <% } %>
+    </ul>
+  <% } else { %>
+    <p class="notice">Belum ada notifikasi.</p>
+  <% } %>
+  <% if (before || next) { %>
+    <nav aria-label="Halaman notifikasi" class="actions activity-pagination">
+      <% if (before) { %><a href="/akun/notifikasi" class="button secondary">Terbaru</a><% } %>
+      <% if (next) { %><a href="/akun/notifikasi?sebelum=<%= next %>" class="button secondary">Lebih lama</a><% } %>
+    </nav>
+  <% } %>
+</section>
+<%- include('footer') %>

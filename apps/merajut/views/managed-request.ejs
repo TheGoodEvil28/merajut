@@ -114,6 +114,7 @@ const showWhatsAppFollowups = whatsapp && whatsapp.mode!=='disabled' && whatsapp
       <% } %>
       <% if (showHandover) { %><%- include('managed-handover',{isCustomer}) %><% } %>
       <% if (hasPayment) { %><%- include('order-payment') %><% } %>
+      <% if (order?.status === 'COMPLETED') { %><%- include('service-review') %><% } %>
       <% if (user.manager && !dispatchFirst && (open || progressAction || order?.status==='READY' || showWhatsAppFollowups || whatsapp?.history.length || whatsapp?.replies.length)) { %><%- include('managed-dispatch',{awaitingReplyDecision}) %><% } %>
       <% if (isCustomer) { %><%# customer cancel card lives in the right column %>
       <% } else if (open || (user.manager && order?.status==='CONFIRMED')) { %>

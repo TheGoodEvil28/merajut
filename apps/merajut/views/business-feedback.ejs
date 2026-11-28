@@ -1,0 +1,28 @@
+<%- include('header') %>
+<section class="section profile-layout">
+  <a class="back" href="<%= backPath %>"><%= backLabel %></a>
+  <header class="page-heading"><div><h1>Ulasan pelanggan</h1><p><%= business.name %></p></div></header>
+  <% if (summary.count) { %>
+    <p class="notice"><strong><%= summary.average.toLocaleString('id-ID') %> dari 5</strong> · <%= summary.count %> ulasan</p>
+    <ul class="activity-list">
+      <% for (const item of items) { %>
+        <li class="card">
+          <h2><%= item.service %></h2>
+          <p><strong>Nilai <%= item.rating %> dari 5</strong> · <%= dateTime(item.created_at) %></p>
+          <% if (item.comment) { %><p class="preserve"><%= item.comment %></p><% } %>
+          <% if (item.reply) { %><p class="preserve"><strong>Tanggapan mitra</strong><br><%= item.reply %></p><% } %>
+          <a href="/requests/<%= item.inquiry_id %>#service-review"><%= user.role === 'provider' && !item.reply ? 'Lihat pesanan dan tanggapi' : 'Lihat pesanan' %></a>
+        </li>
+      <% } %>
+    </ul>
+  <% } else { %>
+    <p class="notice">Belum ada ulasan pelanggan.</p>
+  <% } %>
+  <% if (before || next) { %>
+    <nav class="actions activity-pagination" aria-label="Halaman ulasan">
+      <% if (before) { %><a href="<%= pagePath %>" class="button secondary">Terbaru</a><% } %>
+      <% if (next) { %><a href="<%= pagePath %>?sebelum=<%= next %>" class="button secondary">Lebih lama</a><% } %>
+    </nav>
+  <% } %>
+</section>
+<%- include('footer') %>

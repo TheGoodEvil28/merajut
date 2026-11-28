@@ -129,7 +129,7 @@ if (photo) {
         body: file
       });
       if (response.ok) {
-        window.location.hash = 'request-photos';
+        window.location.hash = photo.closest('section[id]').id;
         window.location.reload();
         return;
       }
@@ -313,4 +313,27 @@ if (liveOrder) {
     setTimeout(pollOrder,5000);
   }
   setTimeout(pollOrder,5000);
+}
+
+const notifications = document.querySelector('[data-notifications]');
+if (notifications) {
+  const badge = notifications.querySelector('[data-notification-count]');
+  async function pollNotifications() {
+    if (!document.hidden) {
+      try {
+        const response = await fetch('/api/v1/notifications/unread', { cache: 'no-store' });
+        if ([401,403].includes(response.status)) return;
+        if (response.ok) {
+          const { count } = await response.json();
+          badge.textContent = count > 99 ? '99+' : count;
+          badge.hidden = count === 0;
+          notifications.setAttribute('aria-label', count ? `Notifikasi, ${count} belum dibaca` : 'Notifikasi');
+        }
+      } catch {
+        // Retry while the page remains open.
+      }
+    }
+    setTimeout(pollNotifications,5000);
+  }
+  pollNotifications();
 }

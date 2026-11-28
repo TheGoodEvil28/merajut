@@ -11,6 +11,8 @@ import { approveDispatch, reviewDispatch, dispatchPanel, dispatchOperations, dis
   permissionFor, saveDispatchPermission, pauseDispatch, resolveDispatchInbox } from './whatsapp-dispatch.js';
 import { followupLabels } from './whatsapp-followup.js';
 import { serviceCategories } from './service-categories.js';
+import { businessPhotoUpload, readBusinessPhoto, removeBusinessPhoto, saveBusinessPhoto } from './business-photos.js';
+import { businessFeedback } from './service-reviews.js';
 
 const partner = businessProfile.extend({whatsapp:phone,specialty:z.string().trim().min(2).max(160)});
 const password=z.string().min(1).max(128);
@@ -102,6 +104,28 @@ export function operationsRouter(pool,{operator,provider,finish,dispatch}) {
   });
   router.get('/pengelola/mitra/:id',async(req,res)=>res.render('partner',{title:'Kelola mitra',...await partnerDetails(pool,parse(id,req.params.id)),
     whatsappPermission:await permissionFor(pool,dispatch,parse(id,req.params.id)),dispatchMode:dispatch.mode,saved:req.query.saved==='1'}));
+  router.get('/pengelola/mitra/:id/ulasan', async (req,res) => {
+    const { business } = await partnerDetails(pool, parse(id, req.params.id));
+    const cursor = parse(id.optional(), req.query.sebelum);
+    const backPath = '/pengelola/mitra/' + business.id;
+    res.render('business-feedback', {
+      title: 'Ulasan pelanggan', business, ...await businessFeedback(pool, business.id, cursor),
+      before: cursor, pagePath: backPath + '/ulasan', backPath, backLabel: 'Profil mitra'
+    });
+  });
+  router.get('/api/v1/management/partners/:id/photo', async (req,res) => {
+    const { content } = await readBusinessPhoto(pool, req.actor, parse(id, req.params.id));
+    res.type('jpeg').send(content);
+  });
+  router.post('/api/v1/management/partners/:id/photo', businessPhotoUpload, async (req,res) => {
+    await saveBusinessPhoto(pool, req.actor, parse(id, req.params.id), req.body);
+    res.sendStatus(204);
+  });
+  router.post('/api/v1/management/partners/:id/photo/remove', async (req,res) => {
+    const businessId = parse(id, req.params.id);
+    await removeBusinessPhoto(pool, req.actor, businessId);
+    finish(req, res, { removed: true }, '/pengelola/mitra/' + businessId + '#business-photo');
+  });
   router.get('/pengelola/whatsapp',async(req,res)=>res.render('whatsapp-inbox',{
     title:'Balasan WhatsApp',items:await dispatchInbox(pool),saved:req.query.saved==='1'
   }));

@@ -11,6 +11,7 @@
     <p class="shop-badge"><%= profile.completed_orders %> Pesanan Selesai</p>
     <span class="shop-watermark" aria-hidden="true"><%- include('icon', {name:'shop'}) %></span>
   </div>
+  <% if (profile.has_photo) { %><img class="business-photo shop-photo" src="/penjahit/<%= profile.slug %>/foto" alt="Foto usaha <%= profile.name %>"><% } %>
   <div class="section-caption profile-services"><div><h2>Layanan yang ditawarkan</h2>
     <p class="muted">Harga dibawah adalah perkiraan, selanjutnya penjahit mengirim harga dan tanggal selesai setelah meninjau permintaan.</p></div></div>
   <% if (!services.length) { %>

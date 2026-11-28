@@ -1,0 +1,39 @@
+<% if (review || user.role === 'customer') { %>
+  <section class="card stack" id="service-review" aria-labelledby="service-review-title">
+    <h2 id="service-review-title">Ulasan pesanan</h2>
+    <% if (review) { %>
+      <p><strong>Nilai <%= review.rating %> dari 5</strong> · <%= dateTime(review.created_at) %></p>
+      <% if (review.comment) { %><p class="preserve"><%= review.comment %></p><% } %>
+      <% if (review.reply) { %>
+        <div class="notice">
+          <h3>Tanggapan mitra</h3>
+          <p class="preserve"><%= review.reply %></p>
+          <time class="muted" datetime="<%= review.replied_at.toISOString() %>"><%= dateTime(review.replied_at) %></time>
+        </div>
+      <% } else if (user.role === 'provider') { %>
+        <form class="stack" method="post" action="/api/v1/provider/orders/<%= order.id %>/review/reply">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <label><span class="field-label">Tanggapan untuk pelanggan</span>
+            <textarea name="reply" rows="3" maxlength="500" required></textarea>
+          </label>
+          <button>Kirim tanggapan</button>
+        </form>
+      <% } %>
+    <% } else { %>
+      <p class="muted">Bagikan pengalaman Anda. Ulasan dapat dilihat oleh Anda, mitra yang mengerjakan pesanan, dan admin.</p>
+      <form class="stack" method="post" action="/api/v1/orders/<%= order.id %>/review">
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <label><span class="field-label">Nilai layanan<span class="req" aria-hidden="true"></span></span>
+          <select name="rating" required>
+            <option value="">Pilih nilai</option>
+            <% for (const rating of [5, 4, 3, 2, 1]) { %><option value="<%= rating %>"><%= rating %> dari 5</option><% } %>
+          </select>
+        </label>
+        <label><span class="field-label">Masukan untuk mitra (opsional)</span>
+          <textarea name="comment" rows="3" maxlength="500"></textarea>
+        </label>
+        <button>Kirim ulasan</button>
+      </form>
+    <% } %>
+  </section>
+<% } %>

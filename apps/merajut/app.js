@@ -21,6 +21,10 @@ import { accountRouter } from './account-routes.js';
 import { operationsRouter } from './operations-routes.js';
 import { catalogFilters, serviceCategories } from './service-categories.js';
 import { addPhoto, photoLimit, readPhoto, removePhoto } from './photos.js';
+import { businessPhotoUpload, publicBusinessPhoto, readBusinessPhoto, removeBusinessPhoto, saveBusinessPhoto } from './business-photos.js';
+import { customerNotifications, markNotificationsRead, unreadNotifications } from './customer-notifications.js';
+import { businessFeedback, serviceReview, serviceReviewInput, submitServiceReview,
+  reviewReplyInput, replyToServiceReview } from './service-reviews.js';
 import { paymentSettings, midtrans, paymentNotification, startPayment, checkPayment } from './payments.js';
 import { orderJourney, orderReference, milestones, fittingLabels, handoverLabels } from './order-flow.js';
 import { dispatchContacts, orderComplaint, reassign } from './dispatch.js';
@@ -210,6 +214,10 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
     const detail = await publicProvider(pool, req.params.slug);
     res.render('public-provider', { title: detail.profile.name, ...detail });
   });
+  app.get('/penjahit/:slug/foto', async (req, res) => {
+    const { content } = await publicBusinessPhoto(pool, req.params.slug);
+    res.type('jpeg').send(content);
+  });
   app.get('/api/v1/services', async (req, res) => res.json(await publicCatalog(pool, catalogFilters(req.query))));
   app.get('/mitra/daftar',(req,res)=>res.render('partner-interest',{title:'Bergabung sebagai mitra',sent:req.query.sent==='1'}));
   app.post('/mitra/daftar',rateLimit({windowMs:60*60_000,limit:10}),async(req,res)=>{
@@ -306,6 +314,26 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
     const business = await updateProfile(pool, req.actor, input.parse(input.businessProfile, req.body));
     finish(req, res, business, '/workspace/profile?saved=1');
   });
+  app.get('/api/v1/provider/profile/photo', provider, async (req, res) => {
+    const { content } = await readBusinessPhoto(pool, req.actor, null);
+    res.type('jpeg').send(content);
+  });
+  app.post('/api/v1/provider/profile/photo', provider, businessPhotoUpload, async (req, res) => {
+    await saveBusinessPhoto(pool, req.actor, null, req.body);
+    res.sendStatus(204);
+  });
+  app.post('/api/v1/provider/profile/photo/remove', provider, async (req, res) => {
+    await removeBusinessPhoto(pool, req.actor, null);
+    finish(req, res, { removed: true }, '/workspace/profile#business-photo');
+  });
+  app.get('/workspace/ulasan', provider, async (req, res) => {
+    const cursor = input.parse(input.id.optional(), req.query.sebelum);
+    const business = await activeBusiness(pool, req.actor);
+    res.render('business-feedback', {
+      title: 'Ulasan pelanggan', business, ...await businessFeedback(pool, business.id, cursor),
+      before: cursor, pagePath: '/workspace/ulasan', backPath: '/workspace', backLabel: 'Ringkasan Usaha'
+    });
+  });
   app.get('/api/v1/inquiries', participant, async (req, res) => res.json(await listInquiries(pool, req.actor)));
   const renderInquiryForm = async (res, fields = {}, formError = null) => {
     const preferred = input.id.safeParse(fields.serviceId);
@@ -372,6 +400,7 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
 
   async function renderRequest(req,res,id,options={}) {
     const detail = await requestPage(req.actor,id);
+    const review = detail.order?.status === 'COMPLETED' ? await serviceReview(pool, detail.order.id) : null;
     const whatsapp = req.actor.manager && detail.inquiry.dispatch_state ? await dispatchPanel(pool,req.actor,id,dispatch) : null;
     const quoteReply = whatsapp?.quoteReply;
     const partnerReply = quoteReply?.reply ?? whatsapp?.replies.findLast(reply => reply.business_id===detail.inquiry.business_id && reply.body);
@@ -387,12 +416,22 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
     const notice = Object.hasOwn(notices,req.query.updated) ? notices[req.query.updated] : null;
     return res.render(template, {
       title: detail.inquiry.service, ...detail, quoteDraft:quoteReply?.draft ?? null, quoteError:null, formError:null, fittingDraft:null,
-      paymentError:null,whatsapp,partnerReply,quoteReply,quoteReviewUrl,
+      paymentError:null,whatsapp,partnerReply,quoteReply,quoteReviewUrl,review,
       notice, ...options
     });
   }
   app.get('/requests/:id', workReader, async (req, res) => {
     return renderRequest(req,res,input.parse(input.id,req.params.id));
+  });
+  app.post('/api/v1/orders/:id/review', customer, async (req, res) => {
+    const orderId = input.parse(input.id, req.params.id);
+    const result = await submitServiceReview(pool, req.actor, orderId, input.parse(serviceReviewInput, req.body));
+    finish(req, res, result, '/requests/' + result.inquiry_id + '#service-review', 201);
+  });
+  app.post('/api/v1/provider/orders/:id/review/reply', provider, async (req, res) => {
+    const orderId = input.parse(input.id, req.params.id);
+    const result = await replyToServiceReview(pool, req.actor, orderId, input.parse(reviewReplyInput, req.body));
+    finish(req, res, result, '/requests/' + result.inquiry_id + '#service-review');
   });
   app.get('/api/v1/inquiries/:id', workReader, async (req, res) =>
     res.json(await inquiryDetail(pool, req.actor, input.parse(input.id, req.params.id))));
@@ -515,6 +554,18 @@ export function createApp(pool, { origin = 'http://localhost:3100', mode = messa
     finish(req, res, result, '/workspace/services');
   });
 
+  app.get('/akun/notifikasi', customer, async (req, res) => {
+    const before = input.parse(z.string().regex(/^[1-9]\d{0,17}$/).optional(), req.query.sebelum);
+    const activity = await customerNotifications(pool, req.actor.id, before);
+    res.render('customer-notifications', { title: 'Notifikasi', ...activity, before });
+  });
+  app.get('/api/v1/notifications/unread', customer, async (req, res) => {
+    res.json({ count: await unreadNotifications(pool, req.actor.id) });
+  });
+  app.post('/api/v1/notifications/read', customer, async (req, res) => {
+    await markNotificationsRead(pool, req.actor.id);
+    finish(req, res, { read: true }, '/akun/notifikasi');
+  });
   app.get('/workspace/messages', customer, async (req, res) =>
     res.render('messages', { title: 'Notifikasi simulasi', ...await simulationInbox(pool, req.actor) }));
   app.get('/api/v1/messages', customer, async (req, res) => res.json(await simulationInbox(pool, req.actor)));

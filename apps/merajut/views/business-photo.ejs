@@ -1,0 +1,24 @@
+<section class="card stack" id="business-photo" aria-labelledby="business-photo-title">
+  <h2 id="business-photo-title">Foto usaha</h2>
+  <p class="muted">Foto tampil di halaman usaha setelah profil dipublikasikan.</p>
+  <% if (business.has_photo) { %>
+    <img class="business-photo" src="<%= photoPath %>" alt="Foto usaha <%= business.name %>">
+  <% } %>
+  <form class="photo-upload stack" data-photo-upload data-url="<%= photoPath %>" hidden>
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <label><span class="field-label"><%= business.has_photo ? 'Pilih foto pengganti' : 'Pilih foto usaha' %></span>
+      <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required aria-describedby="business-photo-help">
+    </label>
+    <p class="form-help muted" id="business-photo-help">JPEG, PNG, atau WebP. Maksimal 3 MB.</p>
+    <p class="error-message" data-photo-status role="status" hidden></p>
+    <button class="secondary"><%= business.has_photo ? 'Ganti foto usaha' : 'Unggah foto usaha' %></button>
+  </form>
+  <noscript><p class="muted">Aktifkan JavaScript untuk mengunggah foto.</p></noscript>
+  <% if (business.has_photo) { %>
+    <form method="post" action="<%= photoPath %>/remove">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button type="submit" class="quiet" data-confirm="Foto akan dihapus dari profil usaha." data-confirm-title="Hapus foto usaha?"
+        data-confirm-action="Ya, hapus" data-confirm-tone="danger">Hapus foto usaha</button>
+    </form>
+  <% } %>
+</section>

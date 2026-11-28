@@ -12,7 +12,8 @@ export async function publicCatalog(pool, { search = '', category = '', preferre
 }
 
 export async function activeBusiness(db, actor, lock = false) {
-  const sql = `SELECT b.id, b.slug, b.name, b.area, b.description, b.published FROM provider_memberships m
+  const sql = `SELECT b.id, b.slug, b.name, b.area, b.description, b.published,
+    EXISTS (SELECT 1 FROM business_photos WHERE business_id=b.id) AS has_photo FROM provider_memberships m
     JOIN businesses b ON b.id = m.business_id WHERE m.user_id = $1 AND m.active`;
   if (lock) {
     const active = found(await one(db,sql,[actor.id]));
@@ -24,6 +25,7 @@ export async function activeBusiness(db, actor, lock = false) {
 
 export async function publicProvider(pool, slug) {
   const profile = found(await one(pool, `SELECT slug, name, area, description, specialty,
+    EXISTS (SELECT 1 FROM business_photos WHERE business_id=b.id) AS has_photo,
     (SELECT count(*)::int FROM orders o WHERE o.business_id=b.id AND o.status='COMPLETED') AS completed_orders,
     COALESCE((SELECT jsonb_agg(jsonb_build_object('id', s.id, 'name', s.name,
       'description', s.description, 'price_hint', s.price_hint, 'category', s.category,
